@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E8 Static Poster</title>
+    <style>
+        /* Base page styling */
+        body {
+            background-color: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* The Poster Container */
+        .poster-container {
+            background-color: #ffffff;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            max-width: 1200px;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* SVG internal styling */
+        svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .node-shadow {
+            filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.15));
+        }
+
+        .text-bold { font-weight: 800; }
+        .text-semibold { font-weight: 600; }
+        .text-regular { font-weight: 400; }
+
+        /* Print-specific CSS */
+        @media print {
+            body { background: white; padding: 0; margin: 0; }
+            .poster-container {
+                box-shadow: none;
+                max-width: 100%;
+                border-radius: 0;
+            }
+            @page {
+                size: auto;
+                margin: 0mm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="poster-container">
+        <!-- The entire graphic is a pure SVG for infinite scaling and perfect print quality -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1550">
+
+            <defs>
+                <!-- Background Blueprint Grid -->
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f1f5f9" stroke-width="1.5"/>
+                </pattern>
+
+                <!-- Arrowheads for lines -->
+                <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                    <polygon points="0 1, 10 5, 0 9" fill="#94a3b8" />
+                </marker>
+
+                <marker id="arrow-down" markerWidth="10" markerHeight="10" refX="5" refY="9" orient="auto">
+                    <polygon points="1 0, 5 10, 9 0" fill="#94a3b8" />
+                </marker>
+
+                <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                    <polygon points="0 1, 10 5, 0 9" fill="#8b5cf6" />
+                </marker>
+
+                <!-- Gradients for connecting lines -->
+                <linearGradient id="splitGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#cbd5e1" />
+                    <stop offset="100%" stop-color="#94a3b8" />
+                </linearGradient>
+            </defs>
+
+            <!-- Background -->
+            <rect width="100%" height="100%" fill="url(#grid)" />
+
+            <!-- ================= TIMELINE AXIS (LEFT) ================= -->
+            <line x1="80" y1="80" x2="80" y2="1480" stroke="#cbd5e1" stroke-width="4" stroke-dasharray="8 8" />
+
+            <!-- Timeline Labels -->
+            <g transform="translate(95, 110)">
+                <text x="0" y="0" font-size="14" class="text-bold" fill="#475569">10^19 GeV</text>
+                <text x="0" y="20" font-size="12" class="text-semibold" fill="#94a3b8">PLANCK SCALE</text>
+            </g>
+
+            <g transform="translate(95, 420)">
+                <text x="0" y="0" font-size="14" class="text-bold" fill="#475569">10^16 GeV</text>
+                <text x="0" y="20" font-size="12" class="text-semibold" fill="#94a3b8">GUT SCALE</text>
+            </g>
+
+            <g transform="translate(95, 1060)">
+                <text x="0" y="0" font-size="14" class="text-bold" fill="#475569">~1 TeV</text>
+                <text x="0" y="20" font-size="12" class="text-semibold" fill="#94a3b8">SUSY BREAKING SCALE</text>
+            </g>
+
+            <g transform="translate(95, 1285)">
+                <text x="0" y="0" font-size="14" class="text-bold" fill="#475569">100 GeV</text>
+                <text x="0" y="20" font-size="12" class="text-semibold" fill="#94a3b8">ELECTROWEAK SCALE</text>
+            </g>
+
+            <text x="-800" y="48" transform="rotate(-90)" font-size="16" class="text-bold" fill="#94a3b8" letter-spacing="6">ENERGY / TEMPERATURE OF THE UNIVERSE</text>
+
+
+            <!-- ================= CONNECTING LINES ================= -->
+            <!-- E8 to Hidden/Visible -->
+            <path d="M 410 190 C 410 245, 260 245, 260 280" stroke="url(#splitGrad)" stroke-width="5" fill="none" marker-end="url(#arrow)" />
+            <path d="M 410 190 C 410 245, 560 245, 560 280" stroke="url(#splitGrad)" stroke-width="5" fill="none" marker-end="url(#arrow)" />
+
+            <!-- Hidden Track -->
+            <path d="M 260 345 L 260 1350" stroke="#94a3b8" stroke-width="5" fill="none" />
+
+
+            <!-- Visible Track Main Spine -->
+            <path d="M 560 325 L 560 370" stroke="#94a3b8" stroke-width="5" fill="none" marker-end="url(#arrow)" />
+            <path d="M 560 485 L 560 640" stroke="#94a3b8" stroke-width="5" fill="none" marker-end="url(#arrow)" />
+            <path d="M 560 805 L 560 1005" stroke="#94a3b8" stroke-width="5" fill="none" marker-end="url(#arrow)" />
+
+            <!-- Visible Track Breakoffs -->
+            <path d="M 560 315 Q 560 335, 590 335 L 810 335" stroke="#94a3b8" stroke-width="4" stroke-dasharray="6 6" fill="none" marker-end="url(#arrow)" />
+            <path d="M 560 480 Q 560 500, 590 500 L 810 500" stroke="#94a3b8" stroke-width="4" stroke-dasharray="6 6" fill="none" marker-end="url(#arrow)" />
+            <path d="M 560 595 Q 560 615, 590 615 L 810 615" stroke="#94a3b8" stroke-width="4" stroke-dasharray="6 6" fill="none" marker-end="url(#arrow)" />
+            <path d="M 560 800 Q 560 820, 590 820 L 810 820" stroke="#94a3b8" stroke-width="4" stroke-dasharray="6 6" fill="none" marker-end="url(#arrow)" />
+            <path d="M 560 910 Q 560 930, 590 930 L 810 930" stroke="#94a3b8" stroke-width="4" stroke-dasharray="6 6" fill="none" marker-end="url(#arrow)" />
+                        <path d="M 560 1105 Q 560 1125, 590 1125 L 810 1125" stroke="#94a3b8" stroke-width="4" stroke-dasharray="6 6" fill="none" marker-end="url(#arrow)" />
+            <path d="M 560 1265 Q 560 1285, 590 1285 L 810 1285" stroke="#94a3b8" stroke-width="4" stroke-dasharray="6 6" fill="none" marker-end="url(#arrow)" />
+
+            <!-- Gravitational Cross-Talk Wave -->
+            <path d="M 260 1170 Q 360 1120, 420 1170 T 550 1170" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-dasharray="8 8" marker-end="url(#arrow-purple)" />
+
+
+            <!-- ================= LINE LABELS (PROCESSES) ================= -->
+            <g transform="translate(260, 960)">
+                <rect x="-110" y="-15" width="220" height="30" rx="15" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                <text x="0" y="5" text-anchor="middle" font-size="12" class="text-bold" fill="#64748b">GAUGINO CONDENSATION</text>
+            </g>
+            <text x="260" y="990" font-size="11" class="text-semibold" fill="#94a3b8" text-anchor="middle">Breaks Supersymmetry</text>
+
+            <g transform="translate(420, 1170)">
+                <rect x="-120" y="-15" width="240" height="30" rx="15" fill="#f8fafc" stroke="#8b5cf6" stroke-width="2"/>
+                <text x="0" y="4" text-anchor="middle" font-size="11" class="text-bold" fill="#7c3aed">GRAVITATIONAL CROSS-TALK</text>
+            </g>
+            <text x="420" y="1140" font-size="10" class="text-semibold" fill="#8b5cf6" text-anchor="middle">Gravity-Mediated, M_Planck-Suppressed (Gravitinos)</text>
+
+
+
+            <!-- ================= VEV SYMMETRY BREAKING GRAPHIC (TOP RIGHT) ================= -->
+            <g transform="translate(970, 140)">
+                <!-- Background panel -->
+                <rect x="-170" y="-125" width="340" height="200" rx="14" fill="#0f172a" opacity="0.92"/>
+                <rect x="-170" y="-125" width="340" height="200" rx="14" fill="none" stroke="#334155" stroke-width="1.5"/>
+
+                <!-- Title -->
+                <text x="0" y="-100" text-anchor="middle" font-size="12" class="text-bold" fill="#94a3b8" letter-spacing="2">SYMMETRY BREAKING</text>
+                <text x="0" y="-84" text-anchor="middle" font-size="10" fill="#94a3b8">Vacuum Expectation Value (VEV) Mechanism</text>
+
+                <!-- Mexican Hat Potential - 2D cross-section (W-shape) -->
+                <!-- Correct shape: outer walls high, valleys at ±v, center peak at ϕ=0 -->
+
+                <defs>
+                    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#a78bfa"/>
+                        <stop offset="100%" stop-color="#6d28d9"/>
+                    </linearGradient>
+                    <marker id="arrow-gold" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                        <polygon points="0 1, 8 4, 0 7" fill="#fbbf24" />
+                    </marker>
+                    <marker id="arrow-dim" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                        <polygon points="0 0.5, 6 3, 0 5.5" fill="#475569" />
+                    </marker>
+                </defs>
+
+                <!-- Shaded region under curve -->
+                <path d="M -125 -20 Q -110 -55, -80 10 Q -55 35, 0 -15 Q 55 35, 80 10 Q 110 -55, 125 -20 L 125 35 L -125 35 Z"
+                      fill="#7c3aed" opacity="0.08"/>
+
+                <!-- The W-shaped potential curve -->
+                <!-- Left wall rises, dips to left valley, rises to center peak, dips to right valley, right wall rises -->
+                <path d="M -125 -20 Q -110 -55, -80 10 Q -55 35, 0 -15 Q 55 35, 80 10 Q 110 -55, 125 -20"
+                      fill="none" stroke="url(#rimGrad)" stroke-width="3"/>
+
+                <!-- Back rim ellipse for 3D hint -->
+                <ellipse cx="0" cy="18" rx="85" ry="14" fill="none" stroke="#6d28d9" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.35"/>
+
+                <!-- Unstable point at center peak (ϕ=0) -->
+                <circle cx="0" cy="-15" r="5" fill="#f87171" stroke="#fca5a5" stroke-width="1.5"/>
+                <text x="0" y="-25" text-anchor="middle" font-size="8" fill="#fca5a5" class="text-bold">⟨S⟩ = 0</text>
+                <text x="0" y="-35" text-anchor="middle" font-size="7" fill="#f87171">UNSTABLE</text>
+
+                <!-- Arrow showing rolling down from peak to right valley -->
+                <path d="M 10 -12 Q 30 0, 55 18" fill="none" stroke="#fbbf24" stroke-width="2" marker-end="url(#arrow-gold)"/>
+                <!-- Faint arrow to left valley -->
+                <path d="M -10 -12 Q -30 0, -55 18" fill="none" stroke="#fbbf24" stroke-width="1.5" opacity="0.25"/>
+
+                <!-- Stable point in right valley -->
+                <circle cx="80" cy="10" r="6" fill="#22c55e" stroke="#86efac" stroke-width="2">
+                    <animate attributeName="opacity" values="1;0.6;1" dur="3s" repeatCount="indefinite"/>
+                </circle>
+                <text x="80" y="-4" text-anchor="middle" font-size="8" fill="#86efac" class="text-bold">⟨S⟩ ≠ 0</text>
+
+                <!-- Label: "v" under right valley -->
+                <text x="80" y="32" text-anchor="middle" font-size="9" fill="#a78bfa" class="text-bold">v</text>
+                <line x1="80" y1="22" x2="80" y2="35" stroke="#a78bfa" stroke-width="1" stroke-dasharray="2 2"/>
+
+                <!-- Faint stable in left valley -->
+                <circle cx="-80" cy="10" r="4" fill="#22c55e" opacity="0.3"/>
+                <text x="-80" y="32" text-anchor="middle" font-size="9" fill="#a78bfa" opacity="0.4" class="text-bold">−v</text>
+
+                <!-- V(φ) axis -->
+                <line x1="-140" y1="35" x2="-140" y2="-55" stroke="#475569" stroke-width="1" marker-end="url(#arrow-dim)"/>
+                <text x="-143" y="-57" text-anchor="middle" font-size="8" fill="#94a3b8" class="text-bold">V(ϕ)</text>
+
+                <!-- φ axis -->
+                <line x1="-145" y1="35" x2="140" y2="35" stroke="#475569" stroke-width="1" marker-end="url(#arrow-dim)"/>
+                <text x="148" y="38" text-anchor="start" font-size="8" fill="#94a3b8" class="text-bold">ϕ</text>
+
+                <!-- Breaking chain annotation -->
+                <text x="0" y="52" text-anchor="middle" font-size="9" class="text-bold" fill="#c4b5fd">Singlet ⟨S⟩ Acquires VEV at Each Scale:</text>
+                <text x="0" y="65" text-anchor="middle" font-size="9" fill="#a78bfa">E6 → SO(10) → SU(5) → SM</text>
+
+            </g>
+
+
+            <!-- ================= COMPACTIFICATION GRAPHIC ================= -->
+            <g transform="translate(680, 125)">
+                <!-- Background -->
+                <rect x="-110" y="-110" width="220" height="200" rx="12" fill="#0f172a" opacity="0.88"/>
+                <rect x="-110" y="-110" width="220" height="200" rx="12" fill="none" stroke="#334155" stroke-width="1"/>
+
+                <!-- Title -->
+                <text x="0" y="-78" text-anchor="middle" font-size="9" class="text-bold" fill="#94a3b8" letter-spacing="1.5">COMPACTIFICATION</text>
+
+                <!-- 10D label -->
+                <text x="0" y="-60" text-anchor="middle" font-size="8" fill="#c4b5fd">10D String → 4D Spacetime + 6D Calabi-Yau</text>
+
+                <!-- Calabi-Yau inspired shape (trefoil cross-section) -->
+                <g transform="translate(0, 10)">
+                    <!-- Outer glow -->
+                    <ellipse cx="0" cy="0" rx="42" ry="42" fill="#7c3aed" opacity="0.06"/>
+
+                    <!-- Three-lobed Calabi-Yau cross section -->
+                    <!-- Lobe 1 (top) -->
+                    <path d="M 0 -8 Q -18 -38, 0 -35 Q 18 -38, 0 -8" fill="#7c3aed" opacity="0.25" stroke="#a78bfa" stroke-width="1.5"/>
+                    <!-- Lobe 2 (bottom-left) -->
+                    <path d="M 0 -8 Q -38 -2, -30 18 Q -25 32, 0 -8" fill="#7c3aed" opacity="0.25" stroke="#a78bfa" stroke-width="1.5"/>
+                    <!-- Lobe 3 (bottom-right) -->
+                    <path d="M 0 -8 Q 38 -2, 30 18 Q 25 32, 0 -8" fill="#7c3aed" opacity="0.25" stroke="#a78bfa" stroke-width="1.5"/>
+
+                    <!-- Inner structure lines (holes of manifold) -->
+                    <ellipse cx="-4" cy="-20" rx="5" ry="3" fill="none" stroke="#c4b5fd" stroke-width="0.8" opacity="0.6" transform="rotate(-15, -4, -20)"/>
+                    <ellipse cx="-15" cy="10" rx="5" ry="3" fill="none" stroke="#c4b5fd" stroke-width="0.8" opacity="0.6" transform="rotate(45, -15, 10)"/>
+                    <ellipse cx="15" cy="10" rx="5" ry="3" fill="none" stroke="#c4b5fd" stroke-width="0.8" opacity="0.6" transform="rotate(-45, 15, 10)"/>
+
+                    <!-- Center point -->
+                    <circle cx="0" cy="-8" r="2" fill="#e9d5ff"/>
+
+                    <!-- Subtle rotation animation -->
+                    <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="60s" repeatCount="indefinite"/>
+                </g>
+
+                <!-- Dimension labels around the shape -->
+                <text x="-65" y="5" font-size="7" fill="#a78bfa" class="text-bold">6D</text>
+                <text x="-65" y="15" font-size="7" fill="#a78bfa">curled</text>
+
+                <!-- Arrow: large → small -->
+                <line x1="55" y1="-10" x2="55" y2="30" stroke="#475569" stroke-width="1" stroke-dasharray="2 2"/>
+                <text x="55" y="-18" text-anchor="middle" font-size="7" fill="#94a3b8">10⁻³³ cm</text>
+                <text x="55" y="42" text-anchor="middle" font-size="6" fill="#94a3b8">Planck</text>
+                <text x="55" y="50" text-anchor="middle" font-size="6" fill="#94a3b8">scale</text>
+
+                <!-- Bottom: what emerges -->
+                <text x="0" y="68" text-anchor="middle" font-size="8" fill="#a5b4fc">χ(CY₃) = 6 → 3 generations</text>
+                <text x="0" y="82" text-anchor="middle" font-size="8" fill="#c4b5fd" class="text-bold">h¹·¹ = 27 matter dims</text>
+            </g>
+
+
+            <!-- ================= INFLATION BOX ================= -->
+            <g transform="translate(330, 570)">
+                <rect x="-200" y="-68" width="400" height="112" rx="12" fill="#0f172a" opacity="0.94"/>
+                <rect x="-200" y="-68" width="400" height="112" rx="12" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+                <!-- Inflation icon - exponential expansion -->
+                <g transform="translate(-165, -15)">
+                    <path d="M 0 20 Q 5 18, 8 10 Q 12 -5, 18 -25" fill="none" stroke="#fbbf24" stroke-width="2.5"/>
+                    <circle cx="18" cy="-25" r="3" fill="#fbbf24"/>
+                    <line x1="-2" y1="22" x2="20" y2="22" stroke="#fbbf24" stroke-width="1" opacity="0.4"/>
+                    <line x1="-2" y1="22" x2="-2" y2="-28" stroke="#fbbf24" stroke-width="1" opacity="0.4"/>
+                </g>
+
+                <!-- Title -->
+                <text x="15" y="-45" text-anchor="middle" font-size="15" class="text-bold" fill="#fbbf24">COSMIC INFLATION</text>
+                <text x="15" y="-30" text-anchor="middle" font-size="9" fill="#fcd34d">~10¹⁶ GeV — Both Sectors Inflate Space Simultaneously</text>
+
+                <line x1="-185" y1="-22" x2="185" y2="-22" stroke="#1e3a8a" stroke-width="1"/>
+
+                <!-- Inflaton candidates -->
+                <text x="-185" y="-6" font-size="10" class="text-bold" fill="#fde68a">Inflaton Candidates in E8×E8:</text>
+                <text x="-185" y="10" font-size="10" fill="#fef3c7">• Kähler/CY Moduli (extra-dimension shape fields)</text>
+                <text x="-185" y="24" font-size="10" fill="#fef3c7">• Singlet S flat direction (same field that breaks GUTs)</text>
+                <text x="-185" y="38" font-size="10" fill="#fef3c7">• Right-handed sneutrino ν̃_R (SUSY partner)</text>
+
+            </g>
+
+            <!-- ================= NODES ================= -->
+
+            <!-- TOP NODE: E8xE8 -->
+            <g transform="translate(410, 110)" class="node-shadow">
+                <rect x="-150" y="-55" width="300" height="135" rx="16" fill="#6d28d9" />
+                <path d="M -110 -15 C -90 -35, -70 -15, -90 5 C -110 25, -130 5, -110 -15 Z" fill="none" stroke="#c4b5fd" stroke-width="3" opacity="0.5"/>
+                <path d="M -70 -15 C -90 -35, -110 -15, -90 5 C -70 25, -50 5, -70 -15 Z" fill="none" stroke="#c4b5fd" stroke-width="3" opacity="0.5"/>
+                <text x="10" y="-15" text-anchor="middle" font-size="28" class="text-bold" fill="#ffffff" letter-spacing="2">E8 × E8</text>
+                <text x="10" y="10" text-anchor="middle" font-size="12" class="text-bold" fill="#c4b5fd" letter-spacing="1">HETEROTIC STRING THEORY</text>
+                <text x="10" y="30" text-anchor="middle" font-size="14" class="text-regular" fill="#ede9fe">10 Dimensions • 496 Symmetries</text>
+                <text x="10" y="46" text-anchor="middle" font-size="10" class="text-regular" fill="#c4b5fd" opacity="0.8">Compactifies on Calabi-Yau Manifold → 4D Spacetime</text>
+                <text x="10" y="60" text-anchor="middle" font-size="10" class="text-regular" fill="#c4b5fd" opacity="0.8">Anomaly-Free in 10D (unique with SO(32))</text>
+            </g>
+
+            <!-- HIDDEN SECTOR -->
+            <g transform="translate(260, 280)" class="node-shadow">
+                <rect x="-140" y="-45" width="280" height="110" rx="12" fill="#334155" />
+                <path d="M -100 -10 A 12 12 0 1 1 -90 10 A 15 15 0 1 0 -100 -10 Z" fill="#94a3b8" />
+                <text x="15" y="-10" text-anchor="middle" font-size="20" class="text-bold" fill="#ffffff">HIDDEN SECTOR</text>
+                <text x="15" y="12" text-anchor="middle" font-size="12" class="text-bold" fill="#94a3b8">MIRROR UNIVERSE</text>
+                <text x="15" y="30" text-anchor="middle" font-size="12" class="text-regular" fill="#cbd5e1">E8 • 248 Dimensions</text>
+                <text x="15" y="50" text-anchor="middle" font-size="10" class="text-bold" fill="#64748b">Communicates Only via Gravity</text>
+            </g>
+
+            <!-- VISIBLE SECTOR -->
+            <g transform="translate(560, 280)" class="node-shadow">
+                <rect x="-140" y="-45" width="310" height="90" rx="12" fill="#c2410c" />
+                <circle cx="-100" cy="0" r="8" fill="#fdba74" />
+                <path d="M-100 -12 L-100 -16 M-100 12 L-100 16 M-88 0 L-84 0 M-112 0 L-116 0" stroke="#fdba74" stroke-width="2"/>
+                <text x="15" y="-10" text-anchor="middle" font-size="20" class="text-bold" fill="#ffffff">VISIBLE SECTOR</text>
+                <text x="15" y="12" text-anchor="middle" font-size="12" class="text-bold" fill="#fdba74">OUR UNIVERSE BLUEPRINT</text>
+                <text x="15" y="30" text-anchor="middle" font-size="11" class="text-bold" fill="#ffedd5">248 DIMS = 170 (Matter/Gravity) + 78 (Forces)</text>
+            </g>
+
+            <!-- 170 LEFTOVERS -->
+            <g transform="translate(950, 335)" class="node-shadow">
+                <rect x="-150" y="-60" width="300" height="120" rx="12" fill="#b45309" />
+                <path d="M-100 -20 Q-85 -5 -70 -20 M-100 -5 Q-85 10 -70 -5 M-100 10 Q-85 25 -70 10" fill="none" stroke="#fcd34d" stroke-width="3" opacity="0.6"/>
+                <text x="15" y="-25" text-anchor="middle" font-size="18" class="text-bold" fill="#ffffff">170 LEFTOVERS</text>
+                <text x="15" y="-5" text-anchor="middle" font-size="11" class="text-bold" fill="#fcd34d">GRAVITY &amp; MATTER DIMS</text>
+                <line x1="-135" y1="8" x2="135" y2="8" stroke="#78350f" stroke-width="1" />
+                <text x="-135" y="26" font-size="12" fill="#fef3c7">• 8 Spacetime + 162 Matter Dims</text>
+                <text x="-135" y="42" font-size="12" fill="#fef3c7">• 8 encode curvature of 6 extra dimensions</text>
+            </g>
+
+            <!-- 3 GENERATIONS (TRIALITY) (MOVED UP) -->
+            <g transform="translate(950, 485)" class="node-shadow">
+                <rect x="-150" y="-60" width="300" height="130" rx="12" fill="#92400e" />
+                <rect x="80" y="-57" width="62" height="16" rx="8" fill="#0891b2" />
+                <text x="111" y="-45" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">✓ OBS.</text>
+                <circle cx="-100" cy="-20" r="10" fill="none" stroke="#fbbf24" stroke-width="2" opacity="0.8"/>
+                <circle cx="-90" cy="-10" r="10" fill="none" stroke="#fbbf24" stroke-width="2" opacity="0.8"/>
+                <circle cx="-110" cy="-10" r="10" fill="none" stroke="#fbbf24" stroke-width="2" opacity="0.8"/>
+                <text x="15" y="-25" text-anchor="middle" font-size="18" class="text-bold" fill="#ffffff">3 GENERATIONS</text>
+                <text x="15" y="-5" text-anchor="middle" font-size="11" class="text-bold" fill="#fbbf24">SO(8) TRIALITY SYMMETRY</text>
+                <line x1="-135" y1="8" x2="135" y2="8" stroke="#1e3a8a" stroke-width="1" />
+                <text x="-135" y="26" font-size="12" fill="#fef3c7">• 27 Dims × 3 Families = 81 Dims</text>
+                <text x="-135" y="42" font-size="12" fill="#fef3c7">• (+ 81 Anti-Matter) = 162 Matter Total</text>
+                <text x="-135" y="58" font-size="10" fill="#fcd34d" opacity="0.85">• Calabi-Yau χ/2 = 3 (geometric origin)</text>
+            </g>
+
+            <!-- E6 GUT -->
+            <g transform="translate(560, 420)" class="node-shadow">
+                <rect x="-140" y="-50" width="280" height="115" rx="12" fill="#1e40af" />
+                <circle cx="-100" cy="-20" r="10" fill="none" stroke="#93c5fd" stroke-width="3"/>
+                <circle cx="-100" cy="-20" r="3" fill="#ffffff" />
+                <text x="15" y="-20" text-anchor="middle" font-size="22" class="text-bold" fill="#ffffff">E6 GUT</text>
+                <text x="15" y="0" text-anchor="middle" font-size="11" class="text-bold" fill="#93c5fd">78 FORCE DIMENSIONS</text>
+                <line x1="-125" y1="12" x2="125" y2="12" stroke="#1e3a8a" stroke-width="1" />
+                <text x="-125" y="30" font-size="12" fill="#dbeafe">• Contains all Unified Gauge Bosons</text>
+                <text x="-125" y="45" font-size="12" fill="#dbeafe">• Acts on the 162 Matter Dimensions</text>
+                <text x="-125" y="58" font-size="10" fill="#93c5fd" opacity="0.9">• SUSY enables gauge coupling unification here</text>
+            </g>
+
+            <!-- UNOBSERVED MATTER (DETAILED) -->
+            <g transform="translate(950, 640)" class="node-shadow">
+                <rect x="-150" y="-70" width="300" height="140" rx="12" fill="#a16207" />
+                <rect x="95" y="-67" width="50" height="16" rx="8" fill="#7c3aed" />
+                <text x="120" y="-55" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">PRED.</text>
+                <circle cx="-105" cy="-35" r="10" fill="none" stroke="#fdba74" stroke-width="2" stroke-dasharray="2 2"/>
+                <circle cx="-105" cy="-35" r="3" fill="#fdba74"/>
+                <text x="15" y="-35" text-anchor="middle" font-size="18" class="text-bold" fill="#ffffff">UNOBSERVED MATTER</text>
+                <text x="15" y="-15" text-anchor="middle" font-size="11" class="text-bold" fill="#fdba74">THE 12 EXOTIC SLOTS (27 − 15 SM = 12)</text>
+                <line x1="-135" y1="0" x2="135" y2="0" stroke="#1e3a8a" stroke-width="1" />
+                <text x="-135" y="18" font-size="12" fill="#ffedd5">• 1 Right-Handed Neutrino (Seesaw → light ν)</text>
+                <text x="-135" y="34" font-size="12" fill="#ffedd5">• 6 Heavy Exotic Quarks (D, D^c)</text>
+                <text x="-135" y="50" font-size="12" fill="#ffedd5">• 4 Exotic Leptons (Yields the Higgs)</text>
+                <text x="-135" y="66" font-size="12" fill="#fef3c7">• 1 Singlet (S) Field = 12 Total</text>
+            </g>
+
+            <!-- THE SINGLET (S) + DARK MATTER BADGE -->
+            <g transform="translate(950, 790)" class="node-shadow">
+                <rect x="-150" y="-60" width="300" height="155" rx="12" fill="#9a3412" />
+                <circle cx="-100" cy="-20" r="10" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="2 2"/>
+                <path d="M -100 -25 L -100 -15 M -105 -20 L -95 -20" stroke="#fbbf24" stroke-width="2"/>
+                <text x="15" y="-25" text-anchor="middle" font-size="18" class="text-bold" fill="#ffffff">THE SINGLET (S)</text>
+                <text x="15" y="-5" text-anchor="middle" font-size="11" class="text-bold" fill="#fbbf24">THE MASTER SWITCH</text>
+                <line x1="-135" y1="8" x2="135" y2="8" stroke="#7c2d12" stroke-width="1" />
+                <text x="-135" y="26" font-size="12" fill="#fef3c7">• Breaks GUT Symmetries</text>
+                <text x="-135" y="44" font-size="12" fill="#fef3c7">• Generates effective μ-term (NMSSM)</text>
+                <text x="-135" y="60" font-size="11" fill="#fed7aa">• Axion solves Strong CP problem</text>
+
+                <rect x="-140" y="70" width="280" height="20" rx="4" fill="#0f172a" stroke="#22d3ee" stroke-width="1"/>
+                <text x="-135" y="84" font-size="11" class="text-bold" fill="#22d3ee">DARK MATTER: Axions (Unobserved)</text>
+            </g>
+
+            <!-- INTERMEDIATE (SO10 / SU5) -->
+            <g transform="translate(560, 710)" class="node-shadow">
+                <rect x="-220" y="-60" width="440" height="155" rx="12" fill="#1d4ed8" />
+                <text x="0" y="-30" text-anchor="middle" font-size="20" class="text-bold" fill="#ffffff">SO(10) → SU(5) → SM</text>
+                <text x="0" y="-10" text-anchor="middle" font-size="11" class="text-bold" fill="#93c5fd">THE FORCE SPLINTERING</text>
+                <line x1="-205" y1="2" x2="205" y2="2" stroke="#1e3a8a" stroke-width="1" />
+                <text x="0" y="20" text-anchor="middle" font-size="12" class="text-bold" fill="#dbeafe">E6(78) → SO10(45) → SU5(24) → SM(12)</text>
+                <text x="0" y="38" text-anchor="middle" font-size="11" fill="#bfdbfe">(66 forces decouple as universe cools)</text>
+                <text x="0" y="56" text-anchor="middle" font-size="10" fill="#bfdbfe" opacity="0.85">Breaking: 27→16-plet (SO10) → S singlet (SU5)</text>
+                <text x="0" y="72" text-anchor="middle" font-size="10" fill="#bfdbfe" opacity="0.85">CP-violating decays → Baryogenesis (matter/antimatter asymmetry)</text>
+            </g>
+
+            <!-- 66 EXOTIC FORCES -->
+            <g transform="translate(950, 970)" class="node-shadow">
+                <rect x="-150" y="-70" width="300" height="140" rx="12" fill="#3730a3" />
+                <rect x="95" y="-67" width="50" height="16" rx="8" fill="#7c3aed" />
+                <text x="120" y="-55" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">PRED.</text>
+                <path d="M -105 -45 L -90 -25 L -75 -45" fill="none" stroke="#fcd34d" stroke-width="3"/>
+                <text x="15" y="-35" text-anchor="middle" font-size="18" class="text-bold" fill="#ffffff">66 EXOTIC FORCES</text>
+                <text x="15" y="-15" text-anchor="middle" font-size="11" class="text-bold" fill="#a5b4fc">78 (E6) − 12 (SM) = 66 GAUGE BOSONS</text>
+                <line x1="-135" y1="-2" x2="135" y2="-2" stroke="#1e3a8a" stroke-width="1" />
+                <text x="-135" y="16" font-size="12" fill="#e0e7ff">• 33 from E6: Z'/W' &amp; Leptoquarks</text>
+                <text x="-135" y="32" font-size="12" fill="#e0e7ff">• 21 from SO(10): X', Y' &amp; Z' Bosons</text>
+                <text x="-135" y="48" font-size="12" fill="#e0e7ff">• 12 from SU(5): X, Y (Proton Decay)</text>
+            </g>
+
+            <!-- Visible spine segment after SO(10), before R-Parity -->
+            <path d="M 560 1115 L 560 1350" stroke="#94a3b8" stroke-width="5" fill="none" marker-end="url(#arrow)" />
+
+            <!-- R-PARITY (ON CENTER SPINE) -->
+            <g transform="translate(560, 1060)" class="node-shadow">
+                <rect x="-190" y="-55" width="380" height="110" rx="12" fill="#1e3a8a" />
+
+                <!-- Padlock Icon -->
+                <g transform="translate(-150, -10)">
+                    <rect x="-10" y="-10" width="20" height="16" rx="3" fill="none" stroke="#93c5fd" stroke-width="2"/>
+                    <path d="M-6 -10 V-15 A 6 6 0 0 1 6 -15 V-10" fill="none" stroke="#93c5fd" stroke-width="2"/>
+                    <circle cx="0" cy="-2" r="2" fill="#5eead4"/>
+                </g>
+
+                <text x="0" y="-20" text-anchor="middle" font-size="18" class="text-bold" fill="#ffffff">R-PARITY (Z2) — DISCRETE REMNANT</text>
+                <text x="0" y="0" text-anchor="middle" font-size="11" class="text-bold" fill="#93c5fd">STABILIZES THE UNIVERSE</text>
+                <line x1="-175" y1="12" x2="175" y2="12" stroke="#1e3a8a" stroke-width="1" />
+                <text x="-175" y="28" font-size="12" fill="#dbeafe">• Forbids Proton Decay  • Makes LSP Dark Matter Stable</text>
+                <text x="-175" y="44" font-size="10" fill="#93c5fd" opacity="0.9">• Dim-5,6 decay allowed: τ_p ~10³⁴⁻³⁶ yr (testable at Hyper-K)</text>
+            </g>
+            <!-- SUPERSYMMETRY (SOFT MASSES) -->
+            <g transform="translate(950, 1110)" class="node-shadow">
+                <rect x="-150" y="-60" width="300" height="160" rx="12" fill="#2563eb" />
+                <rect x="95" y="-57" width="50" height="16" rx="8" fill="#7c3aed" />
+                <text x="120" y="-45" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">PRED.</text>
+                <!-- Mirror symmetry icon -->
+                <path d="M -105 -25 L -95 -10 L -85 -25" fill="none" stroke="#93c5fd" stroke-width="2.5"/>
+                <path d="M -105 -5 L -95 -20 L -85 -5" fill="none" stroke="#93c5fd" stroke-width="2.5" opacity="0.5"/>
+                <text x="15" y="-25" text-anchor="middle" font-size="18" class="text-bold" fill="#ffffff">SUPERSYMMETRY</text>
+                <text x="15" y="-5" text-anchor="middle" font-size="11" class="text-bold" fill="#93c5fd">SOFT MASSES AT ~1 TeV</text>
+                <line x1="-135" y1="8" x2="135" y2="8" stroke="#1e3a8a" stroke-width="1" />
+                <text x="-135" y="26" font-size="12" fill="#dbeafe">• Every SM particle gets a superpartner</text>
+                <text x="-135" y="42" font-size="12" fill="#dbeafe">• Stabilizes Higgs mass (hierarchy problem)</text>
+                <text x="-135" y="58" font-size="12" fill="#dbeafe">• Required for gauge coupling unification</text>
+
+                <rect x="-140" y="70" width="280" height="20" rx="4" fill="#0f172a" stroke="#22d3ee" stroke-width="1"/>
+                <text x="-135" y="84" font-size="11" class="text-bold" fill="#22d3ee">DARK MATTER: Lightest SUSY Particle (LSP)</text>
+            </g>
+
+            <!-- HIGGS MECHANISM -->
+            <g transform="translate(950, 1285)" class="node-shadow">
+                <rect x="-150" y="-70" width="300" height="140" rx="12" fill="#4338ca" />
+                <rect x="83" y="-67" width="62" height="16" rx="8" fill="#16a34a" />
+                <text x="114" y="-55" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">✓ PARTIAL</text>
+                <path d="M -115 -35 Q -105 -50 -95 -35 T -75 -35" fill="none" stroke="#a5b4fc" stroke-width="3"/>
+                <text x="15" y="-35" text-anchor="middle" font-size="18" class="text-bold" fill="#ffffff">HIGGS MECHANISM</text>
+                <text x="15" y="-15" text-anchor="middle" font-size="11" class="text-bold" fill="#a5b4fc">ELECTROWEAK BREAKING</text>
+                <line x1="-135" y1="-2" x2="135" y2="-2" stroke="#312e81" stroke-width="1" />
+                <text x="-135" y="16" font-size="12" fill="#e0e7ff">• Scalar superpartners of Exotic Leptons</text>
+                <text x="-135" y="32" font-size="12" fill="#e0e7ff">• Contains the observed 125 GeV Higgs</text>
+                <text x="-135" y="48" font-size="12" fill="#e0e7ff">• Breaks SU(2) × U(1) → U(1)_EM</text>
+                <text x="-135" y="64" font-size="12" fill="#e0e7ff">• Gives Mass to W/Z Bosons &amp; Fermions</text>
+            </g>
+
+            <!-- SHADOW MATTER + DARK MATTER BADGE -->
+            <g transform="translate(260, 1425)" class="node-shadow">
+                <rect x="-140" y="-75" width="280" height="150" rx="16" fill="#0f172a" />
+                <!-- Predicted badge -->
+                <rect x="85" y="-72" width="50" height="16" rx="8" fill="#7c3aed" />
+                <text x="110" y="-60" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">PRED.</text>
+                <circle cx="-100" cy="-35" r="14" fill="none" stroke="#475569" stroke-width="4" stroke-dasharray="4 4"/>
+                <circle cx="-100" cy="-35" r="6" fill="#64748b" />
+                <text x="15" y="-35" text-anchor="middle" font-size="22" class="text-bold" fill="#ffffff">SHADOW MATTER</text>
+                <text x="15" y="-15" text-anchor="middle" font-size="12" class="text-bold" fill="#64748b" letter-spacing="1">THE MIRROR UNIVERSE</text>
+                <line x1="-125" y1="0" x2="125" y2="0" stroke="#334155" stroke-width="1" />
+
+                <text x="-125" y="18" font-size="12" fill="#cbd5e1">• ~5x Mass of Visible Matter</text>
+                <text x="-125" y="34" font-size="12" fill="#cbd5e1">• Interacts ONLY via Gravity</text>
+
+                <rect x="-130" y="46" width="260" height="20" rx="4" fill="#020617" stroke="#22d3ee" stroke-width="1"/>
+                <text x="-125" y="60" font-size="11" class="text-bold" fill="#22d3ee">PRIMARY DARK MATTER COMPONENT</text>
+            </g>
+
+            <!-- STANDARD MODEL -->
+            <g transform="translate(560, 1425)" class="node-shadow">
+                <rect x="-140" y="-75" width="280" height="150" rx="16" fill="#15803d" />
+                <!-- Confirmed badge -->
+                <rect x="85" y="-72" width="50" height="16" rx="8" fill="#16a34a" />
+                <text x="110" y="-60" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">✓ CONF.</text>
+                <g transform="translate(-100, -35) scale(0.6)">
+                    <ellipse rx="22" ry="8" fill="none" stroke="#fef08a" stroke-width="3" transform="rotate(30)"/>
+                    <ellipse rx="22" ry="8" fill="none" stroke="#fef08a" stroke-width="3" transform="rotate(150)"/>
+                    <circle r="5" fill="#ffffff"/>
+                </g>
+                <text x="15" y="-35" text-anchor="middle" font-size="22" class="text-bold" fill="#ffffff">STANDARD MODEL</text>
+                <text x="15" y="-15" text-anchor="middle" font-size="12" class="text-bold" fill="#fef08a" letter-spacing="1">OUR LOW-ENERGY UNIVERSE</text>
+                <line x1="-125" y1="0" x2="125" y2="0" stroke="#713f12" stroke-width="1" />
+                <text x="-125" y="20" font-size="12" class="text-bold" fill="#fef08a">12 FORCE DIMS:</text>
+                <text x="-15" y="20" font-size="11" fill="#fef9c3">Gluons(8), W<tspan font-size="8" baseline-shift="super">±</tspan>/Z(3), γ(1)</text>
+                <text x="-125" y="45" font-size="12" class="text-bold" fill="#fef08a">15 MATTER DIMS:</text>
+                <text x="-15" y="45" font-size="12" fill="#fef9c3">Per Gen (15 × 3 = 45)</text>
+            </g>
+
+
+
+            <defs><marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><polygon points="0 1, 10 5, 0 9" fill="#a16207" /></marker></defs>
+            <path d="M 700 1425 L 770 1425" stroke="#a16207" stroke-width="4" stroke-dasharray="6 6" fill="none" marker-end="url(#arrow-amber)" />
+            <!-- ================= 15 MATTER DIMENSIONS BREAKDOWN ================= -->
+            <g transform="translate(950, 1410)">
+                <rect x="-170" y="-50" width="340" height="185" rx="14" fill="#0f172a" opacity="0.94"/>
+                <rect x="-170" y="-50" width="340" height="185" rx="14" fill="none" stroke="#a16207" stroke-width="1.5"/>
+
+                <!-- Column headers -->
+                <text x="-100" y="-34" text-anchor="middle" font-size="9" class="text-bold" fill="#94a3b8">QUARKS (12)</text>
+                <text x="100" y="-34" text-anchor="middle" font-size="9" class="text-bold" fill="#94a3b8">LEPTONS (3)</text>
+                <line x1="0" y1="-42" x2="0" y2="95" stroke="#334155" stroke-width="1"/>
+                <line x1="-160" y1="-28" x2="160" y2="-28" stroke="#334155" stroke-width="1"/>
+
+                <!-- ===== QUARKS (left column) ===== -->
+
+                <!-- Left-handed doublet (u,d)_L — 6 dims -->
+                <text x="-150" y="-12" font-size="8" fill="#94a3b8" class="text-bold">SU(2) DOUBLET</text>
+                <!-- Row: u_L in 3 colors -->
+                <circle cx="-130" cy="4" r="6" fill="#ef4444"/>
+                <circle cx="-114" cy="4" r="6" fill="#22c55e"/>
+                <circle cx="-98" cy="4" r="6" fill="#3b82f6"/>
+                <text x="-78" y="8" font-size="9" fill="#e2e8f0" class="text-semibold">u_L</text>
+                <!-- Row: d_L in 3 colors -->
+                <circle cx="-130" cy="22" r="6" fill="#ef4444"/>
+                <circle cx="-114" cy="22" r="6" fill="#22c55e"/>
+                <circle cx="-98" cy="22" r="6" fill="#3b82f6"/>
+                <text x="-78" y="26" font-size="9" fill="#e2e8f0" class="text-semibold">d_L</text>
+                <!-- Brace annotation -->
+                <text x="-55" y="16" font-size="9" fill="#fbbf24" class="text-bold">} 6</text>
+
+                <!-- Right-handed singlets — 3+3 dims -->
+                <text x="-150" y="44" font-size="8" fill="#94a3b8" class="text-bold">SU(2) SINGLETS</text>
+                <!-- u_R in 3 colors -->
+                <circle cx="-130" cy="58" r="6" fill="#ef4444"/>
+                <circle cx="-114" cy="58" r="6" fill="#22c55e"/>
+                <circle cx="-98" cy="58" r="6" fill="#3b82f6"/>
+                <text x="-78" y="62" font-size="9" fill="#e2e8f0" class="text-semibold">u_R</text>
+                <text x="-55" y="62" font-size="9" fill="#fbbf24" class="text-bold">} 3</text>
+                <!-- d_R in 3 colors -->
+                <circle cx="-130" cy="76" r="6" fill="#ef4444"/>
+                <circle cx="-114" cy="76" r="6" fill="#22c55e"/>
+                <circle cx="-98" cy="76" r="6" fill="#3b82f6"/>
+                <text x="-78" y="80" font-size="9" fill="#e2e8f0" class="text-semibold">d_R</text>
+                <text x="-55" y="80" font-size="9" fill="#fbbf24" class="text-bold">} 3</text>
+
+                <!-- Color legend -->
+                <circle cx="-130" cy="98" r="3.5" fill="#ef4444"/>
+                <text x="-122" y="101" font-size="7" fill="#94a3b8">R</text>
+                <circle cx="-108" cy="98" r="3.5" fill="#22c55e"/>
+                <text x="-100" y="101" font-size="7" fill="#94a3b8">G</text>
+                <circle cx="-86" cy="98" r="3.5" fill="#3b82f6"/>
+                <text x="-78" y="101" font-size="7" fill="#94a3b8">B</text>
+                <text x="-60" y="101" font-size="7" fill="#94a3b8">= SU(3) color</text>
+
+                <!-- ===== LEPTONS (right column) ===== -->
+
+                <!-- Left-handed doublet (ν,e)_L — 2 dims -->
+                <text x="20" y="-12" font-size="8" fill="#94a3b8" class="text-bold">SU(2) DOUBLET</text>
+                <circle cx="40" cy="4" r="7" fill="none" stroke="#a78bfa" stroke-width="2"/>
+                <text x="56" y="8" font-size="9" fill="#e2e8f0" class="text-semibold">ν_L</text>
+                <circle cx="40" cy="22" r="7" fill="none" stroke="#a78bfa" stroke-width="2"/>
+                <text x="56" y="26" font-size="9" fill="#e2e8f0" class="text-semibold">e_L</text>
+                <text x="82" y="16" font-size="9" fill="#fbbf24" class="text-bold">} 2</text>
+
+                <!-- Right-handed singlet e_R — 1 dim -->
+                <text x="20" y="44" font-size="8" fill="#94a3b8" class="text-bold">SU(2) SINGLET</text>
+                <circle cx="40" cy="58" r="7" fill="none" stroke="#a78bfa" stroke-width="2"/>
+                <text x="56" y="62" font-size="9" fill="#e2e8f0" class="text-semibold">e_R</text>
+                <text x="82" y="62" font-size="9" fill="#fbbf24" class="text-bold">} 1</text>
+
+                <!-- No color (colorless) -->
+                <circle cx="40" cy="82" r="3.5" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
+                <text x="50" y="85" font-size="7" fill="#94a3b8">= color singlet (no strong force)</text>
+
+                <!-- Bottom summary -->
+                <line x1="-160" y1="108" x2="160" y2="108" stroke="#334155" stroke-width="1"/>
+                <text x="0" y="124" text-anchor="middle" font-size="10" class="text-bold" fill="#fef08a">12 quarks + 3 leptons = 15 Weyl fermions</text>
+            </g>
+
+            <!-- Decoupled Labels Right Column (Perfectly positioned above their lines) -->
+            <g transform="translate(690, 335)">
+                <rect x="-70" y="-12" width="140" height="24" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                <text x="0" y="3" text-anchor="middle" font-size="10" class="text-bold" fill="#64748b">SPACETIME &amp; MATTER</text>
+            </g>
+            <g transform="translate(690, 500)">
+                <rect x="-75" y="-12" width="150" height="24" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                <text x="0" y="3" text-anchor="middle" font-size="10" class="text-bold" fill="#64748b">GEOMETRIC TRIALITY</text>
+            </g>
+            <g transform="translate(690, 615)">
+                <rect x="-70" y="-12" width="140" height="24" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                <text x="0" y="3" text-anchor="middle" font-size="10" class="text-bold" fill="#64748b">12 MISSING PER GEN</text>
+            </g>
+            <g transform="translate(690, 820)">
+                <rect x="-65" y="-12" width="130" height="24" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                <text x="0" y="3" text-anchor="middle" font-size="10" class="text-bold" fill="#64748b">TRIGGERS BREAKING</text>
+            </g>
+            <g transform="translate(690, 930)">
+                <rect x="-65" y="-12" width="130" height="24" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                <text x="0" y="3" text-anchor="middle" font-size="10" class="text-bold" fill="#64748b">DECOUPLED / HEAVY</text>
+            </g>
+            <g transform="translate(690, 1125)">
+                <rect x="-65" y="-12" width="130" height="24" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                <text x="0" y="3" text-anchor="middle" font-size="10" class="text-bold" fill="#64748b">SOFT SUSY MASSES</text>
+            </g>
+            <g transform="translate(690, 1285)">
+                <rect x="-75" y="-12" width="150" height="24" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                <text x="0" y="3" text-anchor="middle" font-size="10" class="text-bold" fill="#64748b">BREAKS EW SYMMETRY</text>
+            </g>
+
+            <text x="45" y="1535" font-size="14" fill="#94a3b8" font-style="italic">Visualized by Prof. Andy Haas, NYU Physics, 2026</text>
+
+        </svg>
+    </div>
+
+</body>
+</html>

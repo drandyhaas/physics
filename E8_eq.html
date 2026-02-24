@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E8×E8 Heterotic String Lagrangian</title>
+<style>
+    body {
+        background-color: #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+    }
+    .poster-container {
+        background-color: #ffffff;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        max-width: 1200px;
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    @media print {
+        body { background: white; padding: 0; margin: 0; }
+        .poster-container { box-shadow: none; border-radius: 0; }
+    }
+    .text-bold { font-weight: 800; }
+    .text-semibold { font-weight: 600; }
+    .node-shadow { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2)); }
+    .equation-glow { filter: drop-shadow(0 0 8px rgba(255,255,255,0.3)); }
+</style>
+</head>
+<body>
+<div class="poster-container">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1550"
+     style="width:100%; display:block; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+
+    <defs>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f1f5f9" stroke-width="1.5"/>
+        </pattern>
+    </defs>
+
+    <!-- Background -->
+    <rect width="1200" height="1550" fill="#ffffff"/>
+    <rect width="1200" height="1550" fill="url(#grid)" opacity="0.6"/>
+
+    <!-- ====================================================================== -->
+    <!-- TITLE -->
+    <!-- ====================================================================== -->
+    <text x="600" y="42" text-anchor="middle" font-size="30" class="text-bold" fill="#1e293b" letter-spacing="1.5">
+        THE COMPLETE E8 × E8 LAGRANGIAN
+    </text>
+    <text x="600" y="64" text-anchor="middle" font-size="12" class="text-semibold" fill="#7c3aed" letter-spacing="3" font-style="italic">
+        FROM 496 SYMMETRIES TO OUR UNIVERSE — IN ONE ACTION
+    </text>
+
+    <!-- ====================================================================== -->
+    <!-- MASTER ACTION -->
+    <!-- ====================================================================== -->
+    <g transform="translate(600, 138)" class="node-shadow">
+        <rect x="-565" y="-58" width="1130" height="116" rx="14" fill="#6d28d9"/>
+        <text x="-540" y="-38" font-size="9" class="text-bold" fill="#c4b5fd" letter-spacing="2.5">THE MASTER ACTION — 10D STRING FRAME</text>
+
+        <text x="0" y="-10" text-anchor="middle" font-size="16" fill="#ffffff" font-family="monospace" class="equation-glow">
+            <tspan fill="#e9d5ff">𝒮</tspan> = 1/2κ²₁₀ ∫d¹⁰x √(−g) e⁻²ᶠ
+            [<tspan fill="#fbbf24">ℛ</tspan> + 4(∂Φ)²
+            − ½|<tspan fill="#93c5fd">H₃</tspan>|²
+            − α′/4(tr|<tspan fill="#86efac">F₁</tspan>|² + tr|<tspan fill="#fda4af">F₂</tspan>|²)]
+        </text>
+        <text x="0" y="16" text-anchor="middle" font-size="16" fill="#ffffff" font-family="monospace" class="equation-glow">
+            + [<tspan fill="#67e8f9">ψ̄ₘ</tspan>Γᴹᴺᴾ𝒟ₙ<tspan fill="#67e8f9">ψₚ</tspan>
+            + <tspan fill="#67e8f9">λ̄</tspan>Γᴹ𝒟ₘ<tspan fill="#67e8f9">λ</tspan>
+            + α′/4 <tspan fill="#67e8f9">χ̄ᵃ</tspan>Γᴹ𝒟ₘ<tspan fill="#67e8f9">χᵃ</tspan>]
+            + (Yukawa + 4-fermi)
+        </text>
+
+        <text x="-540" y="44" font-size="10" fill="#e9d5ff">
+            <tspan fill="#fbbf24">■</tspan> Gravity
+            <tspan dx="10" fill="#93c5fd">■</tspan> B-field
+            <tspan dx="10" fill="#86efac">■</tspan> Visible E₈
+            <tspan dx="10" fill="#fda4af">■</tspan> Hidden E₈
+            <tspan dx="10" fill="#67e8f9">■</tspan> Fermions
+        </text>
+        <text x="540" y="44" text-anchor="end" font-size="10" fill="#c4b5fd">7 fields · 3 lines · entire universe</text>
+    </g>
+
+    <!-- ====================================================================== -->
+    <!-- §1 FIELD CONTENT -->
+    <!-- ====================================================================== -->
+    <text x="45" y="228" font-size="13" class="text-bold" fill="#1e293b" letter-spacing="1.5">§1  THE 7 FUNDAMENTAL FIELDS</text>
+    <text x="1155" y="228" text-anchor="end" font-size="10" fill="#94a3b8">4 bosons + 3 fermions = everything</text>
+
+    <!-- Boson cards — 4 equal width, 2 lines of text each -->
+    <!-- g_MN -->
+    <g transform="translate(165, 275)" class="node-shadow">
+        <rect x="-125" y="-30" width="250" height="60" rx="10" fill="#b45309"/>
+        <text x="-105" y="-5" font-size="20" fill="#ffffff" font-family="monospace">g</text>
+        <text x="-88" y="3" font-size="10" fill="#fcd34d" font-family="monospace">MN</text>
+        <text x="-45" y="-14" font-size="11" class="text-bold" fill="#ffffff">10D Metric</text>
+        <text x="-45" y="0" font-size="9" fill="#fef3c7">Graviton · 35 DOF</text>
+        <text x="-45" y="14" font-size="8" fill="#fde68a">→ 4D graviton + moduli scalars</text>
+    </g>
+
+    <!-- B_MN -->
+    <g transform="translate(445, 275)" class="node-shadow">
+        <rect x="-125" y="-30" width="250" height="60" rx="10" fill="#1d4ed8"/>
+        <text x="-105" y="-5" font-size="20" fill="#ffffff" font-family="monospace">B</text>
+        <text x="-89" y="3" font-size="10" fill="#93c5fd" font-family="monospace">MN</text>
+        <text x="-45" y="-14" font-size="11" class="text-bold" fill="#ffffff">Kalb-Ramond 2-Form</text>
+        <text x="-45" y="0" font-size="9" fill="#dbeafe">Antisymmetric tensor · 28 DOF</text>
+        <text x="-45" y="14" font-size="8" fill="#bfdbfe">→ Axion (solves Strong CP)</text>
+    </g>
+
+    <!-- Φ -->
+    <g transform="translate(725, 275)" class="node-shadow">
+        <rect x="-125" y="-30" width="250" height="60" rx="10" fill="#6d28d9"/>
+        <text x="-105" y="2" font-size="22" fill="#ffffff" font-family="monospace">Φ</text>
+        <text x="-45" y="-14" font-size="11" class="text-bold" fill="#ffffff">Dilaton</text>
+        <text x="-45" y="0" font-size="9" fill="#e9d5ff">String coupling · g_s = e^Φ · 1 DOF</text>
+        <text x="-45" y="14" font-size="8" fill="#c4b5fd">→ Sets all coupling constants</text>
+    </g>
+
+    <!-- A_M^a -->
+    <g transform="translate(1035, 275)" class="node-shadow">
+        <rect x="-125" y="-30" width="250" height="60" rx="10" fill="#15803d"/>
+        <text x="-105" y="0" font-size="18" fill="#ffffff" font-family="monospace">A</text>
+        <text x="-90" y="7" font-size="9" fill="#86efac" font-family="monospace">M</text>
+        <text x="-83" y="-5" font-size="9" fill="#86efac" font-family="monospace">a</text>
+        <text x="-45" y="-14" font-size="11" class="text-bold" fill="#ffffff">E₈×E₈ Gauge Field</text>
+        <text x="-45" y="0" font-size="9" fill="#dcfce7">496 generators · 496×8 DOF</text>
+        <text x="-45" y="14" font-size="8" fill="#bbf7d0">→ All gauge bosons (g, W, Z, γ)</text>
+    </g>
+
+    <!-- Fermion cards — 3 cards -->
+    <!-- ψ_M -->
+    <g transform="translate(220, 355)" class="node-shadow">
+        <rect x="-180" y="-26" width="400" height="52" rx="10" fill="#334155"/>
+        <text x="-160" y="4" font-size="18" fill="#ffffff" font-family="monospace">ψ</text>
+        <text x="-144" y="10" font-size="10" fill="#94a3b8" font-family="monospace">M</text>
+        <text x="-95" y="-8" font-size="11" class="text-bold" fill="#ffffff">Gravitino</text>
+        <text x="-95" y="6" font-size="9" fill="#cbd5e1">M-W spinor-vector · 56 DOF</text>
+        <text x="-95" y="18" font-size="8" fill="#94a3b8">→ SUSY partner of graviton · LSP dark matter candidate</text>
+    </g>
+
+    <!-- λ -->
+    <g transform="translate(555, 355)" class="node-shadow">
+        <rect x="-105" y="-26" width="210" height="52" rx="10" fill="#334155"/>
+        <text x="-85" y="5" font-size="18" fill="#ffffff" font-family="monospace">λ</text>
+        <text x="-45" y="-8" font-size="11" class="text-bold" fill="#ffffff">Dilatino</text>
+        <text x="-45" y="6" font-size="9" fill="#cbd5e1">M-W spinor · 8 DOF</text>
+        <text x="-45" y="18" font-size="8" fill="#94a3b8">→ SUSY partner of dilaton</text>
+    </g>
+
+    <!-- χ^a -->
+    <g transform="translate(890, 355)" class="node-shadow">
+        <rect x="-170" y="-26" width="340" height="52" rx="10" fill="#c2410c"/>
+        <text x="-150" y="4" font-size="18" fill="#ffffff" font-family="monospace">χ</text>
+        <text x="-136" y="-4" font-size="10" fill="#fdba74" font-family="monospace">a</text>
+        <text x="-85" y="-8" font-size="11" class="text-bold" fill="#ffffff">Gauginos</text>
+        <text x="-85" y="6" font-size="9" fill="#fed7aa">Adjoint of E₈×E₈ · 496×8 DOF</text>
+        <text x="-85" y="18" font-size="8" fill="#fbbf24" class="text-bold">→ quarks, leptons! (upon compactification)</text>
+    </g>
+
+    <!-- ====================================================================== -->
+    <!-- §2 BOSONIC  |  §3 FERMIONIC -->
+    <!-- ====================================================================== -->
+    <text x="45" y="418" font-size="13" class="text-bold" fill="#1e293b" letter-spacing="1.5">§2  BOSONIC SECTOR</text>
+    <text x="625" y="418" font-size="13" class="text-bold" fill="#1e293b" letter-spacing="1.5">§3  FERMIONIC SECTOR</text>
+
+    <!-- Einstein-Hilbert -->
+    <g transform="translate(300, 468)" class="node-shadow">
+        <rect x="-255" y="-35" width="510" height="70" rx="12" fill="#b45309"/>
+        <text x="-235" y="-18" font-size="9" class="text-bold" fill="#fef3c7" letter-spacing="2">EINSTEIN-HILBERT + DILATON</text>
+        <text x="0" y="5" text-anchor="middle" font-size="14" fill="#ffffff" font-family="monospace">
+            𝒮_grav = 1/2κ² ∫d¹⁰x √(−g) e⁻²ᶠ (<tspan fill="#fcd34d">ℛ</tspan> + 4∂ₘΦ∂ᴹΦ)
+        </text>
+        <text x="-235" y="24" font-size="8" fill="#fef3c7">
+            <tspan fill="#fcd34d">ℛ</tspan> = Ricci scalar (gravity) · Φ = dilaton · e⁻²ᶠ = string tree-level prefactor
+        </text>
+    </g>
+
+    <!-- B-field -->
+    <g transform="translate(300, 562)" class="node-shadow">
+        <rect x="-255" y="-35" width="510" height="82" rx="12" fill="#1d4ed8"/>
+        <text x="-235" y="-18" font-size="9" class="text-bold" fill="#dbeafe" letter-spacing="2">KALB-RAMOND B-FIELD</text>
+        <text x="0" y="3" text-anchor="middle" font-size="14" fill="#ffffff" font-family="monospace">
+            𝒮_B = −1/4κ² ∫d¹⁰x √(−g) e⁻²ᶠ |<tspan fill="#93c5fd">H₃</tspan>|²
+        </text>
+        <line x1="-235" y1="14" x2="235" y2="14" stroke="#1e3a8a" stroke-width="1"/>
+        <text x="-235" y="28" font-size="11" fill="#dbeafe" font-family="monospace"><tspan fill="#93c5fd">H₃</tspan> = dB₂ − α′/4(<tspan fill="#86efac">ω₃ʸᴹ</tspan> − <tspan fill="#fcd34d">ω₃ᴸ</tspan>)</text>
+        <text x="-235" y="40" font-size="8" fill="#bfdbfe">Modified field strength — mixes gauge + gravity → anomaly cancellation</text>
+    </g>
+
+    <!-- Yang-Mills -->
+    <g transform="translate(300, 670)" class="node-shadow">
+        <rect x="-255" y="-35" width="510" height="76" rx="12" fill="#15803d"/>
+        <text x="-235" y="-18" font-size="9" class="text-bold" fill="#dcfce7" letter-spacing="2">E₈ × E₈ YANG-MILLS</text>
+        <text x="0" y="3" text-anchor="middle" font-size="14" fill="#ffffff" font-family="monospace">
+            𝒮_YM = −α′/8κ² ∫ √(−g) e⁻²ᶠ (tr<tspan fill="#86efac">F⁽¹⁾</tspan>² + tr<tspan fill="#fda4af">F⁽²⁾</tspan>²)
+        </text>
+        <text x="-235" y="22" font-size="8" fill="#dcfce7"><tspan fill="#86efac">F⁽¹⁾</tspan> = visible E₈ (→ SM forces) · <tspan fill="#fda4af">F⁽²⁾</tspan> = hidden E₈ (→ shadow matter)</text>
+        <text x="-235" y="34" font-size="8" fill="#bbf7d0">248 + 248 = 496 gauge bosons · sectors couple only through gravity</text>
+    </g>
+
+    <!-- Fermionic sector — full right column -->
+    <g transform="translate(880, 550)" class="node-shadow">
+        <rect x="-255" y="-108" width="510" height="260" rx="12" fill="#3730a3"/>
+        <text x="-235" y="-90" font-size="9" class="text-bold" fill="#e0e7ff" letter-spacing="2">GRAVITINO + DILATINO + GAUGINO KINETICS</text>
+
+        <text x="-235" y="-68" font-size="13" fill="#ffffff" font-family="monospace"><tspan fill="#67e8f9">ψ̄ₘ</tspan>Γᴹᴺᴾ𝒟ₙ<tspan fill="#67e8f9">ψₚ</tspan></text>
+        <text x="130" y="-68" font-size="8" fill="#c7d2fe">gravitino</text>
+        <text x="-235" y="-48" font-size="13" fill="#ffffff" font-family="monospace">+ <tspan fill="#67e8f9">λ̄</tspan>Γᴹ𝒟ₘ<tspan fill="#67e8f9">λ</tspan></text>
+        <text x="130" y="-48" font-size="8" fill="#c7d2fe">dilatino</text>
+        <text x="-235" y="-28" font-size="13" fill="#ffffff" font-family="monospace">+ α′/4 <tspan fill="#67e8f9">χ̄ᵃ</tspan>Γᴹ𝒟ₘ<tspan fill="#67e8f9">χᵃ</tspan></text>
+        <text x="130" y="-28" font-size="8" fill="#c7d2fe">gaugino</text>
+
+        <line x1="-235" y1="-15" x2="235" y2="-15" stroke="#4338ca" stroke-width="1"/>
+        <text x="-235" y="2" font-size="9" class="text-bold" fill="#67e8f9" letter-spacing="1">KEY INTERACTION TERMS</text>
+
+        <text x="-235" y="22" font-size="12" fill="#ffffff" font-family="monospace">½ <tspan fill="#67e8f9">ψ̄ₘ</tspan>Γᴹᴺᴾᑫᴿ<tspan fill="#67e8f9">ψₙ</tspan> <tspan fill="#93c5fd">Hₚᑫᴿ</tspan></text>
+        <text x="130" y="22" font-size="8" fill="#c7d2fe">gravitino-torsion</text>
+
+        <text x="-235" y="44" font-size="12" fill="#ffffff" font-family="monospace">α′/4 <tspan fill="#67e8f9">χ̄ᵃ</tspan>ΓᴹΓᴺᴾ<tspan fill="#67e8f9">ψₘ</tspan> <tspan fill="#86efac">Fₙₚ</tspan></text>
+        <text x="130" y="44" font-size="8" fill="#fbbf24" class="text-bold">← Yukawa origin!</text>
+
+        <text x="-235" y="64" font-size="8" fill="#c7d2fe" font-style="italic">χ̄ΓψF → upon compactification → all quark/lepton masses</text>
+
+        <line x1="-235" y1="76" x2="235" y2="76" stroke="#4338ca" stroke-width="1"/>
+        <text x="-235" y="92" font-size="9" class="text-bold" fill="#fbbf24" letter-spacing="1">SUSY TRANSFORMATIONS · 𝒩 = 1 · 16 SUPERCHARGES</text>
+
+        <text x="-235" y="112" font-size="8" class="text-bold" fill="#fcd34d">BOSONS → FERMIONS:</text>
+        <text x="-80" y="112" font-size="10" fill="#ffffff" font-family="monospace">
+            δg_MN = <tspan fill="#fcd34d">ε̄</tspan>Γ_(M <tspan fill="#67e8f9">ψ</tspan>_N)
+            &nbsp; δΦ = ½<tspan fill="#fcd34d">ε̄</tspan><tspan fill="#67e8f9">λ</tspan>
+            &nbsp; δA_M = <tspan fill="#fcd34d">ε̄</tspan>Γ_M <tspan fill="#67e8f9">χ</tspan>
+        </text>
+
+        <text x="-235" y="136" font-size="8" class="text-bold" fill="#67e8f9">FERMIONS → BOSONS:</text>
+        <text x="-80" y="136" font-size="10" fill="#c7d2fe" font-family="monospace">
+            δψ = 𝒟ε − ⅛HΓε &nbsp; δλ = Γ∂Φε &nbsp; δχ = −½FΓε
+        </text>
+    </g>
+
+    <!-- ====================================================================== -->
+    <!-- §4 ANOMALY CANCELLATION -->
+    <!-- ====================================================================== -->
+    <text x="45" y="770" font-size="13" class="text-bold" fill="#1e293b" letter-spacing="1.5">§4  ANOMALY CANCELLATION — WHY E₈ × E₈</text>
+
+    <g transform="translate(600, 812)" class="node-shadow">
+        <rect x="-555" y="-28" width="1110" height="56" rx="12" fill="#1e40af"/>
+        <text x="-530" y="-10" font-size="9" class="text-bold" fill="#dbeafe" letter-spacing="2">THE BIANCHI IDENTITY</text>
+        <rect x="-100" y="-24" width="200" height="15" rx="4" fill="#1e3a8a"/>
+        <text x="0" y="-13" text-anchor="middle" font-size="8" class="text-bold" fill="#93c5fd">UNIQUELY SELECTS E₈ × E₈</text>
+        <text x="0" y="10" text-anchor="middle" font-size="20" fill="#ffffff" font-family="monospace">
+            d<tspan fill="#93c5fd">H₃</tspan> = α′/4 (tr <tspan fill="#fcd34d">ℛ</tspan>∧<tspan fill="#fcd34d">ℛ</tspan> − tr <tspan fill="#86efac">F</tspan>∧<tspan fill="#86efac">F</tspan>)
+        </text>
+        <text x="530" y="22" text-anchor="end" font-size="8" fill="#bfdbfe">Only E₈×E₈ or SO(32) are anomaly-free in 10D</text>
+    </g>
+
+    <!-- Standard Embedding + 248 -->
+    <g transform="translate(300, 882)" class="node-shadow">
+        <rect x="-255" y="-18" width="510" height="36" rx="10" fill="#6d28d9"/>
+        <text x="-235" y="-3" font-size="8" class="text-bold" fill="#e9d5ff" letter-spacing="2">STANDARD EMBEDDING</text>
+        <text x="-235" y="10" font-size="14" fill="#ffffff" font-family="monospace">
+            A_gauge = ω_spin <tspan fill="#c4b5fd">⟹</tspan> <tspan fill="#86efac">E₈</tspan> → <tspan fill="#c4b5fd">E₆</tspan> × SU(3)
+        </text>
+    </g>
+
+    <g transform="translate(860, 882)" class="node-shadow">
+        <rect x="-250" y="-18" width="500" height="36" rx="10" fill="#9a3412"/>
+        <text x="-230" y="-3" font-size="8" class="text-bold" fill="#fed7aa" letter-spacing="2">248 DECOMPOSITION</text>
+        <text x="-230" y="12" font-size="13" fill="#ffffff" font-family="monospace">
+            <tspan fill="#fcd34d">248</tspan> = (<tspan fill="#93c5fd">78</tspan>,1) ⊕ (<tspan fill="#fda4af">27</tspan>,3) ⊕ (<tspan fill="#fda4af">2̄7</tspan>,3̄) ⊕ (1,<tspan fill="#c4b5fd">8</tspan>)
+        </text>
+    </g>
+
+    <!-- Decomposition labels -->
+    <g transform="translate(600, 925)">
+        <rect x="-555" y="0" width="260" height="28" rx="6" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+        <text x="-545" y="12" font-size="10" class="text-bold" fill="#1d4ed8">(78, 1)</text>
+        <text x="-480" y="12" font-size="9" fill="#475569">E₆ gauge bosons → all forces</text>
+
+        <rect x="-280" y="0" width="260" height="28" rx="6" fill="#fef2f2" stroke="#fecaca" stroke-width="1"/>
+        <text x="-270" y="12" font-size="10" class="text-bold" fill="#dc2626">(27,3)+(2̄7,3̄)</text>
+        <text x="-170" y="12" font-size="9" fill="#475569">3 gen quarks + leptons</text>
+
+        <rect x="-5" y="0" width="200" height="28" rx="6" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="1"/>
+        <text x="5" y="12" font-size="10" class="text-bold" fill="#7c3aed">(1, 8)</text>
+        <text x="45" y="12" font-size="9" fill="#475569">Extra-dim curvature</text>
+
+        <rect x="210" y="0" width="345" height="28" rx="6" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1"/>
+        <text x="220" y="12" font-size="10" class="text-bold" fill="#059669">n_gen = ½|χ(CY)|</text>
+        <text x="376" y="12" font-size="9" fill="#475569">→ topology fixes 3 gen</text>
+    </g>
+
+    <!-- ====================================================================== -->
+    <!-- §5 4D EFFECTIVE THEORY -->
+    <!-- ====================================================================== -->
+    <text x="45" y="990" font-size="13" class="text-bold" fill="#1e293b" letter-spacing="1.5">§5  4D EFFECTIVE THEORY</text>
+
+    <!-- Three master functions — 3 equal cards with 10px gaps -->
+    <g transform="translate(600, 1035)">
+        <g transform="translate(-373, 0)" class="node-shadow">
+            <rect x="-182" y="-27" width="360" height="54" rx="10" fill="#b45309"/>
+            <text x="-162" y="-10" font-size="8" class="text-bold" fill="#fef3c7" letter-spacing="2">KÄHLER POTENTIAL</text>
+            <text x="-162" y="10" font-size="15" fill="#ffffff" font-family="monospace"><tspan fill="#fcd34d">𝒦</tspan>(Φ, Φ̄)</text>
+            <text x="-162" y="22" font-size="8" fill="#fde68a">scalar kinetic terms + geometry</text>
+        </g>
+        <g transform="translate(0, 0)" class="node-shadow">
+            <rect x="-182" y="-27" width="360" height="54" rx="10" fill="#15803d"/>
+            <text x="-162" y="-10" font-size="8" class="text-bold" fill="#dcfce7" letter-spacing="2">SUPERPOTENTIAL</text>
+            <text x="-162" y="10" font-size="15" fill="#ffffff" font-family="monospace"><tspan fill="#86efac">𝒲</tspan>(Φ)</text>
+            <text x="-162" y="22" font-size="8" fill="#bbf7d0">particle masses + Yukawa couplings</text>
+        </g>
+        <g transform="translate(373, 0)" class="node-shadow">
+            <rect x="-182" y="-27" width="360" height="54" rx="10" fill="#1d4ed8"/>
+            <text x="-162" y="-10" font-size="8" class="text-bold" fill="#dbeafe" letter-spacing="2">GAUGE KINETIC FUNCTION</text>
+            <text x="-162" y="10" font-size="15" fill="#ffffff" font-family="monospace"><tspan fill="#93c5fd">f_ab</tspan>(Φ)</text>
+            <text x="-162" y="22" font-size="8" fill="#bfdbfe">gauge couplings + θ-angles</text>
+        </g>
+    </g>
+
+    <!-- Scalar potential -->
+    <g transform="translate(600, 1115)" class="node-shadow">
+        <rect x="-555" y="-28" width="1110" height="66" rx="12" fill="#92400e"/>
+        <text x="-530" y="-10" font-size="9" class="text-bold" fill="#fef3c7" letter-spacing="2">THE SCALAR POTENTIAL — SOURCE OF ALL SYMMETRY BREAKING</text>
+        <text x="0" y="14" text-anchor="middle" font-size="17" fill="#ffffff" font-family="monospace" class="equation-glow">
+            V = e^(𝒦/M²) (<tspan fill="#fcd34d">𝒦</tspan>^iī D_i<tspan fill="#86efac">𝒲</tspan> D_ī<tspan fill="#86efac">𝒲̄</tspan> − 3/M² |<tspan fill="#86efac">𝒲</tspan>|²) + ½(Re <tspan fill="#93c5fd">f</tspan>)⁻¹ DᵃDᵇ
+        </text>
+        <text x="-530" y="32" font-size="9" fill="#fef3c7">
+            F-terms → GUT breaking: E₆→SO(10)→SU(5)→SM · D-terms → gauge invariance · −3|𝒲|² → cosmological constant problem
+        </text>
+    </g>
+
+    <!-- ====================================================================== -->
+    <!-- §6 COMPACTIFICATION + MAP -->
+    <!-- ====================================================================== -->
+    <text x="45" y="1215" font-size="13" class="text-bold" fill="#1e293b" letter-spacing="1.5">§6  COMPACTIFICATION &amp; ROSETTA STONE</text>
+
+    <!-- Compactification equation — narrower -->
+    <g transform="translate(260, 1255)" class="node-shadow">
+        <rect x="-215" y="-22" width="430" height="44" rx="10" fill="#4c1d95" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="0" y="-4" text-anchor="middle" font-size="17" fill="#ffffff" font-family="monospace">ℳ¹⁰ = <tspan fill="#fcd34d">ℳ⁴</tspan> × <tspan fill="#c4b5fd">𝒳⁶</tspan></text>
+        <text x="0" y="14" text-anchor="middle" font-size="8" fill="#e9d5ff"><tspan fill="#fcd34d">ℳ⁴</tspan> = our spacetime · <tspan fill="#c4b5fd">𝒳⁶</tspan> = Calabi-Yau (Ricci-flat, SU(3) holonomy)</text>
+    </g>
+
+    <!-- Topology → Physics -->
+    <g transform="translate(810, 1255)" class="node-shadow">
+        <rect x="-325" y="-22" width="540" height="44" rx="10" fill="#334155"/>
+        <text x="-305" y="-5" font-size="8" class="text-bold" fill="#94a3b8" letter-spacing="2">TOPOLOGY → PHYSICS</text>
+        <text x="-305" y="10" font-size="9" fill="#cbd5e1">|χ|/2 = 3 generations · h¹·¹ = moduli / inflatons · h²·¹ = Yukawa couplings · π₁ = Wilson lines → SM</text>
+    </g>
+
+    <!-- ====================================================================== -->
+    <!-- ROSETTA STONE — Cross-reference to Symmetry Breaking Poster -->
+    <!-- ====================================================================== -->
+    <text x="600" y="1302" text-anchor="middle" font-size="11" class="text-bold" fill="#7c3aed" letter-spacing="1">ROSETTA STONE — LAGRANGIAN ↔ SYMMETRY BREAKING POSTER</text>
+    <g transform="translate(600, 1325)">
+        <!-- Header -->
+        <rect x="-440" y="-20" width="880" height="22" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+        <text x="-425" y="-4" font-size="9" class="text-bold" fill="#475569">LAGRANGIAN TERM</text>
+        <text x="-120" y="-4" font-size="9" class="text-bold" fill="#475569">WHAT IT PRODUCES</text>
+        <text x="160" y="-4" font-size="9" class="text-bold" fill="#475569">↔ SYMMETRY BREAKING POSTER</text>
+
+        <!-- Row 1 -->
+        <text x="-425" y="16" font-size="11" fill="#15803d" font-family="monospace" class="text-bold">tr F⁽¹⁾²</text>
+        <text x="-310" y="16" font-size="10" fill="#64748b">visible Yang-Mills</text>
+        <text x="-120" y="16" font-size="10" fill="#475569">78 gauge bosons → all SM forces</text>
+        <rect x="156" y="5" width="80" height="15" rx="4" fill="#1e40af"/>
+        <text x="196" y="16" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">E6 GUT</text>
+        <text x="243" y="16" font-size="8" fill="#64748b">→</text>
+        <rect x="252" y="5" width="80" height="15" rx="4" fill="#1d4ed8"/>
+        <text x="292" y="16" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">SO(10)→SM</text>
+        <text x="339" y="16" font-size="8" fill="#64748b">→</text>
+        <rect x="348" y="5" width="90" height="15" rx="4" fill="#15803d"/>
+        <text x="393" y="16" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">STANDARD MODEL</text>
+
+        <!-- Row 2 -->
+        <text x="-425" y="36" font-size="11" fill="#9a3412" font-family="monospace" class="text-bold">(27,3)⊕(2̄7,3̄)</text>
+        <text x="-310" y="36" font-size="10" fill="#64748b">from 248</text>
+        <text x="-120" y="36" font-size="10" fill="#475569">3 families of quarks + leptons</text>
+        <rect x="156" y="25" width="100" height="15" rx="4" fill="#92400e"/>
+        <text x="206" y="36" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">3 GENERATIONS</text>
+        <rect x="266" y="25" width="100" height="15" rx="4" fill="#a16207"/>
+        <text x="316" y="36" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">UNOBS. MATTER</text>
+
+        <!-- Row 3 -->
+        <text x="-425" y="56" font-size="11" fill="#92400e" font-family="monospace" class="text-bold">V(𝒦,𝒲,f)</text>
+        <text x="-310" y="56" font-size="10" fill="#64748b">scalar potential</text>
+        <text x="-120" y="56" font-size="10" fill="#475569">drives every symmetry breaking step</text>
+        <rect x="156" y="45" width="80" height="15" rx="4" fill="#9a3412"/>
+        <text x="196" y="56" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">SINGLET (S)</text>
+        <rect x="246" y="45" width="100" height="15" rx="4" fill="#6d28d9"/>
+        <text x="296" y="56" text-anchor="middle" font-size="7" class="text-bold" fill="#ffffff">VEV MECHANISM</text>
+        <text x="354" y="56" font-size="8" fill="#64748b">→ every ↓ arrow</text>
+
+        <!-- Row 4 -->
+        <text x="-425" y="76" font-size="11" fill="#3730a3" font-family="monospace" class="text-bold">χ̄ΓψF</text>
+        <text x="-310" y="76" font-size="10" fill="#64748b">Yukawa coupling</text>
+        <text x="-120" y="76" font-size="10" fill="#475569">all particle masses upon compactification</text>
+        <rect x="156" y="65" width="200" height="15" rx="4" fill="#b45309"/>
+        <text x="256" y="76" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">QUARK / LEPTON TABLE (poster bottom)</text>
+
+        <!-- Row 5 -->
+        <text x="-425" y="96" font-size="11" fill="#c2410c" font-family="monospace" class="text-bold">tr F⁽²⁾²</text>
+        <text x="-310" y="96" font-size="10" fill="#64748b">hidden Yang-Mills</text>
+        <text x="-120" y="96" font-size="10" fill="#475569">mirror E₈ → dark sector forces</text>
+        <rect x="156" y="85" width="100" height="15" rx="4" fill="#334155"/>
+        <text x="206" y="96" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">HIDDEN SECTOR</text>
+        <rect x="266" y="85" width="100" height="15" rx="4" fill="#0f172a"/>
+        <text x="316" y="96" text-anchor="middle" font-size="8" class="text-bold" fill="#94a3b8">SHADOW MATTER</text>
+
+        <!-- Row 6 -->
+        <text x="-425" y="116" font-size="11" fill="#fbbf24" font-family="monospace" class="text-bold">δε (SUSY)</text>
+        <text x="-310" y="116" font-size="10" fill="#64748b">supercharges</text>
+        <text x="-120" y="116" font-size="10" fill="#475569">boson ↔ fermion pairing · LSP stability</text>
+        <rect x="156" y="105" width="60" height="15" rx="4" fill="#2563eb"/>
+        <text x="186" y="116" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">SUSY</text>
+        <rect x="226" y="105" width="75" height="15" rx="4" fill="#1e3a8a"/>
+        <text x="264" y="116" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">R-PARITY</text>
+        <rect x="311" y="105" width="100" height="15" rx="4" fill="#4338ca"/>
+        <text x="361" y="116" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">HIGGS DOUBLETS</text>
+
+        <!-- Row 7 -->
+        <text x="-425" y="136" font-size="11" fill="#b45309" font-family="monospace" class="text-bold">(1,8) + g_MN</text>
+        <text x="-310" y="136" font-size="10" fill="#64748b">curvature + metric</text>
+        <text x="-120" y="136" font-size="10" fill="#475569">extra-dim geometry + 4D gravity</text>
+        <rect x="156" y="125" width="100" height="15" rx="4" fill="#b45309"/>
+        <text x="206" y="136" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">170 LEFTOVERS</text>
+        <rect x="266" y="125" width="120" height="15" rx="4" fill="#3730a3"/>
+        <text x="326" y="136" text-anchor="middle" font-size="8" class="text-bold" fill="#ffffff">66 EXOTIC FORCES</text>
+    </g>
+
+    <text x="45" y="1535" font-size="14" fill="#94a3b8" font-style="italic">Visualized by Prof. Andy Haas, NYU Physics, 2026</text>
+
+</svg>
+</div>
+</body>
+</html>
