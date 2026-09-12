@@ -37,6 +37,33 @@ the Regge slope as a sheet resistance measured in units of noise power. Fixing
 three contacts and sliding the rest then gives the Euler Beta function: the
 Veneziano amplitude.
 
+## Where the string actually is (page 2)
+
+The figure's left panel draws the string, and it is the same curve family the
+right panel draws faintly. Mandelstam's map for light-cone string diagrams is
+`ρ(z) = Σ α_i ln(z − ζ_i)` with `Re ρ = τ` (light-cone time) and `Im ρ = σ`
+(position along the string). That is the same logarithmic potential the sheet
+has, so — reading each current as a light-cone momentum —
+
+    τ = −(π/R_s) · V        the voltage IS the string's time
+
+and therefore **a level curve of V is the string at one instant**, while the
+flow lines mark position along it. Two things this settles:
+
+- **The ends are free on the rim.** An equipotential meets an insulating rim at
+  exactly 90°, because `∂V/∂n = 0` there. That is precisely an open string's
+  Neumann (free-endpoint) boundary condition — the same fact that produced the
+  image-charge factor of two. Verified numerically: the radial/tangential
+  gradient ratio falls as 1.7 → 0.20 → 0.019 → 0.0019 as |w| → 1.
+- **Nothing shrinks.** Near a puncture the drawn curve collapses to a point.
+  That is the conformal map compressing an infinite stretch of τ into that
+  point, not a string losing its length — length is not a conformally
+  meaningful quantity on a worldsheet.
+
+Note that this reading and the Koba–Nielsen one assign *different* charges to
+the same contacts (one light-cone component versus the whole momentum vector).
+Page 4 says so rather than leaving it to be noticed.
+
 ## What the short version hides
 
 1. **One plane carries one spacetime dimension.** `p_i·p_j` is a Minkowski
@@ -52,6 +79,7 @@ Veneziano amplitude.
    worldsheet, not spacetime. And the amplitude is not a least-resistance path:
    Rayleigh's principle gives only the single most probable configuration,
    whereas the amplitude sums over all of them.
+5. **The two readings use different charges** — see above.
 
 ## Where gravity enters (page 5)
 

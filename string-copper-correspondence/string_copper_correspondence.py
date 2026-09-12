@@ -78,7 +78,8 @@ def current(w):
     w = np.asarray(w, dtype=complex)
     return np.conj((1 / np.pi) * (CUR / (w[..., None] - ZET)).sum(-1))
 
-def trace(w0, rot=0.0, sign=1.0, h=0.005, nmax=5000, rmax=0.9965, stop=0.016):
+def trace(w0, rot=0.0, sign=1.0, h=0.005, nmax=5000, rmax=0.9965, stop=0.016,
+          closed=True):
     """RK4 along the (rotated) unit current direction. rot=pi/2 -> equipotential."""
     rr = complex(math.cos(rot), math.sin(rot))
     def d(u):
@@ -96,7 +97,7 @@ def trace(w0, rot=0.0, sign=1.0, h=0.005, nmax=5000, rmax=0.9965, stop=0.016):
         pts.append(w)
         if abs(w) > rmax: break
         if np.min(np.abs(w - ZET)) < stop: break
-        if len(pts) > 60 and abs(w - w0) < 1.2 * h: break      # closed loop
+        if closed and len(pts) > 60 and abs(w - w0) < 1.2 * h: break
     return np.array(pts)
 
 def streamlines(total=26):
@@ -131,6 +132,58 @@ def equipotentials(sl, count=11):
         b = trace(w0, rot=math.pi / 2, sign=-1.0)
         if len(a) + len(b) > 40:
             out.append(np.concatenate([b[::-1], a]))
+    return out
+
+def rim_crossings(c, rr=0.988, nth=2400):
+    """Angles on a near-rim circle where V = c. Every level curve of V meets the
+    insulating rim (twice), so this finds both endpoints of every string slice."""
+    th = np.linspace(0, 2 * np.pi, nth, endpoint=False)
+    f = potential(rr * np.exp(1j * th)) - c
+    out = []
+    for k in range(nth):
+        a, b = f[k], f[(k + 1) % nth]
+        if not (a * b < 0):
+            continue
+        t0, t1 = th[k], th[k] + 2 * np.pi / nth
+        f0 = a
+        for _ in range(56):
+            tm = 0.5 * (t0 + t1)
+            fm = potential(np.array([rr * np.exp(1j * tm)]))[0] - c
+            if f0 * fm < 0:
+                t1 = tm
+            else:
+                t0, f0 = tm, fm
+        out.append(rr * np.exp(0.5j * (t0 + t1)))
+    return out
+
+def string_slices(levels):
+    """Each returned polyline is the open string at one instant of light-cone
+    time: a level curve of V, with both ends free on the rim. Mandelstam's map
+    is rho = Σ α_i ln(z − ζ_i), so τ = Re rho = −(π/R_s)V and σ = Im rho."""
+    out = []
+    for c in levels:
+        seeds = rim_crossings(c)
+        used = [False] * len(seeds)
+        for i, w0 in enumerate(seeds):
+            if used[i]:
+                continue
+            best = None
+            for sg in (+1.0, -1.0):                      # pick the inward branch
+                probe = trace(w0, rot=math.pi / 2, sign=sg, h=0.004, nmax=4,
+                              rmax=0.999, stop=0.004, closed=False)
+                if len(probe) > 1 and abs(probe[-1]) < abs(probe[0]):
+                    best = sg
+            if best is None:
+                continue
+            path = trace(w0, rot=math.pi / 2, sign=best, h=0.004, nmax=9000,
+                         rmax=0.988, stop=0.004, closed=False)
+            if len(path) < 12:
+                continue
+            for j, wj in enumerate(seeds):              # its other end
+                if j != i and abs(wj - path[-1]) < 0.05:
+                    used[j] = True
+            used[i] = True
+            out.append((c, path))
     return out
 
 def field_bitmap(n=460):
@@ -295,54 +348,6 @@ def runs_inside(zs, rmax=0.985):
     if len(cur) > 1: out.append(cur)
     return out
 
-def conformal_mesh():
-    """Images of the upper-half-plane coordinate grid under the Cayley map
-    w = (z-i)/(z+i). The worldsheet's conformal structure is all it has."""
-    cay = lambda z: (z - 1j) / (z + 1j)
-    fam = []
-    for a in (0.10, 0.24, 0.52, 1.1, 2.4, 6.0):
-        t = np.linspace(-80, 80, 1400)
-        fam.append(cay(t + 1j * a))
-    for b in (-7.0, -2.8, -1.2, -0.45, 0.0, 0.45, 1.2, 2.8, 7.0):
-        t = np.concatenate([np.geomspace(0.0015, 80, 1400)])
-        fam.append(cay(b + 1j * t))
-    return [seg for f in fam for seg in runs_inside(f)]
-
-def ribbon(c, cx, cy, r, ang, L=40.0, wd=9.0, incoming=False, label="p", idx=1):
-    """An external open string: a semi-infinite strip, conformally shrunk to a
-    single boundary point. Transverse bows are the string at successive times."""
-    n = complex(math.cos(ang), math.sin(ang))
-    t = complex(-n.imag, n.real)
-    P = (cx + r * n.real, cy + r * n.imag)
-    def at(d, u):
-        return (P[0] + d * n.real + u * t.real, P[1] + d * n.imag + u * t.imag)
-    A1, B1 = at(L, wd), at(L, -wd)
-    cA1, cA2 = at(0.30 * L, 0.22 * wd), at(0.70 * L, 0.88 * wd)
-    cB1, cB2 = at(0.30 * L, -0.22 * wd), at(0.70 * L, -0.88 * wd)
-    c.bezpath([('m', *P), ('c', *cA1, *cA2, *A1), ('l', *B1),
-               ('c', *cB2, *cB1, *P), ('z',)],
-              fill=(0.905, 0.898, 0.925, 0.34), stroke=(STR[0], STR[1], STR[2], 0.92), lw=0.9)
-    for k, s in enumerate((0.26, 0.46, 0.68, 0.92)):
-        hw = s * wd
-        pts = []
-        for u in np.linspace(-1, 1, 26):
-            bow = (0.17 * hw * math.cos(math.pi * u / 2)
-                   + 0.13 * hw * math.sin(2.4 * math.pi * u))
-            pts.append(at(s * L + bow, u * hw))
-        bold = (k == 3)
-        c.polyline(pts, stroke=(STR[0], STR[1], STR[2], 0.95 if bold else 0.72),
-                   lw=1.15 if bold else 0.7)
-        for e in (pts[0], pts[-1]):          # the open string's two endpoints
-            c.circle(e[0], e[1], 1.35 if bold else 1.0, fill=STR)
-    # the momentum arrow, in for a source and out for a sink
-    a0, a1 = 0.34 * L, L + 10.0
-    if incoming:
-        c.arrow(*at(a1, 0), *at(a0, 0), STR, 0.95, 4.6)
-    else:
-        c.arrow(*at(a0, 0), *at(a1, 0), STR, 0.95, 4.6)
-    lx, ly = at(L + 18.0, 0)
-    c.math(f"{label}_{idx}", lx, ly - 3.2, 9.4, STR, 'c')
-
 def pad(c, cx, cy, r, ang, cur_, idx):
     """A rim pad, drawn straddling the board edge as a real edge pad does."""
     n = complex(math.cos(ang), math.sin(ang))
@@ -368,39 +373,24 @@ def zlabel(c, cx, cy, r, ang, idx, col):
     c.math(f"z_{idx}", lx, ly - 3.0, 8.6, col, 'c')
 
 def string_legend(c, cx, ytop, w):
-    """A pinched strip like the ones on the disk, with the string called out.
-    `ytop` is the top of the whole block; it grows downward."""
-    L, wd = 80.0, 12.0
-    x0 = cx - w / 2 + 8
-    yc = ytop - 21                                    # the strip's axis
-    at = lambda d, u: (x0 + d, yc + u)
-    # the sweep direction, ABOVE the strip so it cannot sit on the caption
-    c.arrow(*at(0.16 * L, wd + 8.5), *at(L, wd + 8.5),
-            (STR[0], STR[1], STR[2], 0.8), 0.7, 3.6)
-    c.text("τ", *at(L * 0.56, wd + 12.0), 'mathi', 7.8, STR, 'c')
-    c.bezpath([('m', *at(0, 0)),
-               ('c', *at(0.30 * L, 0.22 * wd), *at(0.70 * L, 0.88 * wd), *at(L, wd)),
-               ('l', *at(L, -wd)),
-               ('c', *at(0.70 * L, -0.88 * wd), *at(0.30 * L, -0.22 * wd), *at(0, 0)),
-               ('z',)],
-              fill=(0.905, 0.898, 0.925, 0.34),
-              stroke=(STR[0], STR[1], STR[2], 0.92), lw=0.9)
-    for k, s in enumerate((0.26, 0.46, 0.68, 0.92)):
-        hw = s * wd
-        pts = []
-        for u in np.linspace(-1, 1, 26):
-            bow = (0.17 * hw * math.cos(math.pi * u / 2)
-                   + 0.13 * hw * math.sin(2.4 * math.pi * u))
-            pts.append(at(s * L + bow, u * hw))
-        bold = (k == 3)
-        c.polyline(pts, stroke=(STR[0], STR[1], STR[2], 0.95 if bold else 0.70),
-                   lw=1.3 if bold else 0.72)
+    """A zoom on one puncture, showing what the level curves near it mean.
+    Locally the rim is straight and the slices are semicircles about it."""
+    y0 = ytop - 40                         # the rim, drawn straight at this zoom
+    px = cx - 46
+    c.line(cx - 78, y0, cx + 78, y0, (STR[0], STR[1], STR[2], 0.95), 1.6)
+    for rr in (6.0, 12.0, 19.0, 27.0):
+        pts = [(px + rr * math.cos(t), y0 + rr * math.sin(t))
+               for t in np.linspace(0, math.pi, 40)]
+        c.polyline(pts, stroke=(STR[0], STR[1], STR[2], 0.92), lw=1.05)
         for e in (pts[0], pts[-1]):
-            c.circle(e[0], e[1], 1.5 if bold else 1.05, fill=STR)
-    c.circle(*at(0, 0), 2.0, fill=STR)                # the puncture it shrinks to
-    c.math("z_i", x0 - 10, yc - 3, 7.6, STR, 'r')
-    c.text("each rung is the 1-D string at one instant", cx, ytop - 42, 'bodyi', 7.9, INK2, 'c')
-    c.text("the strip is the 2-D worldsheet it sweeps", cx, ytop - 51.5, 'bodyi', 7.9, INK2, 'c')
+            c.circle(e[0], e[1], 1.5, fill=STR)
+    c.circle(px, y0, 2.6, fill=STR)
+    c.math("z_i", px, y0 - 11.5, 7.6, STR, 'c')
+    c.arrow(px + 3, y0 + 34, px + 84, y0 + 34, (0.10, 0.10, 0.12), 0.75, 3.8)
+    c.math("τ", px + 44, y0 + 37.5, 8.0, INK, 'c')
+    c.flow("a bold curve is the string at one instant; its ends are free on the rim, "
+           "meeting it at 90°; and near a puncture it shrinks on the page, not in fact",
+           cx - w / 2, y0 - 22, w, 'bodyi', 7.9, 9.8, INK2, just=False)
 
 
 def vignette_quantum(c, x, y, w, h):
@@ -450,7 +440,7 @@ def vignette_thermal(c, x, y, w, h):
                 c.arrow(xx, yy, xx + L * math.cos(a), yy + L * math.sin(a),
                         (COOL[0], COOL[1], COOL[2], 0.85), 0.7, 3.0)
 
-def page2(c, bmp, n, sl, eq, mesh):
+def page2(c, bmp, n, sl, eq, slices):
     c.page()
     c.rect(0, 0, W, H, fill=PAPER)
     eyebrow(c, "the two complementary viewpoints", M, H - 50)
@@ -475,18 +465,33 @@ def page2(c, bmp, n, sl, eq, mesh):
         c.image_rgba(bmp, n, n, cx - R, CY - R, 2 * R, 2 * R)
         c.restore()
 
-    # ---- left: conformal mesh, rim, punctures, string strips
+    # ---- left: the SAME two curve families, emphasis swapped. Here the level
+    # curves are bold — each one is the string at one instant of light-cone time
+    # — and the flow lines, which mark position ALONG the string, are faint.
     c.save(); c.clip_circle(CL, CY, R * 0.999)
-    for seg in mesh:
-        c.polyline([to_pt(z, CL, CY, R) for z in seg],
-                   stroke=(0.30, 0.30, 0.36, 0.26), lw=0.4)
+    for pth in sl:
+        c.polyline([to_pt(z, CL, CY, R) for z in pth],
+                   stroke=(0.30, 0.30, 0.36, 0.22), lw=0.4)
+    for lev, pth in slices:
+        pts = [to_pt(z, CL, CY, R) for z in pth]
+        c.polyline(pts, stroke=(STR[0], STR[1], STR[2], 0.92), lw=1.05)
     c.restore()
-    c.circle(CL, CY, R, stroke=(STR[0], STR[1], STR[2], 0.95), lw=1.5)
+    c.circle(CL, CY, R, stroke=(STR[0], STR[1], STR[2], 0.95), lw=1.6)
+    for lev, pth in slices:                 # the string's two FREE endpoints
+        for e in (to_pt(pth[0], CL, CY, R), to_pt(pth[-1], CL, CY, R)):
+            c.circle(e[0], e[1], 1.5, fill=STR)
     for i, a in enumerate(ANG):
-        ribbon(c, CL, CY, R, a, incoming=(CUR[i] > 0), idx=i + 1)
-    for i, a in enumerate(ANG):
-        p = to_pt(np.exp(1j * a), CL, CY, R)
-        c.circle(p[0], p[1], 2.5, fill=STR)
+        n_ = complex(math.cos(a), math.sin(a))
+        src = CUR[i] > 0
+        a0, a1 = ((R + 26.0, R + 7.0) if src else (R + 7.0, R + 26.0))
+        c.arrow(CL + a0 * n_.real, CY + a0 * n_.imag,
+                CL + a1 * n_.real, CY + a1 * n_.imag, STR, 1.05, 4.8)
+        lx = CL + (R + 34.0) * n_.real; ly = CY + (R + 34.0) * n_.imag
+        c.math(f"p_{i+1}", lx, ly - 3.2, 9.4, STR, 'c')
+        c.text("in" if src else "out", lx, ly + 8.6, 'sansm', 6.6,
+               STR if src else MUTED, 'c', 0.8)
+        p_ = to_pt(np.exp(1j * a), CL, CY, R)
+        c.circle(p_[0], p_[1], 2.6, fill=STR)
         zlabel(c, CL, CY, R, a, i + 1, (0.16, 0.18, 0.30))
 
     # ---- right: equipotentials, streamlines, board edge, pads
@@ -516,7 +521,7 @@ def page2(c, bmp, n, sl, eq, mesh):
 
     # ---- the centre column
     CX = 397.0
-    string_legend(c, CX + 6, 462, 138)
+    string_legend(c, CX + 4, 474, 176)
     c.text("↔", CX, CY + 14, 'math', 30, INK, 'c')
     c.text("ONE INTEGRAND", CX, CY - 10, 'sansb', 7.4, INK, 'c', 1.5)
     c.text("TWO READINGS", CX, CY - 21, 'sansb', 7.4, INK, 'c', 1.5)
@@ -543,12 +548,14 @@ def page2(c, bmp, n, sl, eq, mesh):
         c.flow(cap, cx - cw_ / 2 - 6, VY - 24, cw_ + 14, 'bodyi', 8.9, 11, INK2, just=False)
 
     rule(c, M, W - M, 82)
-    note = ("Colour is one scalar field, drawn identically on both sides — copper positive, teal negative: at left "
-            "the embedding carrying the sheet into spacetime, at right the electrostatic potential. The flow lines "
-            "are the true current density $J = −∇V/R_s$, traced by RK4 through the exact disk solution.")
-    nl = len(c.wrap(note, 'body', 8.8, W - 2 * M))
-    assert nl <= 2, f"page-2 note wraps to {nl} lines and would hit the folio"
-    c.flow(note, M, 70, W - 2 * M, 'body', 8.8, 11.8, INK2)
+    nl = ("Colour is one scalar field, drawn identically on both sides — copper positive, "
+          "teal negative; the flow lines are the exact current density $J = −∇V/R_s$.")
+    nr = ("Read the currents as light-cone momenta and Mandelstam's map gives "
+          "$τ = −(π/R_s)V$: voltage is the string's time, so a level curve IS the string "
+          "at an instant.")
+    for xx, t_ in ((M, nl), (M + 346, nr)):
+        assert len(c.wrap(t_, 'body', 8.8, 322)) <= 2, "page-2 note column wraps too far"
+        c.flow(t_, xx, 70, 322, 'body', 8.8, 11.8, INK2)
     c.text("Page 2 of 5  ·  the graphic", M, 42, 'sansm', 7.2, MUTED, 'l', 1.2)
     c.endpage()
 
@@ -686,15 +693,17 @@ CAVEAT_R = [
      "boundary propagator $−2α′\\,\\rm{ln}\\,|x−y|$ and the closed-string bulk one "
      "$−α′\\,\\rm{ln}\\,|z−w|$. Moving a contact off the edge into the copper is not a small "
      "perturbation of the model: it converts an open-string insertion into a closed-string one."),
-    ("This is the worldsheet CFT, not holography.",
+    ("This is the worldsheet CFT, and not a least-resistance path.",
      "The two-dimensional theory here is the string's own worldsheet, and the copper plane is "
      "that worldsheet — not spacetime. It is not the boundary CFT of AdS/CFT, where the dual "
-     "theory lives on the boundary of the spacetime the gravity fills; conflating the two is "
-     "the most inviting misreading of the statement."),
-    ("Nor is it a least-resistance path.",
-     "Rayleigh's principle picks out only the single most probable configuration; the amplitude "
-     "sums over all of them, which is the entire content of the exponential. And only the "
-     "tachyonic integrand is this clean — excited states and superstrings carry further factors."),
+     "theory lives on the boundary of the spacetime the gravity fills; conflating those is the "
+     "most inviting misreading of the statement. Nor is the amplitude a least-resistance path: "
+     "Rayleigh's principle picks out only the most probable configuration, whereas the amplitude "
+     "sums over all of them, which is the whole content of the exponential."),
+    ("The two readings use different charges.",
+     "The strings on page 2 come from Mandelstam's map, which reads each current as a "
+     "light-cone momentum $p^+$ — one component. The Koba–Nielsen weight reads the same "
+     "current as the whole momentum vector. Two identifications, not one."),
 ]
 EVIDENCE = [
     (f"Rim-contact pair potential, $R_s = 1$", num(RIM), f"$−R_s/π = {num(RIM_X)}$", pct(RIM, RIM_X)),
@@ -727,7 +736,7 @@ def page4(c):
     c.page()
     c.rect(0, 0, W, H, fill=PAPER)
     eyebrow(c, "where the analogy is exact, and where it stops", M, H - 50)
-    c.text("Five things the one-line version hides", M, H - 76, 'bodyb', 20.5, INK)
+    c.text("Six things the one-line version hides", M, H - 76, 'bodyb', 20.5, INK)
     c.text("None of these breaks the identity; each one bounds what it may be read to mean",
            M, H - 93, 'bodyi', 10.6, INK2)
     rule(c, M, W - M, H - 105, INK, 0.8)
@@ -955,9 +964,10 @@ def main():
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        "string_copper_correspondence.pdf")
     bmp, n = field_bitmap()
-    sl = streamlines(); eq = equipotentials(sl); mesh = conformal_mesh()
-    print(f"  field     {n}×{n} px, {len(sl)} streamlines, {len(eq)} equipotentials, "
-          f"{len(mesh)} mesh arcs")
+    sl = streamlines(); eq = equipotentials(sl)
+    slices = string_slices([1.25, 0.80, 0.50, 0.33, 0.20, 0.04, -0.16, -0.42, -0.85])
+    print(f"  field     {n}×{n} px, {len(sl)} flow lines, {len(eq)} equipotentials, "
+          f"{len(slices)} string slices")
     c = Canvas(out, W, H, {
         "kCGPDFContextTitle": "The Worldsheet and the Copper Plane",
         "kCGPDFContextAuthor": "Andy Haas",
@@ -965,7 +975,7 @@ def main():
         "kCGPDFContextSubject": "The Koba-Nielsen amplitude as Johnson-Nyquist power "
                                 "fluctuations on a two-dimensional resistive sheet",
     })
-    page1(c); page2(c, bmp, n, sl, eq, mesh); page3(c); page4(c); page5(c)
+    page1(c); page2(c, bmp, n, sl, eq, slices); page3(c); page4(c); page5(c)
     c.close()
     print(f"  wrote     {out}  ({os.path.getsize(out)/1024:.0f} kB)")
 
