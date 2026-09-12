@@ -64,11 +64,20 @@ print("   Unit-resistor lattice, insulating rim, exact DCT solve. R_s = 1 Ω/sq.
 print("   The only errors are the lattice at small r and wall images at large r,")
 print("   so the test is CONVERGENCE in sheet size:\n")
 print(f"   {'sheet':>13}   {'rim contacts':>22}   {'interior contacts':>22}   ratio")
+conv = []
 for W, H in SIZES:
     me, re_, n = log_slope(*greens(W, H, True, OFF))
     mb, rb, _ = log_slope(*greens(W, H, False, OFF))
+    conv.append({"W": W, "H": H, "rim": float(me), "interior": float(mb),
+                 "rim_err_pct": float(abs(me / (-1 / math.pi) - 1) * 100)})
     print(f"   {W:>5}×{H:<5}   {me:+.6f} ({abs(me/(-1/math.pi)-1)*100:5.2f}%)   "
           f"{mb:+.6f} ({abs(mb/(-1/(2*math.pi))-1)*100:5.2f}%)   {me/mb:.5f}")
+RESULTS['rim_convergence'] = conv
+if len(conv) > 1:
+    RESULTS['rim_err_ratios'] = [round(conv[i]['rim_err_pct'] / conv[i+1]['rim_err_pct'], 3)
+                                 for i in range(len(conv) - 1)]
+    print(f"   error ratio per doubling: {RESULTS['rim_err_ratios']} — about 4, so the")
+    print("   SHEET's rim Green's function converges at SECOND order in the spacing.")
 RESULTS['rim_slope'], RESULTS['interior_slope'] = float(me), float(mb)
 RESULTS['ratio'] = float(me / mb)
 print(f"\n   exact:  −R_s/π = {-1/math.pi:.6f}   −R_s/2π = {-1/(2*math.pi):.6f}   ratio 2")
@@ -150,7 +159,53 @@ print("   Ohm's law is the strict minimiser, so exp(−P/P_N) peaks there. The")
 print("   Gaussian width is Nyquist's 4kT/R, giving P_N = 4k_B T/τ for an")
 print("   averaging window τ, hence α′ = R_s τ / 4π k_B T.")
 
-# ══════════════════════════════════════════════════ 4b. the washer
+hdr("4a. THE BRIDGE — the substitution itself, measured end to end")
+print("   This is the step the whole claim rests on, and it was previously only")
+print("   asserted. Take the MEASURED lattice dissipation P of a neutral rim")
+print("   configuration, subtract the fitted self-energy kappa*sum(I^2) (the")
+print("   Koba-Nielsen product has no self-term), divide by a noise scale P_N,")
+print("   and compare exp of that against the string-side product evaluated with")
+print("   alpha' = R_s/(pi P_N). If the dictionary is right the ratio is 1.")
+P_N = 3.0
+alpha_bridge = 1.0 / (math.pi * P_N)          # R_s = 1
+kappa = RESULTS['power_kappa']
+print(f"\n   P_N = {P_N}  ->  alpha' = R_s/(pi P_N) = {alpha_bridge:.8f}")
+print(f"   using the fitted kappa = {kappa:.6f}\n")
+print("     n  currents             exp(-(P-k*SI2)/P_N)  prod|z_ij|^(2a'I_iI_j)"
+      "     ratio        P   implied dP/P")
+bridge = []
+rngb = np.random.default_rng(21)
+while len(bridge) < 6:
+    k = int(rngb.integers(3, 6))
+    idx = np.sort(rngb.choice(len(OFF), k, replace=False))
+    q = rngb.integers(-3, 4, k).astype(float)
+    if q.sum() != 0 or np.abs(q).max() == 0:
+        continue
+    P = float(q @ Ge[np.ix_(idx, idx)] @ q)
+    lhs = math.exp(-(P - kappa * (q ** 2).sum()) / P_N)
+    rhs = float(np.prod([abs(OFF[idx[a]] - OFF[idx[b]]) ** (2 * alpha_bridge * q[a] * q[b])
+                         for a, b in combinations(range(k), 2)]))
+    # The exponential AMPLIFIES: ratio = exp(-dP/P_N), so a small relative
+    # error on P shows up multiplied by P/P_N. Report the implied error on P,
+    # which is the quantity that can be compared with section 2.
+    implied = -math.log(lhs / rhs) * P_N / P
+    bridge.append({"I": [int(v) for v in q], "lhs": lhs, "rhs": rhs,
+                   "ratio": float(lhs / rhs), "P": P,
+                   "implied_P_err_pct": float(abs(implied) * 100)})
+    print(f"     {k}  {str([int(v) for v in q]):<20} {lhs:>17.10f}  {rhs:>17.10f}"
+          f"  {lhs/rhs:.6f}  {P:7.3f}  {abs(implied)*100:.3f}%")
+dev = max(abs(b["ratio"] - 1) for b in bridge)
+imp = max(b["implied_P_err_pct"] for b in bridge)
+RESULTS['bridge_max_dev'] = float(dev)
+RESULTS['bridge_implied_P_err_pct'] = float(imp)
+RESULTS['bridge_P_N'], RESULTS['bridge_alpha'] = P_N, float(alpha_bridge)
+print(f"\n   worst deviation from 1: {dev:.2e} ({dev*100:.3f}%)")
+print(f"   worst IMPLIED error on P: {imp:.3f}%")
+print("   Those are consistent: ratio = exp(-dP/P_N), and here P/P_N reaches")
+print(f"   {max(b['P'] for b in bridge)/P_N:.0f}, so a ~0.1% error on P becomes ~1% on the ratio.")
+print("   0.1% on P is the lattice error of section 2, NOT a defect in the")
+print("   dictionary. The substitution itself is now measured rather than asserted.")
+
 def annulus_R(a, b, pad=1.18, rtol=1e-11):
     """DC resistance of an annular sheet of unit-resistance bonds (R_s = 1),
     inner rim held at 1 V and outer at 0 V. R = ΔV / I."""
@@ -203,9 +258,14 @@ for sc in (1, 2, 4) + (() if QUICK else (6,)):
     print(f"   {a:>4}  {b:>5}   {b/a:5.2f}    {Rm:.8f}       {Rx:.8f}        "
           f"{abs(Rm/Rx-1)*100:6.3f}%")
 RESULTS['annulus'] = rowsA
-print("   The staircased rim is the only error source, and it is first order in")
-print("   the lattice spacing — the error halves each time the rim is resolved")
-print("   twice as finely, which is what the column shows.")
+if len(rowsA) > 1:
+    RESULTS['annulus_err_ratios'] = [
+        round(rowsA[i]['err_pct'] / rowsA[i + 1]['err_pct'], 3) for i in range(len(rowsA) - 1)]
+    print(f"   error ratio per refinement: {RESULTS['annulus_err_ratios']}")
+print("   Unlike the sheet above (which converges at second order), the washer is")
+print("   limited by its STAIRCASED rim, a first-order boundary error: the ratios")
+print("   sit near 2 rather than near 4. 'Roughly halves' is the honest phrasing;")
+print("   it does not halve exactly.")
 print("\n   Reading it: the annulus is the ONE-LOOP open-string diagram, and it has")
 print("   two channels. Slice it by circles and each slice is a CLOSED string,")
 print("   propagating from rim to rim — and closed strings contain the graviton.")
@@ -247,6 +307,8 @@ a, b = -als, -alt
 num, _ = quad(lambda x: x ** (a - 1) * (1 - x) ** (b - 1), 0, 1,
               epsabs=1e-14, epsrel=1e-14)
 RESULTS['veneziano'] = float(abs(num / Beta(a, b) - 1))
+RESULTS['veneziano_quad'] = float(num)          # MEASURED: the quadrature result
+# (veneziano_value below is the closed form it is checked against, not a measurement)
 RESULTS['veneziano_value'] = float(Beta(a, b))
 RESULTS['veneziano_a'], RESULTS['veneziano_b'] = float(a), float(b)
 print(f"\n   Gauge-fix z₁,z₃,z₄ = 0,1,∞ and slide z₂ over (0,1):")
@@ -290,8 +352,14 @@ print(f"     {tot} integer pairs checked, {bad} mismatches   "
 print("     So 'the integral counts orderings continuously' is an identity.")
 
 print("\n   The particle spectrum is the x → 0 endpoint (two contacts merging):")
+pole = []
 for aa in (0.30, 0.10, 0.03, 0.01):
-    print(f"     B({aa:.2f}, 1.5) = {Beta(aa,1.5):9.4f}    1/a = {1/aa:7.2f}")
+    pole.append(float(Beta(aa, 1.5) * aa))
+    print(f"     B({aa:.2f}, 1.5) = {Beta(aa,1.5):9.4f}    1/a = {1/aa:7.2f}"
+          f"    a·B = {Beta(aa,1.5)*aa:.4f}")
+RESULTS['pole_residue'] = pole
+print(f"   a·B(a,1.5) → 1 as a → 0 ({[round(v,3) for v in pole]}), so B has a simple")
+print("   pole of unit residue there — approached slowly, which is worth saying.")
 print("     Poles at −α(s) = 0,−1,−2,… i.e. α′s = −1,0,1,2,… — the open-string")
 print("     spectrum m² = (J−1)/α′. Convergence at x=0 needs 2α′p₁·p₂ > −1.")
 
@@ -331,15 +399,61 @@ for (A, B_, C, Dd) in [(2.0, 0.3, 0.0, 1.0), (1.0, -0.4, 0.7, 1.3),
     worst = max(worst, abs(r - 1))
     print(f"     (a,b,c,d) = ({A:>4},{B_:>5},{C:>5},{Dd:>4})   ratio = {r:.12f}")
 RESULTS['sl2r'] = float(worst)
-qoff = p.copy()
-qoff[:, 1:] *= np.sqrt((0.5 + E5 ** 2) / (1 / ap + E5 ** 2))[:, None]
-zz = np.sort(rng.uniform(0.2, 3.0, N)); A, B_, C, Dd = 1.0, -0.4, 0.7, 1.3
-zp = (A * zz + B_) / (C * zz + Dd)
-roff = (KN(zp, qoff) * abs(np.prod(abs(A*Dd - B_*C) / (C*zz + Dd)**2)) / KN(zz, qoff))
-RESULTS['sl2r_off'] = float(roff)
-print(f"   Off the mass shell (α′p² = {ap*dot(qoff[0],qoff[0]):.2f}): ratio = {roff:.6f}")
-print("   The gauge symmetry IS the mass-shell condition; so ∫dz₁…dz_N carries")
-print("   the infinite volume of SL(2,ℝ) and three punctures must be fixed.")
+def mobius_ratio(P):
+    zz = np.sort(rng.uniform(0.2, 3.0, N)); A, B_, C, Dd = 1.0, -0.4, 0.7, 1.3
+    zp = (A * zz + B_) / (C * zz + Dd)
+    jac = abs(np.prod(abs(A * Dd - B_ * C) / (C * zz + Dd) ** 2))
+    return float(KN(zp, P) * jac / KN(zz, P))
+
+# Invariance needs BOTH Σp = 0 AND α′p² = 1: the exponent collected at puncture
+# i is 2α′p_i² − 2 − 2α′p_i·(Σp). So vary ONE condition at a time. The earlier
+# control rescaled each particle's spatial momentum by a DIFFERENT factor, which
+# broke the shell and Σp = 0 together, and so could attribute nothing.
+qoff = p * math.sqrt(0.5)                   # shell broken, Σp = 0 preserved
+RESULTS['sl2r_off'] = mobius_ratio(qoff)
+qcon = p.copy()                             # shell preserved, Σp broken
+th40 = math.radians(40.0)                   # a rotation keeps |p_vec|, hence α′p²
+x0, y0 = qcon[1, 1], qcon[1, 2]
+qcon[1, 1] = math.cos(th40) * x0 - math.sin(th40) * y0
+qcon[1, 2] = math.sin(th40) * x0 + math.cos(th40) * y0
+RESULTS['sl2r_noncons'] = mobius_ratio(qcon)
+print("   one condition at a time — the part the earlier control got wrong:")
+print(f"     shell BROKEN (α′p² = {ap*dot(qoff[0],qoff[0]):.2f}), Σp = 0 kept "
+      f"(|Σp| = {np.abs(qoff.sum(0)).max():.1e}):   ratio = {RESULTS['sl2r_off']:.6f}")
+print(f"     shell KEPT   (α′p² = {ap*dot(qcon[0],qcon[0]):.2f}), Σp broken "
+      f"(|Σp| = {np.abs(qcon.sum(0)).max():.3f}):  ratio = {RESULTS['sl2r_noncons']:.6f}")
+print("   BOTH break it, so the invariance rests on the PAIR, not on the mass")
+print("   shell alone. Given Σp = 0 it is α′p² = 1 that does the work — that")
+print("   condition is exactly 'the vertex operator has conformal weight one'.")
+print("   Either way ∫dz₁…dz_N carries the infinite volume of SL(2,ℝ).")
+
+hdr("7. THE RIM IS THE OPEN STRING'S FREE END (Neumann), measured")
+# On the unit disk with NEUTRAL rim sources, V(w) = -(R_s/pi) sum I ln|w-zeta|
+# solves the insulating problem exactly (each term has constant normal
+# derivative 1/2 on |w| = 1, so only the sum is Neumann). Then grad V is TANGENT
+# at the rim, and a level curve -- the string at one instant -- strikes the rim
+# at 90 degrees. That is the open string's free-endpoint condition.
+ANGD = np.deg2rad(np.array([158.0, 104.0, 30.0, -48.0, -126.0]))
+CURD = np.array([+2.0, -1.0, +2.0, -2.0, -1.0])
+ZETD = np.exp(1j * ANGD)
+assert abs(CURD.sum()) < 1e-12, "the disk solution needs neutral rim sources"
+def gradV(w):
+    """grad V as a complex number, for V = -(1/pi) sum_i I_i ln|w - zeta_i|."""
+    return -np.conj((1 / np.pi) * (CURD / (w[..., None] - ZETD)).sum(-1))
+print("   radial vs tangential gradient on circles approaching the rim:")
+neu = []
+for rad in (0.90, 0.99, 0.999, 0.9999):
+    th = np.linspace(0, 2 * np.pi, 4000, endpoint=False)
+    w = rad * np.exp(1j * th)
+    keep = np.min(np.abs(w[:, None] - ZETD), axis=1) > 0.05      # away from contacts
+    proj = gradV(w[keep]) * np.conj(w[keep] / np.abs(w[keep]))
+    r_, t_ = float(np.abs(proj.real).max()), float(np.abs(proj.imag).max())
+    neu.append(round(r_ / t_, 6))
+    print(f"     |w| = {rad:<8}  max|radial| / max|tangential| = {r_/t_:.4f}")
+RESULTS['neumann_ratio'] = neu
+print("   -> the normal derivative vanishes at the rim, so level curves strike it")
+print("      at 90 degrees: the string's ends are FREE. That is Neumann, the same")
+print("      boundary condition whose image charge produced the factor of two.")
 
 # ══════════════════════════════════════════════════ summary
 hdr("SUMMARY — the table on page 4 of the PDF")
