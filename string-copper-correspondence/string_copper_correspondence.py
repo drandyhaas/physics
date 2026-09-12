@@ -308,7 +308,7 @@ def conformal_mesh():
         fam.append(cay(b + 1j * t))
     return [seg for f in fam for seg in runs_inside(f)]
 
-def ribbon(c, cx, cy, r, ang, L=30.0, wd=5.6, incoming=False, label="p", idx=1):
+def ribbon(c, cx, cy, r, ang, L=40.0, wd=9.0, incoming=False, label="p", idx=1):
     """An external open string: a semi-infinite strip, conformally shrunk to a
     single boundary point. Transverse bows are the string at successive times."""
     n = complex(math.cos(ang), math.sin(ang))
@@ -322,15 +322,20 @@ def ribbon(c, cx, cy, r, ang, L=30.0, wd=5.6, incoming=False, label="p", idx=1):
     c.bezpath([('m', *P), ('c', *cA1, *cA2, *A1), ('l', *B1),
                ('c', *cB2, *cB1, *P), ('z',)],
               fill=(0.905, 0.898, 0.925, 0.34), stroke=(STR[0], STR[1], STR[2], 0.92), lw=0.9)
-    for s in (0.30, 0.52, 0.74, 0.96):
-        hw = s * wd * 1.0
+    for k, s in enumerate((0.26, 0.46, 0.68, 0.92)):
+        hw = s * wd
         pts = []
-        for u in np.linspace(-1, 1, 22):
-            bow = 0.16 * hw * math.cos(math.pi * u / 2) + 0.11 * hw * math.sin(2.4 * math.pi * u)
+        for u in np.linspace(-1, 1, 26):
+            bow = (0.17 * hw * math.cos(math.pi * u / 2)
+                   + 0.13 * hw * math.sin(2.4 * math.pi * u))
             pts.append(at(s * L + bow, u * hw))
-        c.polyline(pts, stroke=(STR[0], STR[1], STR[2], 0.62), lw=0.62)
+        bold = (k == 3)
+        c.polyline(pts, stroke=(STR[0], STR[1], STR[2], 0.95 if bold else 0.72),
+                   lw=1.15 if bold else 0.7)
+        for e in (pts[0], pts[-1]):          # the open string's two endpoints
+            c.circle(e[0], e[1], 1.35 if bold else 1.0, fill=STR)
     # the momentum arrow, in for a source and out for a sink
-    a0, a1 = 0.30 * L, L + 10.0
+    a0, a1 = 0.34 * L, L + 10.0
     if incoming:
         c.arrow(*at(a1, 0), *at(a0, 0), STR, 0.95, 4.6)
     else:
@@ -361,6 +366,42 @@ def zlabel(c, cx, cy, r, ang, idx, col):
     lx, ly = cx + (r - 14.0) * n.real, cy + (r - 14.0) * n.imag
     c.circle(lx, ly, 7.4, fill=(PAPER[0], PAPER[1], PAPER[2], 0.86))
     c.math(f"z_{idx}", lx, ly - 3.0, 8.6, col, 'c')
+
+def string_legend(c, cx, ytop, w):
+    """A pinched strip like the ones on the disk, with the string called out.
+    `ytop` is the top of the whole block; it grows downward."""
+    L, wd = 80.0, 12.0
+    x0 = cx - w / 2 + 8
+    yc = ytop - 21                                    # the strip's axis
+    at = lambda d, u: (x0 + d, yc + u)
+    # the sweep direction, ABOVE the strip so it cannot sit on the caption
+    c.arrow(*at(0.16 * L, wd + 8.5), *at(L, wd + 8.5),
+            (STR[0], STR[1], STR[2], 0.8), 0.7, 3.6)
+    c.text("τ", *at(L * 0.56, wd + 12.0), 'mathi', 7.8, STR, 'c')
+    c.bezpath([('m', *at(0, 0)),
+               ('c', *at(0.30 * L, 0.22 * wd), *at(0.70 * L, 0.88 * wd), *at(L, wd)),
+               ('l', *at(L, -wd)),
+               ('c', *at(0.70 * L, -0.88 * wd), *at(0.30 * L, -0.22 * wd), *at(0, 0)),
+               ('z',)],
+              fill=(0.905, 0.898, 0.925, 0.34),
+              stroke=(STR[0], STR[1], STR[2], 0.92), lw=0.9)
+    for k, s in enumerate((0.26, 0.46, 0.68, 0.92)):
+        hw = s * wd
+        pts = []
+        for u in np.linspace(-1, 1, 26):
+            bow = (0.17 * hw * math.cos(math.pi * u / 2)
+                   + 0.13 * hw * math.sin(2.4 * math.pi * u))
+            pts.append(at(s * L + bow, u * hw))
+        bold = (k == 3)
+        c.polyline(pts, stroke=(STR[0], STR[1], STR[2], 0.95 if bold else 0.70),
+                   lw=1.3 if bold else 0.72)
+        for e in (pts[0], pts[-1]):
+            c.circle(e[0], e[1], 1.5 if bold else 1.05, fill=STR)
+    c.circle(*at(0, 0), 2.0, fill=STR)                # the puncture it shrinks to
+    c.math("z_i", x0 - 10, yc - 3, 7.6, STR, 'r')
+    c.text("each rung is the 1-D string at one instant", cx, ytop - 42, 'bodyi', 7.9, INK2, 'c')
+    c.text("the strip is the 2-D worldsheet it sweeps", cx, ytop - 51.5, 'bodyi', 7.9, INK2, 'c')
+
 
 def vignette_quantum(c, x, y, w, h):
     c.rrect(x, y, w, h, 2.5, fill=(0.977, 0.972, 0.963), stroke=RULE, lw=0.6)
@@ -418,7 +459,7 @@ def page2(c, bmp, n, sl, eq, mesh):
            M, H - 93, 'bodyi', 10.6, INK2)
     rule(c, M, W - M, H - 105, INK, 0.8)
 
-    R = 80.0
+    R = 72.0
     CL, CR, CY = 202.0, 590.0, 344.0
 
     for cx, title, subt, col in ((CL, "The string worldsheet",
@@ -475,9 +516,7 @@ def page2(c, bmp, n, sl, eq, mesh):
 
     # ---- the centre column
     CX = 397.0
-    c.text("SAME DOMAIN", CX, CY + 86, 'sansb', 7.4, INK, 'c', 1.5)
-    for k, ln in enumerate(["one disk, one rim,", "the same five points"]):
-        c.text(ln, CX, CY + 72 - k * 11, 'bodyi', 8.6, INK2, 'c')
+    string_legend(c, CX + 6, 462, 138)
     c.text("↔", CX, CY + 14, 'math', 30, INK, 'c')
     c.text("ONE INTEGRAND", CX, CY - 10, 'sansb', 7.4, INK, 'c', 1.5)
     c.text("TWO READINGS", CX, CY - 21, 'sansb', 7.4, INK, 'c', 1.5)
