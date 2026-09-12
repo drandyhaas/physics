@@ -13,6 +13,8 @@ import sys, math, json, os
 import numpy as np
 from itertools import combinations
 from scipy.fft import dctn, idctn
+from scipy.sparse import coo_matrix
+from scipy.sparse.linalg import cg, LinearOperator
 from scipy.special import beta as Beta, comb
 from scipy.integrate import quad
 from scipy.optimize import least_squares
@@ -147,6 +149,70 @@ for eps in (0.05, 0.2, 1.0):
 print("   Ohm's law is the strict minimiser, so exp(−P/P_N) peaks there. The")
 print("   Gaussian width is Nyquist's 4kT/R, giving P_N = 4k_B T/τ for an")
 print("   averaging window τ, hence α′ = R_s τ / 4π k_B T.")
+
+# ══════════════════════════════════════════════════ 4b. the washer
+def annulus_R(a, b, pad=1.18, rtol=1e-11):
+    """DC resistance of an annular sheet of unit-resistance bonds (R_s = 1),
+    inner rim held at 1 V and outer at 0 V. R = ΔV / I."""
+    N = int(b * pad)
+    ax = np.arange(-N, N + 1)
+    X, Y = np.meshgrid(ax, ax, indexing='ij')
+    r = np.hypot(X, Y)
+    inner, outer = r <= a, r >= b
+    free = ~inner & ~outer
+    idx = -np.ones(r.shape, np.int64); idx[free] = np.arange(free.sum())
+    n = int(free.sum())
+    fi, fj = np.nonzero(free)
+    rows, cols, vals = [np.arange(n)], [np.arange(n)], [np.full(n, 4.0)]
+    rhs = np.zeros(n)
+    for di, dj in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        ni, nj = fi + di, fj + dj
+        nbf, nbi = free[ni, nj], inner[ni, nj]
+        me = idx[fi, fj]
+        rows.append(me[nbf]); cols.append(idx[ni[nbf], nj[nbf]])
+        vals.append(-np.ones(int(nbf.sum())))
+        np.add.at(rhs, me[nbi], 1.0)
+    L = coo_matrix((np.concatenate(vals),
+                    (np.concatenate(rows), np.concatenate(cols))), shape=(n, n)).tocsr()
+    V, info = cg(L, rhs, rtol=rtol, maxiter=200000,
+                 M=LinearOperator((n, n), matvec=lambda v: v / 4.0))
+    assert info == 0, f"cg did not converge: info={info}"
+    Vf = np.zeros(r.shape); Vf[inner] = 1.0; Vf[free] = V
+    I = 0.0
+    ii, jj = np.nonzero(inner)
+    for di, dj in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        ni, nj = ii + di, jj + dj
+        ok = (ni >= 0) & (ni < r.shape[0]) & (nj >= 0) & (nj < r.shape[1])
+        sel = free[ni[ok], nj[ok]]
+        I += float(np.sum(1.0 - Vf[ni[ok][sel], nj[ok][sel]]))
+    return 1.0 / I
+
+hdr("4b. THE WASHER — is a copper annulus's resistance its CONFORMAL MODULUS?")
+print("   An annulus has exactly one shape parameter conformal maps cannot change,")
+print("   b/a. That number is its modulus, and it is what the one-loop string")
+print("   amplitude integrates over. Continuum: R = (R_s/2π)ln(b/a), so R/R_s")
+print("   should BE the modulus t = (1/2π)ln(b/a).\n")
+print("     a      b    b/a     R measured      t = (1/2π)ln(b/a)   rel. err")
+rowsA = []
+for sc in (1, 2, 4) + (() if QUICK else (6,)):
+    a, b = 20 * sc, 100 * sc
+    Rm = annulus_R(a, b)
+    Rx = math.log(b / a) / (2 * math.pi)
+    rowsA.append({"a": a, "b": b, "R": float(Rm), "t": float(Rx),
+                  "err_pct": float(abs(Rm / Rx - 1) * 100)})
+    print(f"   {a:>4}  {b:>5}   {b/a:5.2f}    {Rm:.8f}       {Rx:.8f}        "
+          f"{abs(Rm/Rx-1)*100:6.3f}%")
+RESULTS['annulus'] = rowsA
+print("   The staircased rim is the only error source, and it is first order in")
+print("   the lattice spacing — the error halves each time the rim is resolved")
+print("   twice as finely, which is what the column shows.")
+print("\n   Reading it: the annulus is the ONE-LOOP open-string diagram, and it has")
+print("   two channels. Slice it by circles and each slice is a CLOSED string,")
+print("   propagating from rim to rim — and closed strings contain the graviton.")
+print("   Slice it radially and each slice is an OPEN string with an endpoint on")
+print("   each rim, going once around the loop. Conformally the cylinder's length")
+print("   is ln(b/a) = 2πR/R_s, so a HIGH-resistance washer is the long-cylinder,")
+print("   long-distance graviton-exchange limit; b/a → 1 is the open-string loop.")
 
 # ══════════════════════════════════════════════════ 5. the string side
 ap = 1.0
@@ -302,6 +368,9 @@ row("the same, pushed off the mass shell", f"{RESULTS['sl2r_off']:.6f}", "≠ 1"
 row("Koba–Nielsen exponent eigenvalues",
     ", ".join(f"{v:.0f}" for v in RESULTS['gram_eigs']), "indefinite, rank 3",
     "a real current gives rank 1, ≥ 0")
+_A = RESULTS['annulus'][-1]
+row(f"Washer resistance, a={_A['a']} b={_A['b']}", f"{_A['R']:.6f}",
+    f"(1/2π)ln(b/a) = {_A['t']:.6f}", f"{_A['err_pct']:.2f}%, first order in h")
 print(f"\n   also: three channels agree to {RESULTS['channels']:.1e}; "
       f"{RESULTS['binomial_pairs']} binomial pairs with {RESULTS['binomial_bad']} mismatches;")
 print(f"   Koba–Nielsen = Boltzmann weight to {RESULTS['kn_boltzmann']:.1e}.")

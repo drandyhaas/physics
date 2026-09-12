@@ -17,7 +17,7 @@ version misleads are stated explicitly.
 
 📄 **[string_copper_correspondence.pdf](string_copper_correspondence.pdf)** —
 page 1 the statement, page 2 the graphic, page 3 the mechanism, page 4 the
-caveats and the evidence table.
+caveats and the evidence table, page 5 where gravity enters.
 
 ## Why it works
 
@@ -53,6 +53,48 @@ Veneziano amplitude.
    Rayleigh's principle gives only the single most probable configuration,
    whereas the amplitude sums over all of them.
 
+## Where gravity enters (page 5)
+
+Closed strings carry a massless spin-2 state — the graviton. Open strings do
+not; their first massless state is a spin-1 gauge boson. So the rim/interior
+distinction *is* the gauge-theory/gravity divide, and the measured factor of
+two between the two propagators is that divide showing up in a lattice Green's
+function.
+
+Two things have to be said carefully, and the page says both:
+
+- **A current injection is not a graviton.** `exp(ip·X)` is a monopole source
+  and its state is the tachyon. A graviton vertex operator is bilinear in the
+  worldsheet field, so it injects *no net current at all* — it couples to
+  something quadratic in the local current, which in copper is the Joule
+  dissipation density `R_s|J|²`.
+- **Punching a hole is the cleaner route.** Copper with a hole has two rims:
+  that is the annulus, which is the one-loop open-string diagram. Slice it by
+  circles and each slice is a closed string propagating rim to rim (the
+  graviton channel); slice it radially and each slice is an open string going
+  once around the loop.
+
+And the part that is exactly true and measurable: **a washer's resistance, in
+units of its sheet resistance, is the annulus's conformal modulus** — the one
+shape parameter conformal maps cannot remove, and the very parameter a
+one-loop string amplitude integrates over.
+
+    R / R_s  =  (1/2π) ln(b/a)  =  t
+
+Measured at a=120, b=600: `R = 0.256748` against `t = 0.256150` — 0.23%, and
+first order in the lattice spacing (the staircased rim is the only error, and
+the error halves each time the rim is resolved twice as finely). Since the
+cylinder's conformal length is `ln(b/a) = 2πR/R_s`, resistance is *separation*:
+a high-resistance washer is the long-cylinder limit where only the lightest
+closed states survive the trip, i.e. long-distance graviton exchange. As
+b/a → 1 the open-string loop takes over instead.
+
+What page 5 does **not** claim: that a circuit board gravitates beyond the pull
+of its mass, that any measurement on copper could test string theory, or that
+this is holography. The copper is the worldsheet, so this graviton is a string
+state on an auxiliary two-dimensional surface — not curvature of the room the
+board sits in.
+
 Two errors worth flagging, because they are easy to make and both appear in
 popular retellings: the power delivered by current sources carries **no factor
 of ½** (that belongs to the energy of assembling static charges, and inserting
@@ -72,7 +114,7 @@ is not an exponent, which is where `P_N` comes from.
 ## Reproducing
 
 ```bash
-python3 verify_string_copper.py          # ~45 s; prints every check, writes measured.json
+python3 verify_string_copper.py          # ~75 s; prints every check, writes measured.json
 python3 string_copper_correspondence.py  # builds the PDF from those values
 ```
 
@@ -94,6 +136,9 @@ Nothing is taken on citation:
   self-energy term kept explicitly, so it cannot absorb a wrong coefficient.
 - Rayleigh's least-dissipation principle is checked by adding a
   divergence-free loop and confirming the cost is exactly `4ε²`.
+- The washer is solved as a separate Dirichlet problem (conjugate gradient on
+  a masked lattice, inner rim at 1 V and outer at 0 V) at four resolutions, to
+  show `R/R_s` converging on the annulus modulus.
 - The string side is checked against closed forms: the Veneziano integral
   against Euler's B, the three cyclic orderings against the three Mandelstam
   channels, `B(k+1,n−k+1) = 1/[(n+1)C(n,k)]` on 38 integer pairs, and SL(2,ℝ)
