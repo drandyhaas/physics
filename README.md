@@ -8,7 +8,7 @@ anything.
 | project | what it is |
 | --- | --- |
 | [**e8-heterotic-posters**](e8-heterotic-posters/) | Two single-page posters on E₈×E₈ heterotic string theory: the symmetry-breaking cascade from the Planck scale down to the Standard Model, and the complete ten-dimensional Lagrangian field by field. Authored as standalone HTML, exported to PDF. |
-| [**string-copper-correspondence**](string-copper-correspondence/) | A four-page broadside on why an open-string scattering amplitude is, integrand for integrand, the thermal-noise statistics of a two-dimensional resistive copper plane. Every number it quotes is produced by a verification script in the same directory, not cited. |
+| [**string-copper-correspondence**](string-copper-correspondence/) | A seven-page broadside on why an open-string scattering amplitude is, integrand for integrand, the thermal-noise statistics of a two-dimensional resistive copper plane. Every number it quotes is produced by a verification script in the same directory, not cited. |
 
 ## Conventions
 

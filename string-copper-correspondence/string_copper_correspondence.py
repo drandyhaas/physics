@@ -4,7 +4,7 @@
 A three-page broadside on the Coulomb-gas identity between the open-string
 Koba-Nielsen amplitude and Johnson-Nyquist power fluctuations on a 2-D
 resistive sheet. Every number quoted on page 3 comes from
-verify_string_copper.py; the figure's flow field is the real harmonic
+verify_string_copper.py; the figure’s flow field is the real harmonic
 solution for the unit disk, not a sketch.
 """
 import json, math, os, sys
@@ -39,16 +39,16 @@ with open(_MJ) as _fh:
 if MEAS.get("quick"):
     sys.exit("measured.json came from a --quick run; rerun verify without it")
 
-_SUP = str.maketrans("-0123456789", "\u207b\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079")
-
 def num(x, d=6):
     """Fixed-point with a real minus sign (U+2212), not a hyphen."""
     return f"{x:.{d}f}".replace("-", "\u2212")
 
 def sci(x, sig=1):
+    """Returns MATHS MARKUP ($...$), so the exponent is typeset by STIXGeneral
+    rather than by whatever face CoreText finds for a superscript digit."""
     e = int(math.floor(math.log10(abs(x))))
     man = f"{x / 10 ** e:.{sig}f}".rstrip("0").rstrip(".")
-    return f"{man}\u00d710{str(e).translate(_SUP)}"
+    return f"${man}\u00d710^{{{str(e).replace('-', '\u2212')}}}$"
 
 def pct(x, ref, d=2):
     return f"{abs(x / ref - 1) * 100:.{d}f}%"
@@ -158,7 +158,7 @@ def rim_crossings(c, rr=0.988, nth=2400):
 
 def string_slices(levels):
     """Each returned polyline is the open string at one instant of light-cone
-    time: a level curve of V, with both ends free on the rim. Mandelstam's map
+    time: a level curve of V, with both ends free on the rim. Mandelstam’s map
     is rho = Σ α_i ln(z − ζ_i), so τ = Re rho = −(π/R_s)V and σ = Im rho."""
     out = []
     for c in levels:
@@ -242,7 +242,7 @@ def equation(c, cx, y, s=1.0):
     BIG, SM, LIM = 27 * s, 14.2 * s, 6.9 * s
     pieces = []
     def add(kind, *a): pieces.append((kind, a))
-    add('int', ); add('m', "\\rm{e}^{−P}\\,\\rm{d}z_1⋯\\rm{d}z_N"); add('gap', 13 * s)
+    add('int', ); add('m', "\\rm{e}^{−P/P_N}\\,\\rm{d}z_1⋯\\rm{d}z_N"); add('gap', 13 * s)
     add('m', "="); add('gap', 13 * s)
     add('int', ); add('prod', ); add('m', "|z_i − z_j|^{2α′p_i·p_j}\\,\\rm{d}z_1⋯\\rm{d}z_N")
     tot = 0.0
@@ -278,7 +278,7 @@ STATEMENT = (
     "momenta of the incoming and outgoing particles become discrete electrical currents, "
     "injected and extracted at coordinate locations $z_i$ strictly along the "
     "one-dimensional outer boundary of the board. A two-dimensional sheet has a "
-    "logarithmic Green's function, so the power dissipated by any Kirchhoff-balanced set "
+    "logarithmic Green’s function, so the power dissipated by any Kirchhoff-balanced set "
     "of edge currents is a sum of pairwise logarithms of the contact separations; and "
     "Johnson–Nyquist noise weights each microscopic thermal state by the exponential of "
     "its dissipated heat. Integrating those thermal states by sliding the injection "
@@ -286,12 +286,12 @@ STATEMENT = (
     "integral of the interacting strings, governed by the mathematical equivalence:")
 
 PROVENANCE = [
-    ("1730", "Euler", "the integral that interpolates the factorial, to Goldbach, 8 January."),
-    ("1928", "Johnson · Nyquist", "measure, then explain, resistor noise. Phys. Rev. 32, 97 & 110."),
-    ("1968", "Veneziano", "the crossing-symmetric four-point amplitude. Nuovo Cimento A57, 190."),
-    ("1969", "Koba · Nielsen", "generalise it to N particles — the product above. Nucl. Phys. B10, 633."),
-    ("1970", "Fairlie · Nielsen", "the analogue model: the amplitude as a flow's dissipation. B20, 637."),
-    ("1981", "Polyakov", "makes the worldsheet a 2-D statistical system. Phys. Lett. B103, 207."),
+    ("1730", "Euler", "the integral interpolating the factorial, to Goldbach, 8 January.", INK),
+    ("1928", "Johnson · Nyquist", "measure, then explain, resistor noise. Phys. Rev. 32, 97 & 110.", CU),
+    ("1968", "Veneziano", "the crossing-symmetric four-point amplitude. Nuovo Cimento A57, 190.", STR),
+    ("1969", "Koba · Nielsen", "generalise it to N particles — the product above. Nucl. Phys. B10, 633.", STR),
+    ("1970", "Fairlie · Nielsen", "the analogue model — the two sides joined. Nucl. Phys. B20, 637.", INK),
+    ("1981", "Polyakov", "makes the worldsheet a 2-D statistical system. Phys. Lett. B103, 207.", STR),
 ]
 
 def page1(c):
@@ -309,28 +309,33 @@ def page1(c):
     # the identity
     c.rrect(M, 250, W - 2 * M, 86, 3, fill=(0.976, 0.968, 0.951), stroke=RULE, lw=0.6)
     equation(c, W / 2, 300, 1.0)
-    for x, lab, sub, col in (
+    for x, lab, subt, col in (
         (M + 168, "read as a copper plane",
-         "the Boltzmann weight of the dissipated power", CU),
+         "the statistical weight of the dissipated power", CU),
         (W - M - 168, "read as a string worldsheet",
          "the Koba–Nielsen factor of the N-point amplitude", STR)):
         c.text(lab.upper(), x, 232, 'sansm', 7.2, col, 'c', 1.3)
-        c.text(sub, x, 219, 'bodyi', 9.3, INK2, 'c')
+        c.text(subt, x, 219, 'bodyi', 9.3, INK2, 'c')
+    c.math("P \\rm{\\,dissipated power}\\;\\;\\; P_N \\rm{\\,the Nyquist power scale (p.\\,3)}"
+           "\\;\\;\\; α′ \\rm{\\,the Regge slope (p.\\,3)}\\;\\;\\; N \\rm{\\,contacts}",
+           W / 2, 204, 7.4, MUTED, 'c')
+    c.text("an identity between INTEGRANDS; only N−3 of the N positions may actually "
+           "be integrated (p. 4)", W / 2, 192, 'bodyi', 8.4, MUTED, 'c')
 
     # provenance — a named, published chain, not a new observation
-    eyebrow(c, "not a new observation — the chain of results it rests on", M, 194)
-    rule(c, M, W - M, 186, RULE, 0.6)
-    for k, (yr, who, what) in enumerate(PROVENANCE):
+    eyebrow(c, "not a new observation — the chain of results it rests on", M, 170)
+    rule(c, M, W - M, 162, RULE, 0.6)
+    for k, (yr, who, what, col) in enumerate(PROVENANCE):
         x = M + (k // 3) * (colw + 24)
-        y = 166 - (k % 3) * 25
+        y = 144 - (k % 3) * 25
         c.text(yr, x, y, 'sansb', 9.2, INK, 'l', 0.4)
         wy = c.measure(yr, 'sansb', 9.2, 0.4)
-        c.text(who, x + wy + 7, y, 'bodyb', 9.2, CU if k < 3 else STR)
+        c.text(who, x + wy + 7, y, 'bodyb', 9.2, col)
         c.flow(what, x, y - 11.5, colw, 'body', 8.3, 11.0, INK2, just=False)
-    rule(c, M, W - M, 80)
-    c.text("Page 1 of 5  ·  the statement", M, 66, 'sansm', 7.2, MUTED, 'l', 1.2)
-    c.text("Every number on pages 3 to 5 was measured, not cited",
-           W - M, 66, 'sansm', 7.2, MUTED, 'r', 1.2)
+    rule(c, M, W - M, 62)
+    c.text("Page 1 of 7  ·  the statement", M, 50, 'sansm', 7.2, MUTED, 'l', 1.2)
+    c.text("Every number on pages 3, 4, 6 and 7 was measured, not cited",
+           W - M, 50, 'sansm', 7.2, MUTED, 'r', 1.2)
     c.endpage()
 # ------------------------------------------------------------------ page 2
 def to_pt(w, cx, cy, r):
@@ -364,20 +369,24 @@ def pad(c, cx, cy, r, ang, cur_, idx):
             cx + a1 * n.real, cy + a1 * n.imag, CU, 1.05, 4.8)
     lx = cx + (r + 34.0) * n.real; ly = cy + (r + 34.0) * n.imag
     c.math(f"I_{idx}", lx, ly - 3.2, 9.4, CU, 'c')
-    c.text("+" if src else "−", lx, ly + 8.6, 'sansb', 8.4, CU if src else COOL, 'c')
+    ox = cx + (r + 47.0) * n.real; oy = cy + (r + 47.0) * n.imag
+    c.text("in" if src else "out", ox, oy - 2.4, 'sansm', 6.6,
+           CU if src else MUTED, 'c', 0.8)
 
 def zlabel(c, cx, cy, r, ang, idx, col):
     n = complex(math.cos(ang), math.sin(ang))
     lx, ly = cx + (r - 14.0) * n.real, cy + (r - 14.0) * n.imag
-    c.circle(lx, ly, 7.4, fill=(PAPER[0], PAPER[1], PAPER[2], 0.86))
+    c.circle(lx, ly, 6.8, fill=(PAPER[0], PAPER[1], PAPER[2], 0.78))
     c.math(f"z_{idx}", lx, ly - 3.0, 8.6, col, 'c')
 
 def string_legend(c, cx, ytop, w):
-    """A zoom on one puncture, showing what the level curves near it mean.
-    Locally the rim is straight and the slices are semicircles about it."""
-    y0 = ytop - 40                         # the rim, drawn straight at this zoom
+    """A ZOOM on the rim at one puncture. Locally the rim is straight and the
+    level curves are semicircles about the puncture, so this is where the
+    apparent collapse can be shown and explained."""
+    c.text("DETAIL — THE RIM AT ONE PUNCTURE", cx, ytop, 'sansb', 6.4, MUTED, 'c', 1.25)
+    y0 = ytop - 46                          # the rim, straight at this magnification
     px = cx - 46
-    c.line(cx - 78, y0, cx + 78, y0, (STR[0], STR[1], STR[2], 0.95), 1.6)
+    c.line(cx - 76, y0, cx + 76, y0, (STR[0], STR[1], STR[2], 0.95), 1.6)
     for rr in (6.0, 12.0, 19.0, 27.0):
         pts = [(px + rr * math.cos(t), y0 + rr * math.sin(t))
                for t in np.linspace(0, math.pi, 40)]
@@ -386,11 +395,17 @@ def string_legend(c, cx, ytop, w):
             c.circle(e[0], e[1], 1.5, fill=STR)
     c.circle(px, y0, 2.6, fill=STR)
     c.math("z_i", px, y0 - 11.5, 7.6, STR, 'c')
-    c.arrow(px + 3, y0 + 34, px + 84, y0 + 34, (0.10, 0.10, 0.12), 0.75, 3.8)
-    c.math("τ", px + 44, y0 + 37.5, 8.0, INK, 'c')
-    c.flow("a bold curve is the string at one instant; its ends are free on the rim, "
-           "meeting it at 90°; and near a puncture it shrinks on the page, not in fact",
-           cx - w / 2, y0 - 22, w, 'bodyi', 7.9, 9.8, INK2, just=False)
+    # tau increases AWAY from a source, i.e. radially across the arcs -- not
+    # along the rim, which is what the arrow used to say
+    a = math.radians(55.0)
+    c.arrow(px + 7 * math.cos(a), y0 + 7 * math.sin(a),
+            px + 33 * math.cos(a), y0 + 33 * math.sin(a),
+            (0.10, 0.10, 0.12), 0.8, 4.0)
+    c.math("τ", px + 40 * math.cos(a), y0 + 40 * math.sin(a) - 3, 8.0, INK, 'c')
+    c.flow("A bold curve is the string at one instant, its two ends free on the rim. "
+           "They crowd into the puncture — the marked point where a particle enters — "
+           "because an infinite stretch of τ is squeezed into it. Nothing shrinks.",
+           cx - w / 2, y0 - 20, w, 'bodyi', 7.9, 9.8, INK2, just=False)
 
 
 def vignette_quantum(c, x, y, w, h):
@@ -475,11 +490,12 @@ def page2(c, bmp, n, sl, eq, slices):
     for lev, pth in slices:
         pts = [to_pt(z, CL, CY, R) for z in pth]
         c.polyline(pts, stroke=(STR[0], STR[1], STR[2], 0.92), lw=1.05)
+    for lev, pth in slices:                 # the string’s two FREE endpoints,
+        for e in (to_pt(pth[0], CL, CY, R),  # drawn INSIDE the clip so none escapes
+                  to_pt(pth[-1], CL, CY, R)):
+            c.circle(e[0], e[1], 1.4, fill=STR)
     c.restore()
     c.circle(CL, CY, R, stroke=(STR[0], STR[1], STR[2], 0.95), lw=1.6)
-    for lev, pth in slices:                 # the string's two FREE endpoints
-        for e in (to_pt(pth[0], CL, CY, R), to_pt(pth[-1], CL, CY, R)):
-            c.circle(e[0], e[1], 1.5, fill=STR)
     for i, a in enumerate(ANG):
         n_ = complex(math.cos(a), math.sin(a))
         src = CUR[i] > 0
@@ -488,7 +504,8 @@ def page2(c, bmp, n, sl, eq, slices):
                 CL + a1 * n_.real, CY + a1 * n_.imag, STR, 1.05, 4.8)
         lx = CL + (R + 34.0) * n_.real; ly = CY + (R + 34.0) * n_.imag
         c.math(f"p_{i+1}", lx, ly - 3.2, 9.4, STR, 'c')
-        c.text("in" if src else "out", lx, ly + 8.6, 'sansm', 6.6,
+        ox = CL + (R + 47.0) * n_.real; oy = CY + (R + 47.0) * n_.imag
+        c.text("in" if src else "out", ox, oy - 2.4, 'sansm', 6.6,
                STR if src else MUTED, 'c', 0.8)
         p_ = to_pt(np.exp(1j * a), CL, CY, R)
         c.circle(p_[0], p_[1], 2.6, fill=STR)
@@ -516,16 +533,18 @@ def page2(c, bmp, n, sl, eq, slices):
            CL, 220, 9.2, (0.16, 0.18, 0.30), 'c')
     c.math("V(w) = −(R_s/π) Σ_i I_i \\,\\rm{ln}\\,|w − ζ_i|",
            CR, 220, 9.2, (0.30, 0.16, 0.06), 'c')
-    c.text("the worldsheet field, in spacetime", CL, 208, 'sansm', 6.8, MUTED, 'c', 1.1)
-    c.text("the potential — exact, because ΣI = 0", CR, 208, 'sansm', 6.8, MUTED, 'c', 1.1)
+    c.text("τ runs copper → teal, the way the current flows", CL, 208,
+           'sansm', 6.8, MUTED, 'c', 1.1)
+    c.text("the potential — exact, because the currents sum to zero", CR, 208,
+           'sansm', 6.8, MUTED, 'c', 1.1)
 
     # ---- the centre column
     CX = 397.0
-    string_legend(c, CX + 4, 474, 176)
+    string_legend(c, CX + 4, 478, 176)
     c.text("↔", CX, CY + 14, 'math', 30, INK, 'c')
     c.text("ONE INTEGRAND", CX, CY - 10, 'sansb', 7.4, INK, 'c', 1.5)
     c.text("TWO READINGS", CX, CY - 21, 'sansb', 7.4, INK, 'c', 1.5)
-    rows = [("p_i", "I_i"), ("X^μ(z)", "V(z)"), ("α′", "R_s/πP_N"),
+    rows = [("p_i", "I_i"), ("τ", "−(π/R_s)V"), ("α′", "R_s/πP_N"),
             ("\\rm{e}^{−S}", "\\rm{e}^{−P/P_N}"), ("Σp_i = 0", "ΣI_i = 0")]
     yy = CY - 44
     for a, b in rows:
@@ -547,16 +566,18 @@ def page2(c, bmp, n, sl, eq, slices):
         cw_ = c.math_width(cap.replace('$', ''), 8.9)
         c.flow(cap, cx - cw_ / 2 - 6, VY - 24, cw_ + 14, 'bodyi', 8.9, 11, INK2, just=False)
 
-    rule(c, M, W - M, 82)
-    nl = ("Colour is one scalar field, drawn identically on both sides — copper positive, "
-          "teal negative; the flow lines are the exact current density $J = −∇V/R_s$.")
-    nr = ("Read the currents as light-cone momenta and Mandelstam's map gives "
-          "$τ = −(π/R_s)V$: voltage is the string's time, so a level curve IS the string "
-          "at an instant.")
-    for xx, t_ in ((M, nl), (M + 346, nr)):
-        assert len(c.wrap(t_, 'body', 8.8, 322)) <= 2, "page-2 note column wraps too far"
-        c.flow(t_, xx, 70, 322, 'body', 8.8, 11.8, INK2)
-    c.text("Page 2 of 5  ·  the graphic", M, 42, 'sansm', 7.2, MUTED, 'l', 1.2)
+    rule(c, M, W - M, 88)
+    nr = ("Read each current as a light-cone momentum: Mandelstam’s map "
+          "$ρ = Σ_i α_i \\rm{ln}(z − ζ_i)$ gives $τ = −(π/R_s)V$, so the voltage IS the "
+          "string’s time, and $σ = \\rm{Im}\\,ρ$ is position along it.")
+    nl = ("Colour is that same field on both sides — copper positive, teal negative. "
+          "The flow lines are the current density $J = −∇V/R_s$; they are also the "
+          "lines of constant $σ$.")
+    for xx, t_ in ((M, nr), (M + 346, nl)):   # nr explains the LEFT panel
+        n_ = len(c.wrap(t_, 'body', 8.8, 322))
+        assert n_ <= 3, f"page-2 note column wraps to {n_} lines, into the folio"
+        c.flow(t_, xx, 76, 322, 'body', 8.8, 11.8, INK2)
+    c.text("Page 2 of 7  ·  the graphic", M, 40, 'sansm', 7.2, MUTED, 'l', 1.2)
     c.endpage()
 
 
@@ -566,57 +587,87 @@ def numbered(c, n, x, y, col):
     c.text(str(n), x + 5.4, y, 'sansb', 8.2, col, 'c')
 
 def steps_column(c, x, y, w, title, items, col, start=1):
+    """Each item is a dict: head, body, optional disp (a centred display line),
+    optional body2, optional chk."""
     eyebrow(c, title, x, y); y -= 19
-    for k, (head, body, chk) in enumerate(items, start):
+    for k, it in enumerate(items, start):
         numbered(c, k, x, y, col)
-        y = headline(c, head, x + 18, y, w - 18) + 12.5
-        yy = c.flow(body, x + 18, y - 12.8, w - 18, 'body', 9.1, 12.4, INK2)
-        if chk:
+        y = headline(c, it['head'], x + 18, y, w - 18) + 12.5
+        yy = c.flow(it['body'], x + 18, y - 12.8, w - 18, 'body', 9.1, 12.4, INK2)
+        if it.get('disp'):
+            yy -= 4
+            c.math(it['disp'], x + 18 + (w - 18) / 2, yy, it.get('dsize', 9.4), INK, 'c')
+            yy -= 15
+        if it.get('body2'):
+            yy = c.flow(it['body2'], x + 18, yy - 1, w - 18, 'body', 9.1, 12.4, INK2)
+        if it.get('chk'):
             c.text("✓", x + 18, yy + 1.0, 'sans', 8.0, (0.16, 0.45, 0.30))
             dx = c.measure("✓  ", 'sans', 8.0)
-            yy = c.flow(chk, x + 18 + dx, yy + 1.0, w - 18 - dx, 'bodyi', 8.5,
+            yy = c.flow(it['chk'], x + 18 + dx, yy + 1.0, w - 18 - dx, 'bodyi', 8.5,
                         11.6, (0.16, 0.42, 0.29), just=False)
         y = yy - 10.0
     return y
 
+
 STEPS_L = [
-    ("The string side is a product of powers.",
-     "An open string's vertex operators sit on the one-dimensional boundary of the "
-     "worldsheet, where the embedding has the propagator "
-     "$⟨X^μ(x)X^ν(y)⟩ = −2α′η^{μν}\\,\\rm{ln}\\,|x − y|$. Contracting N tachyon operators "
-     "$\\rm{e}^{ip·X}$ turns that logarithm into the Koba–Nielsen factor "
-     "$∏|z_i − z_j|^{2α′p_i·p_j}$.",
-     f"the product is exp of a logarithmic pair energy, to {sci(MEAS['kn_boltzmann'])}"),
-    ("A sheet's rim Green's function is $−R_s/π$ times a log.",
-     "A two-dimensional sheet has a logarithmic Green's function, and a contact ON an "
-     "insulating rim sees twice the interior value, because its image charge sits on top "
-     "of it. That factor of two is not bookkeeping: it is the same two that separates the "
-     "open-string boundary propagator from the closed-string bulk one.",
-     f"measured {num(RIM)} against $−R_s/π = {num(RIM_X)}$, {pct(RIM, RIM_X)}, "
-     f"converging as the sheet grows"),
-    ("Neutral rim currents dissipate a sum of logs.",
-     "Feeding that into $P = Σ_i I_i V(z_i)$ gives "
-     "$P = −(2R_s/π) Σ_{i<j} I_i I_j \\,\\rm{ln}\\,|z_i − z_j| + κ Σ_i I_i^2$. There is no "
-     "factor of one half here — that belongs to the energy of assembling static charges, "
-     "not to the power delivered by current sources, and inserting it halves $α′$.",
-     f"fitted {num(PWR)} against $2R_s/π = {num(PWR_X)}$ over {MEAS['power_n']} random "
-     f"neutral patterns, R² = {MEAS['power_R2']:.8f}"),
+    dict(head="The string side is a product of powers.",
+         body="An open string’s vertex operators — the insertions standing for each "
+              "incoming or outgoing particle — sit on the one-dimensional boundary of the "
+              "worldsheet, where the embedding has the propagator "
+              "$⟨X^μ(x)X^ν(y)⟩ = −2α′η^{μν}\\,\\rm{ln}\\,|x − y|$. Contracting N of them "
+              "turns that logarithm into a product, because the Gaussian average of a "
+              "product of exponentials is the exponential of the sum of pairwise "
+              "propagators:",
+         disp="∏_{i<j}|z_i − z_j|^{2α′p_i·p_j}",
+         body2="This is the bosonic string, and its N = 0 state is the tachyon "
+               "($m^2 = −1/α′$, the bottom of the ladder in consequence 3).",
+         chk="the product is exp of a logarithmic pair energy, to machine precision"),
+    dict(head="A sheet’s rim Green’s function is $−R_s/π$ times a log.",
+         body="A two-dimensional sheet has a logarithmic Green’s function, and a contact ON "
+              "an insulating rim sees twice the interior value, because its image charge "
+              "sits on top of it. That factor of two is not bookkeeping: it is the same two "
+              "that separates the open-string boundary propagator from the closed-string "
+              "bulk one.",
+         chk=f"measured {num(RIM)} against $−R_s/π = {num(RIM_X)}$, {pct(RIM, RIM_X)}; "
+             f"the error falls by {MEAS['rim_err_ratios'][0]:.1f}× per doubling, i.e. second order"),
+    dict(head="Neutral rim currents dissipate a sum of logs.",
+         body="Feeding that into $P = Σ_i I_i V(z_i)$ gives",
+         disp="P = −(2R_s/π) Σ_{i<j} I_i I_j \\,\\rm{ln}\\,|z_i − z_j| + κ Σ_i I_i^2",
+         body2="with $κ$ the self-energy coefficient, set by a pad’s finite radius. There is "
+               "no factor of one half here — that belongs to the energy of assembling static "
+               "charges, not to the power delivered by current sources, and inserting it "
+               "would halve $α′$.",
+         chk=f"fitted {num(PWR)} against $2R_s/π = {num(PWR_X)}$ over {MEAS['power_n']} "
+             f"random neutral patterns, R² = {MEAS['power_R2']:.8f}"),
 ]
 STEPS_R = [
-    ("Nyquist supplies the exponential — and its scale.",
-     "Thermal noise makes the contact currents a Gaussian whose quadratic form is exactly "
-     "the dissipated power, so a fluctuation's weight is $\\rm{exp}(−P/P_N)$ with "
-     "$P_N = 4k_BT/τ$ for an averaging window $τ$. Writing $\\rm{exp}(−P)$ by itself is "
-     "dimensionally incomplete: a power is not an exponent. Substituting step 3 then gives "
-     "the Koba–Nielsen factor outright, with $α′ = R_sτ/4πk_BT$ — the Regge slope as a "
-     "sheet resistance in units of noise power, with the right units of one over current squared.",
-     "Ohmic flow strictly minimises P: a divergence-free loop of strength ε costs exactly 4ε²"),
-    ("Gauge-fix three contacts, then slide the rest.",
-     "Fixing $z_1,z_3,z_4 = 0,1,∞$ and integrating the last over $(0,1)$ collapses the "
-     "N = 4 product to $∫x^{−α(s)−1}(1−x)^{−α(t)−1}\\rm{d}x = B(−α(s),−α(t))$, the "
-     "Veneziano amplitude, with $α(s) = 1+α′s$. Euler's factorial-interpolation integral "
-     "is the string amplitude.",
-     f"the integral equals Euler's B to {sci(MEAS['veneziano'])}"),
+    dict(head="Nyquist supplies the exponential — and its scale.",
+         body="Thermal noise makes the contact currents a Gaussian whose quadratic form is "
+              "exactly the dissipated power, so a fluctuation’s weight is "
+              "$\\rm{exp}(−P/P_N)$ with $P_N = 8k_BTΔf$ for a noise bandwidth $Δf$ "
+              "(equivalently $4k_BT/t$ for an averaging window $t$). Writing "
+              "$\\rm{exp}(−P)$ alone is dimensionally incomplete: a power is not an "
+              "exponent. Exponentiating step 3 now turns the sum of logs into a product of "
+              "powers —",
+         disp="\\rm{e}^{−P/P_N} = ∏_{i<j}|z_i − z_j|^{(2R_s/πP_N)I_iI_j}",
+         dsize=9.0,
+         body2="— and matching that exponent against $2α′p_i·p_j$ gives "
+               "$α′ = R_s/πP_N$: the Regge slope, the constant fixing the string’s mass "
+               "spectrum, as a sheet resistance in units of noise power. Its units are one "
+               "over current squared, so $α′p^2$ is dimensionless.",
+         chk=f"the substitution measured end to end on 6 configurations — worst implied "
+             f"error on P, {MEAS['bridge_implied_P_err_pct']:.2f}%, which is the lattice error of step 2"),
+    dict(head="Gauge-fix three contacts, then slide the rest.",
+         body="Fixing $z_1,z_3,z_4 = 0,1,∞$ and integrating $z_2$ over $(0,1)$ collapses the "
+              "N = 4 product to Euler’s Beta integral, with $α(s) = 1+α′s$ and $s$, $t$ the "
+              "Mandelstam invariants — the squared collision energy and momentum transfer:",
+         disp="∫_0^1 x^{−α(s)−1}(1−x)^{−α(t)−1}\\rm{d}x = B(−α(s),−α(t)) = "
+              "Γ(−α(s))Γ(−α(t)) / Γ(−α(s)−α(t))",
+         dsize=8.8,
+         body2="where $B(a,b) = ∫_0^1 x^{a−1}(1−x)^{b−1}\\rm{d}x$, and $Γ$ is the integral "
+               "Euler sent Goldbach in 1730 to interpolate the factorial. That is the "
+               "Veneziano amplitude.",
+         chk=f"the integral equals Euler’s B to {sci(MEAS['veneziano'])}"),
 ]
 CONSEQ = [
     ("The three orderings are the three channels.",
@@ -624,16 +675,16 @@ CONSEQ = [
      "integration ranges of $x$, and they give $B(−α(s),−α(t))$, $B(−α(t),−α(u))$ and "
      "$B(−α(s),−α(u))$ — the s-t, t-u and s-u channels, whose sum is the crossing-symmetric total.",
      f"all three verified to {sci(MEAS['channels'])} or better"),
-    ("“Counting continuously” is an identity.",
-     "$B(k+1, n−k+1) = 1/[(n+1)C(n,k)]$ exactly, so the Beta function really does "
-     "interpolate the binomial coefficient. The integral counts arrangements the way a "
-     "binomial does, with a continuous index rather than a discrete one.",
+    ("The Beta function interpolates a binomial.",
+     "$B(k+1, n−k+1) = 1/[(n+1)C(n,k)]$ exactly — so B is the continuous version of a "
+     "combinatorial quantity, though it enters as the reciprocal. That is a separate fact "
+     "from the three orderings, and not the reason there are three.",
      f"{MEAS['binomial_pairs']} integer pairs, {MEAS['binomial_bad']} mismatches"),
     ("The particle spectrum is two pads touching.",
-     "The s-channel poles come from the endpoint $x → 0$, where two contacts merge and the "
-     "dissipated power diverges. Convergence needs $2α′p_1·p_2 > −1$; the poles sit at "
-     "$α′s = −1, 0, 1, 2, …$, which is the open-string spectrum $m^2 = (J−1)/α′$.",
-     "B(a,b) → 1/a confirmed as a → 0"),
+     "The poles come from the endpoint $x → 0$, where two contacts merge. In the Γ form they "
+     "are visible directly: $Γ(−α(s))$ blows up at $α(s) = 0,1,2,…$, i.e. $α′s = −1,0,1,…$, "
+     "which is the open-string spectrum $m^2 = (J−1)/α′$.",
+     f"$aB(a,1.5) → 1$ as $a → 0$: {', '.join(f'{v:.3f}' for v in MEAS['pole_residue'])}"),
 ]
 
 def page3(c):
@@ -647,61 +698,58 @@ def page3(c):
     colw = 322.0; x2 = M + colw + 24
     yl = steps_column(c, M, H - 128, colw, "the chain, in order", STEPS_L, CU, 1)
     yr = steps_column(c, x2, H - 128, colw, "and its two closing moves", STEPS_R, STR, 4)
-    y = min(yl, yr) - 2
-    rule(c, M, W - M, y + 10)
-    eyebrow(c, "three consequences that are precise rather than poetic", M, y - 4)
-    y -= 24
-    cw = (W - 2 * M - 40) / 3
-    for k, (head, body, chk) in enumerate(CONSEQ):
-        x = M + k * (cw + 20)
-        yh = headline(c, head, x, y, cw, 9.3) + 12.3
-        yy = c.flow(body, x, yh - 12.6, cw, 'body', 8.9, 12.1, INK2)
-        c.text("✓", x, yy - 0.5, 'sans', 8.0, (0.16, 0.45, 0.30))
-        dx = c.measure("✓  ", 'sans', 8.0)
-        c.flow(chk, x + dx, yy - 0.5, cw - dx, 'bodyi', 8.4, 11.4,
-               (0.16, 0.42, 0.29), just=False)
+    assert min(yl, yr) > 72, f"page 3 steps end at {min(yl, yr):.1f}, into the folio"
     rule(c, M, W - M, 62)
-    c.text("Page 3 of 5  ·  the mechanism", M, 50, 'sansm', 7.2, MUTED, 'l', 1.2)
+    c.text("Page 3 of 7  ·  the mechanism", M, 50, 'sansm', 7.2, MUTED, 'l', 1.2)
     c.endpage()
 
 # ------------------------------------------------------------------ page 4
 CAVEAT_L = [
     ("One plane carries one spacetime dimension.",
-     "$p_i·p_j$ is a Minkowski inner product, so the matrix of exponents is indefinite — "
-     f"for four on-shell tachyons its eigenvalues are {EIGS}. A real scalar current can "
-     "only produce $I_iI_j$, which is rank one and positive semi-definite. One copper plane "
-     "therefore realises a single target dimension; D dimensions need D superposed planes, "
-     "the timelike one carrying imaginary current. Reading a current as a momentum vector is "
-     "the one step in the statement that cannot be taken literally."),
+     "The obstruction is RANK, not sign. $2α′p_i·p_j$ has rank up to D−1 — rank 3 at the "
+     f"kinematic point $s = −3, t = −2.5, α′ = 1$, where its eigenvalues are {EIGS} — while "
+     "a real scalar current can only produce $I_iI_j$, which is rank ONE. (Indefiniteness "
+     "is not the reason, and is not even general: at $s = −2, t = −1.5$ the same matrix is "
+     "positive semi-definite.) One copper plane therefore realises a single target "
+     "dimension; D dimensions need D superposed planes, the timelike one carrying imaginary "
+     "current. Reading a current as a momentum vector is the one step in the statement that "
+     "cannot be taken literally."),
     ("The integral as written is still divergent.",
      "The measure is exactly $SL(2,ℝ)$-invariant — measured ratio "
-     f"{num(1 + MEAS['sl2r'], 12)} under four Möbius maps — and it is invariant precisely "
-     "because $α′p^2 = 1$; pushed off the mass shell the ratio becomes "
-     f"{num(MEAS['sl2r_off'], 4)}. So $∫\\rm{{d}}z_1…\\rm{{d}}z_N$ contains the infinite "
-     "volume of the gauge group. Three punctures must be held fixed and only N−3 integrated, "
-     "which makes the equation an identity between integrands first and between amplitudes "
-     "only after."),
-    ("The self-energy and the mass shell are one thing.",
-     "The $i = j$ terms diverge. On the sheet that is cut off by the finite radius of a real "
-     "pad; on the worldsheet it is removed by normal ordering, and what normal ordering leaves "
-     "behind is $α′p^2 = 1$. Regulator and mass shell are the same object under two names."),
+     f"{num(1 + MEAS['sl2r'], 12)} under four Möbius maps — and it needs BOTH conditions: "
+     "the exponent collected at puncture $i$ is $2α′p_i^2 − 2 − 2α′p_i·(Σp)$. Breaking the "
+     f"mass shell alone gives {num(MEAS['sl2r_off'], 4)}; breaking momentum conservation "
+     f"alone gives {num(MEAS['sl2r_noncons'], 4)}. Given $Σp = 0$ it is $α′p^2 = 1$ that "
+     "does the work — that condition is exactly “the vertex operator has conformal weight "
+     "one”. Either way $∫\\rm{d}z_1…\\rm{d}z_N$ carries the infinite volume of the gauge "
+     "group, so three punctures must be held fixed and only N−3 integrated: an identity "
+     "between integrands first, and between amplitudes only after."),
+    ("The self-energy is a regulator, not the mass shell.",
+     "The $i = j$ terms diverge on both sides: on the sheet the cut-off is a pad’s finite "
+     "radius, on the worldsheet it is normal ordering. But they are not the same object. "
+     "$κ Σ I_i^2$ is a multiplicative constant, per plane; $α′p^2 = 1$ is a CONDITION on the "
+     "full D-dimensional momentum, and no single plane can enforce a constraint that sums "
+     "over D of them. The two are related regularisations, not two names for one thing."),
 ]
 CAVEAT_R = [
     ("Rim versus interior is open versus closed.",
      "The factor of two between a contact on the insulating rim and one in the interior — "
      f"measured as {MEAS['ratio']:.5f} — is the same factor of two between the open-string "
-     "boundary propagator $−2α′\\,\\rm{ln}\\,|x−y|$ and the closed-string bulk one "
-     "$−α′\\,\\rm{ln}\\,|z−w|$. Moving a contact off the edge into the copper is not a small "
+     "boundary propagator $−2α′\\,\\rm{ln}\\,|x − y|$ and the closed-string bulk one "
+     "$−α′\\,\\rm{ln}\\,|z − w|$. Moving a contact off the edge into the copper is not a small "
      "perturbation of the model: it converts an open-string insertion into a closed-string one."),
     ("This is the worldsheet CFT, and not a least-resistance path.",
-     "The two-dimensional theory here is the string's own worldsheet, and the copper plane is "
+     "The two-dimensional theory here is the string’s own worldsheet, and the copper plane is "
      "that worldsheet — not spacetime. It is not the boundary CFT of AdS/CFT, where the dual "
      "theory lives on the boundary of the spacetime the gravity fills; conflating those is the "
-     "most inviting misreading of the statement. Nor is the amplitude a least-resistance path: "
-     "Rayleigh's principle picks out only the most probable configuration, whereas the amplitude "
-     "sums over all of them, which is the whole content of the exponential."),
+     "most inviting misreading of the statement. Nor is the amplitude a least-resistance "
+     "path — though not for the obvious reason. Rayleigh’s minimum is exactly what sits in "
+     "the exponent: for a given set of contact currents the weight is $\\rm{exp}(−P/P_N)$ "
+     "with $P$ the OHMIC dissipation, the fluctuations about it contributing only a "
+     "source-independent factor that cancels. What the amplitude then does is integrate over "
+     "the contact POSITIONS. Neither step is a minimisation over paths."),
     ("The two readings use different charges.",
-     "The strings on page 2 come from Mandelstam's map, which reads each current as a "
+     "The strings on page 2 come from Mandelstam’s map, which reads each current as a "
      "light-cone momentum $p^+$ — one component. The Koba–Nielsen weight reads the same "
      "current as the whole momentum vector. Two identifications, not one."),
 ]
@@ -735,26 +783,34 @@ REFS = ("Euler to Goldbach, 8 Jan 1730  ·  J. B. Johnson, Phys. Rev. 32 (1928) 
 def page4(c):
     c.page()
     c.rect(0, 0, W, H, fill=PAPER)
-    eyebrow(c, "where the analogy is exact, and where it stops", M, H - 50)
-    c.text("Six things the one-line version hides", M, H - 76, 'bodyb', 20.5, INK)
-    c.text("None of these breaks the identity; each one bounds what it may be read to mean",
-           M, H - 93, 'bodyi', 10.6, INK2)
+    eyebrow(c, "what follows from it, and what was measured", M, H - 50)
+    c.text("Three consequences, and the evidence", M, H - 76, 'bodyb', 20.5, INK)
+    c.text("Each consequence is precise rather than poetic; each number below is "
+           "produced by verify_string_copper.py", M, H - 93, 'bodyi', 10.6, INK2)
     rule(c, M, W - M, H - 105, INK, 0.8)
-    colw = 322.0; x2 = M + colw + 24
-    ends = []
-    for x, items in ((M, CAVEAT_L), (x2, CAVEAT_R)):
-        y = H - 126
-        for head, body in items:
-            y = headline(c, head, x, y, colw) + 12.5
-            y = c.flow(body, x, y - 12.8, colw, 'body', 9.05, 12.25, INK2) - 10.0
-        ends.append(y)
 
-    ytab = min(min(ends) - 16, 212)
+    y = H - 128
+    cw = (W - 2 * M - 40) / 3
+    ends = []
+    for k, (head, body, chk) in enumerate(CONSEQ):
+        x = M + k * (cw + 20)
+        yh = headline(c, head, x, y, cw, 9.5) + 12.4
+        yy = c.flow(body, x, yh - 12.8, cw, 'body', 9.05, 12.3, INK2)
+        c.text("✓", x, yy - 0.5, 'sans', 8.0, (0.16, 0.45, 0.30))
+        dx = c.measure("✓  ", 'sans', 8.0)
+        ends.append(c.flow(chk, x + dx, yy - 0.5, cw - dx, 'bodyi', 8.5, 11.5,
+                           (0.16, 0.42, 0.29), just=False))
+
+    # the table follows the band rather than being pinned to the foot, so the
+    # slack falls in the bottom margin instead of as a hole mid-page
+    ytab = min(ends) - 30
     rule(c, M, W - M, ytab + 18)
     eyebrow(c, "what was measured", M, ytab + 4)
-    c.text("independent of any citation — the sheet is a lattice of unit resistors, solved exactly",
-           W - M, ytab + 4, 'bodyi', 8.6, MUTED, 'r')
-    cols = [M, M + 302, M + 452, M + 610]
+    c.text("the sheet is a lattice of unit resistors solved exactly by DCT; the washer "
+           "row is a conjugate-gradient solve", W - M, ytab + 4, 'bodyi', 8.6, MUTED, 'r')
+    # measured content needs 150/66/106/111 pt, so give each column room for it
+    cols = [M, M + 216, M + 322, M + 470]
+    cwid = [200.0, 90.0, 130.0, W - M - (M + 470)]
     ytab -= 14
     for lab, cx in (("quantity", cols[0]), ("measured", cols[1]),
                     ("exact", cols[2]), ("agreement", cols[3])):
@@ -764,23 +820,56 @@ def page4(c):
     ytab -= 11.2
     for k, row in enumerate(EVIDENCE):
         if k % 2 == 0:
-            c.rect(M - 5, ytab - 3.6, W - 2 * M + 10, 12.6, fill=(0.972, 0.966, 0.953))
-        c.flow(row[0], cols[0], ytab, 300, 'body', 8.5, 11, INK, just=False)
+            c.rect(M - 5, ytab - 3.2, W - 2 * M + 10, 12.8, fill=(0.972, 0.966, 0.953))
+        for ci, (txt, role, col) in enumerate((
+                (row[0], 'body', INK), (None, None, None),
+                (row[2], 'body', INK2), (row[3], 'bodyi', MUTED))):
+            if txt is None:
+                continue
+            n_ = len(c.wrap(txt, role, 8.5 if ci != 3 else 8.3, cwid[ci]))
+            assert n_ == 1, f"page 4 cell {ci} wraps to {n_} lines: {txt!r}"
+            c.flow(txt, cols[ci], ytab, cwid[ci], role, 8.5 if ci != 3 else 8.3,
+                   11, col, just=False)
         c.math(row[1], cols[1], ytab, 8.5, (0.20, 0.30, 0.22))
-        c.flow(row[2], cols[2], ytab, 156, 'body', 8.5, 11, INK2, just=False)
-        c.text(row[3], cols[3], ytab, 'bodyi', 8.3, MUTED)
-        ytab -= 12.3
-    last = ytab + 12.3            # the loop steps once past the final row
-    assert last > 62, f"page 4 evidence table's last row sits at {last:.1f}, "\
-                      f"which runs into the references at 58"
-    rule(c, M, W - M, 58)
-    c.flow(REFS, M, 47, W - 2 * M - 128, 'body', 7.4, 9.8, MUTED, just=False)
-    c.text("Page 4 of 5  ·  the caveats", W - M, 47, 'sansm', 7.2, MUTED, 'r', 1.2)
+        ytab -= 12.8
+    last = ytab + 12.8
+    rule(c, M, W - M, last - 20)
+    c.flow(REFS, M, last - 32, W - 2 * M, 'body', 7.4, 9.8, MUTED, just=False)
+    assert last - 54 > 34, f"page 4 runs to {last-54:.1f}"
+    c.text("Page 4 of 7  ·  consequences and evidence", M, last - 54,
+           'sansm', 7.2, MUTED, 'l', 1.2)
     c.endpage()
 
+
 # ------------------------------------------------------------------ page 5
+def page5(c):
+    c.page()
+    c.rect(0, 0, W, H, fill=PAPER)
+    eyebrow(c, "where the analogy is exact, and where it stops", M, H - 50)
+    c.text("Six things the one-line version hides", M, H - 76, 'bodyb', 20.5, INK)
+    c.text("None of these breaks the identity; each one bounds what it may be read to mean",
+           M, H - 93, 'bodyi', 10.6, INK2)
+    rule(c, M, W - M, H - 105, INK, 0.8)
+    colw = 322.0; x2 = M + colw + 24
+    n = 0
+    for x, items in ((M, CAVEAT_L), (x2, CAVEAT_R)):
+        y = H - 128
+        for head, body in items:
+            n += 1
+            numbered(c, n, x, y, CU if x == M else STR)
+            y = headline(c, head, x + 18, y, colw - 18) + 12.5
+            y = c.flow(body, x + 18, y - 12.8, colw - 18, 'body', 9.05, 12.3, INK2) - 12.0
+        assert y > 70, f"page 5 caveat column ends at {y:.1f}, into the folio"
+    rule(c, M, W - M, 62)
+    c.text("Page 5 of 7  ·  the caveats", M, 50, 'sansm', 7.2, MUTED, 'l', 1.2)
+    c.endpage()
+
+
+
+# ------------------------------------------------------------------ page 6
 def washer(c, cx, cy, ro, ri, mode):
-    """An annular sheet. mode: 'resistor' | 'closed' | 'open'."""
+    """An annular sheet. mode: 'resistor' | 'closed' | 'open'. All three are the
+    SAME object, so the rims are drawn identically in all three."""
     c.circle(cx, cy, ro, fill=(0.878, 0.702, 0.549, 0.55))
     c.circle(cx, cy, ri, fill=PAPER)
     ang = lambda d, rr: (cx + rr * math.cos(math.radians(d)),
@@ -788,11 +877,6 @@ def washer(c, cx, cy, ro, ri, mode):
     if mode == 'resistor':
         for d in range(0, 360, 30):
             c.arrow(*ang(d, ri + 2.5), *ang(d, ro - 2.5), (CU[0], CU[1], CU[2], 0.9), 0.8, 4.0)
-        c.circle(cx, cy, ri, stroke=(0.24, 0.13, 0.05), lw=1.5)
-        c.circle(cx, cy, ro, stroke=(0.24, 0.13, 0.05), lw=1.5)
-        c.math("a", cx, cy - 3.0, 8.2, INK, 'c')
-        c.line(*ang(158, ro + 3), *ang(158, ro + 9), INK2, 0.5)
-        c.math("b", *ang(158, ro + 15), 8.2, INK, 'c')
     elif mode == 'closed':
         for k, f in enumerate((0.14, 0.34, 0.54, 0.74, 0.94)):
             rr = ri + f * (ro - ri)
@@ -801,161 +885,207 @@ def washer(c, cx, cy, ro, ri, mode):
             c.circle(cx, cy, rr, stroke=(STR[0], STR[1], STR[2], 0.95 if bold else 0.5),
                      lw=1.5 if bold else 0.6)
             c.dash([])
-        c.circle(cx, cy, ri, stroke=(0.24, 0.13, 0.05, 0.5), lw=0.8)
-        c.circle(cx, cy, ro, stroke=(0.24, 0.13, 0.05, 0.5), lw=0.8)
-        c.arrow(*ang(62, ri + 1.5), *ang(62, ro + 9), (0.10, 0.10, 0.12), 0.9, 4.2)
-        c.math("τ", *ang(62, ro + 15), 8.6, INK, 'c')
+        c.arrow(*ang(62, ro + 4), *ang(62, ro + 17), (0.10, 0.10, 0.12), 0.9, 4.2)
+        c.math("τ", *ang(62, ro + 23), 8.6, INK, 'c')
     else:
-        for k, d in enumerate(range(0, 360, 30)):
+        for d in range(0, 360, 30):
             bold = (d == 30)
             p0, p1 = ang(d, ri), ang(d, ro)
             c.line(*p0, *p1, (STR[0], STR[1], STR[2], 0.95 if bold else 0.5),
                    1.5 if bold else 0.6)
             for e in (p0, p1):
                 c.circle(e[0], e[1], 1.5 if bold else 1.0, fill=STR)
-        c.circle(cx, cy, ri, stroke=(0.24, 0.13, 0.05, 0.5), lw=0.8)
-        c.circle(cx, cy, ro, stroke=(0.24, 0.13, 0.05, 0.5), lw=0.8)
-        c.arc(cx, cy, ro + 9, math.radians(44), math.radians(104),
+        c.arc(cx, cy, ro + 12, math.radians(44), math.radians(104),
               stroke=(0.10, 0.10, 0.12), lw=0.9)
-        tip = ang(106, ro + 9)
-        c.arrowhead(tip[0], tip[1], math.radians(106 + 90), 4.2, (0.10, 0.10, 0.12))
-        c.math("τ", *ang(124, ro + 14), 8.6, INK, 'c')
+        tip = ang(106, ro + 12)
+        c.arrowhead(tip[0], tip[1], math.radians(196), 4.2, (0.10, 0.10, 0.12))
+        c.math("τ", *ang(74, ro + 23), 8.6, INK, 'c')
+    c.circle(cx, cy, ri, stroke=(0.24, 0.13, 0.05), lw=1.2)
+    c.circle(cx, cy, ro, stroke=(0.24, 0.13, 0.05), lw=1.2)
 
-
-STRIP_TOP = 158.0
 
 OPEN_CLOSED = [
     ("the insertion sits", "on the 1-D rim", "in the 2-D interior"),
     ("so the string is", "open", "closed"),
-    ("its propagator", "$−2α′\\,\\rm{ln}\\,|x−y|$", "$−α′\\,\\rm{ln}\\,|z−w|$"),
+    ("its propagator", "$\u22122α′\\,\\rm{ln}\\,|x \u2212 y|$",
+                        "$\u2212α′\\,\\rm{ln}\\,|z \u2212 w|$"),
     ("lightest massless state", "spin 1 — a gauge boson", "spin 2 — the graviton"),
 ]
 
-def page5(c):
+LEAD6 = (
+    "Everything so far has been OPEN strings: contacts on the rim, insertions on the "
+    "boundary. Their lightest massless state is spin 1 — a gauge boson, like a photon — so "
+    "there is no gravity anywhere in it. Gravity is carried by CLOSED strings, whose lightest "
+    "massless state is spin 2; and a massless spin-2 field has no choice but to couple to "
+    "everything’s stress-energy, which is what gravity is. On a worldsheet, open versus "
+    "closed is literally rim versus interior. So there are exactly two ways to put gravity "
+    "into a sheet of copper, and both are changes to its GEOMETRY rather than new ingredients.")
+
+
+def page6(c):
     c.page()
     c.rect(0, 0, W, H, fill=PAPER)
-    eyebrow(c, "where gravity enters — and how far that goes", M, H - 50)
+    eyebrow(c, "where gravity enters", M, H - 50)
     c.text("Punch a hole in the copper", M, H - 76, 'bodyb', 20.5, INK)
-    c.text("Closed strings carry the graviton, and closed means the interior, not the rim",
-           M, H - 93, 'bodyi', 10.6, INK2)
+    c.text("Two routes, and both of them are geometry", M, H - 93, 'bodyi', 10.6, INK2)
     rule(c, M, W - M, H - 105, INK, 0.8)
+    ylead = c.flow(LEAD6, M, H - 126, W - 2 * M, 'body', 9.6, 13.0, INK)
+    rule(c, M, W - M, ylead + 3, RULE, 0.6)
 
     colw = 322.0; x2 = M + colw + 24
-    # ---- left: the open/closed table
-    y = H - 126
-    y = headline(c, "Gravity is a closed-string state.", M, y, colw) + 12
+    ytop = ylead - 13
+
+    eyebrow(c, "route one — move a contact off the rim", M, ytop, CU)
+    y = ytop - 19
     cw = (92.0, 112.0, 116.0)
     xs = (M, M + cw[0], M + cw[0] + cw[1])
-    for lab, xx in (("", xs[0]), ("A CONTACT ON THE RIM", xs[1]),
-                    ("ONE IN THE INTERIOR", xs[2])):
-        if lab:
-            c.text(lab, xx, y - 12, 'sansb', 6.4, MUTED, 'l', 1.1)
-    y -= 17
+    c.text("A CONTACT ON THE RIM", xs[1], y - 11, 'sansb', 6.4, MUTED, 'l', 1.1)
+    c.text("ONE IN THE INTERIOR", xs[2], y - 11, 'sansb', 6.4, MUTED, 'l', 1.1)
+    y -= 16
     rule(c, M, M + sum(cw), y, RULE, 0.5)
     y -= 11
     for k, (lab, a_, b_) in enumerate(OPEN_CLOSED):
         if k % 2 == 0:
-            c.rect(M - 4, y - 3.6, sum(cw) + 8, 12.8, fill=(0.972, 0.966, 0.953))
+            c.rect(M - 4, y - 3.4, sum(cw) + 8, 12.6, fill=(0.972, 0.966, 0.953))
         c.text(lab, xs[0], y, 'body', 8.5, INK2)
         c.flow(a_, xs[1], y, cw[1] - 6, 'body', 8.5, 11, INK, just=False)
         c.flow(b_, xs[2], y, cw[2] - 6, 'bodyb', 8.5, 11, INK, just=False)
-        y -= 12.8
-    y -= 6
+        y -= 12.6
+    yL = c.flow(
+        f"The factor of two measured between those two propagators — {MEAS['ratio']:.5f} — is "
+        "that divide showing up in a lattice Green’s function. But a current injection is the "
+        "WRONG KIND of insertion. $\\rm{e}^{ip·X}$ is a monopole, and the state it makes is "
+        "the tachyon. A graviton operator $ε_{μν}∂X^μ∂X^ν\\rm{e}^{ip·X}$ carries that same "
+        "monopole factor — it injects current like anything else — but multiplied by a factor "
+        "bilinear in $∂X$, which is the current density. So route one says WHERE gravity "
+        "lives, not how to source it.",
+        M, y - 8, colw, 'body', 9.05, 12.3, INK2)
+
+    eyebrow(c, "route two — punch a hole", x2, ytop, CU)
     y = c.flow(
-        f"The factor of two I measured between those two propagators — "
-        f"{MEAS['ratio']:.5f} — is therefore not a curiosity of lattice Green's "
-        "functions. It is the gauge-theory/gravity divide. Open strings give the "
-        "gauge fields that live on a boundary; closed strings give gravity in the "
-        "bulk. Sliding a current contact off the board edge and into the copper "
-        "crosses exactly that line.",
-        M, y, colw, 'body', 9.05, 12.3, INK2) - 14
+        "Change the sheet’s TOPOLOGY instead. Copper with a hole has two rims, and in string "
+        "perturbation theory each hole is one LOOP — so a washer is the one-loop diagram. Cut "
+        "it open and roll it up and it is a cylinder of length $\\rm{ln}(b/a)$. It can be "
+        "sliced two ways, exactly as page 2 sliced the disk, and neither is more correct:",
+        x2, ytop - 19, colw, 'body', 9.05, 12.3, INK2)
 
-    y = headline(c, "But injecting a current is not a graviton.", M, y, colw) + 12
-    yendL = c.flow(
-        "The insertion this document analyses is $\\rm{e}^{ip·X}$: a point charge, a "
-        "monopole current source — and the state it creates is the tachyon, not the "
-        "graviton. A graviton vertex operator is $ε_{μν}∂X^μ∂X^ν\\rm{e}^{ip·X}$ — one derivative holomorphic, "
-        "one antiholomorphic — which is BILINEAR in the worldsheet field. Since $X$ "
-        "plays the part of the "
-        "potential, $∂X$ is the current density — so a graviton insertion injects no "
-        "net current at all. It couples to something quadratic in the local current, "
-        "which in copper is the Joule dissipation density $R_s|J|^2$. That is the same "
-        "structure as the worldsheet stress tensor, and it is the honest version of "
-        "“the graviton couples to stress-energy”.",
-        M, y - 12.8, colw, 'body', 9.05, 12.3, INK2)
-    assert yendL > STRIP_TOP + 4, f"page 5 left column ends at {yendL:.1f}"
-
-    # ---- right: the washer
-    y = H - 126
-    y = headline(c, "A washer is the one-loop diagram.", x2, y, colw) + 12
-    y = c.flow(
-        "Copper with a hole has two rims, and that shape is the annulus — the one-loop "
-        "open-string diagram. It can be sliced two ways, neither more correct:",
-        x2, y - 12.8, colw, 'body', 9.05, 12.3, INK2) - 10
-
-    RO, RI = 32.0, 12.0
-    cyc = y - RO - 4
+    RO, RI = 34.0, 12.5
+    cyc = y - 62
     cols3 = (x2 + 52, x2 + 161, x2 + 270)
     for cx_, mode in zip(cols3, ('resistor', 'closed', 'open')):
         washer(c, cx_, cyc, RO, RI, mode)
-    caps = [("as a resistor", "radial flow, from a out to b"),
-            ("sliced by circles", "each slice is a closed string, propagating rim to rim"),
-            ("sliced radially", "each slice is an open string, once around the loop")]
-    ylab = cyc - RO - 13
+    caps = [("as a resistor", "radial flow, radius a out to b"),
+            ("sliced by circles", "each slice a CLOSED string, rim to rim"),
+            ("sliced radially", "each slice an OPEN string, once round")]
+    ylab = cyc - RO - 22
     for cx_, (h_, t_) in zip(cols3, caps):
         c.text(h_, cx_, ylab, 'sansb', 6.9, INK, 'c', 1.0)
-        c.flow(t_, cx_ - 51, ylab - 11, 102, 'bodyi', 7.9, 10.2, INK2, just=False)
-    y = ylab - 37
+        c.flow(t_, cx_ - 53, ylab - 11, 106, 'bodyi', 7.9, 10.2, INK2, just=False)
+    yR = c.flow(
+        "Both describe the same washer — which is the whole point, and page 7 takes it up. "
+        "Conformally that cylinder’s length is $\\rm{ln}(b/a) = 2πR/R_s$, so resistance is "
+        "SEPARATION between the rims. Raise it and the closed string travels far, heavy "
+        "states die off exponentially and only the lightest survive the trip; lower it "
+        "toward $b/a → 1$ and the open-string loop takes over instead.",
+        x2, ylab - 34, colw, 'body', 9.05, 12.3, INK2)
+    assert min(yL, yR) > 74, f"page 6 columns end at {min(yL, yR):.1f}"
+    rule(c, M, W - M, 62)
+    c.text("Page 6 of 7  ·  where gravity enters", M, 50, 'sansm', 7.2, MUTED, 'l', 1.2)
+    c.endpage()
 
-    y = headline(c, "What a “modulus” is.", x2, y, colw) + 12
+
+# ------------------------------------------------------------------ page 7
+LESSONS = [
+    ("Gravity is not optional.",
+     "One washer, two slicings: the open-string loop and the closed-string exchange are the "
+     "SAME object, so you cannot have the first without the second. A theory of open strings "
+     "— of gauge fields on a boundary — is not consistent without closed strings in its "
+     "interior. On this reading gravity is not an extra force anyone put in; it is a "
+     "consistency requirement of the gauge sector. The copper picture makes that visible: "
+     "you cannot slice a washer only one way."),
+    ("Gravity reads the flow’s anisotropy, not its strength.",
+     "Across D superposed planes the graviton’s bilinear $∂X^μ∂X^ν$ is $J^μJ^ν$, a matrix of "
+     "per-plane current densities, and it splits in two. The TRACE, $Σ_μ (J^μ)^2$, is the "
+     "total Joule dissipation, and that part belongs to the DILATON. The TRACELESS remainder "
+     "— how the dissipation is distributed among the planes — is the graviton. So gravity "
+     "couples to the anisotropy of the flow rather than to how much heat is being made, and "
+     "it couples wherever ANY current flows, whichever contact it came from. That is why "
+     "gravity is universal. It also shows why a graviton needs at least two planes: a "
+     "symmetric traceless tensor in one dimension is identically zero."),
+    ("Its long range is the high-resistance end.",
+     "The amplitude integrates over the washer’s shape, and the far end of that range — "
+     "where the ratio and the resistance both run to infinity and the cylinder is long — is "
+     "where only the lightest closed states survive the crossing. That limit is the "
+     "long-distance force. Gravity’s reach is not a separate fact about gravity; it is which "
+     "end of the shape integral you happen to stand at."),
+]
+
+
+def page7(c):
+    c.page()
+    c.rect(0, 0, W, H, fill=PAPER)
+    eyebrow(c, "what the analogy teaches about gravity", M, H - 50)
+    c.text("Three things it says gravity is", M, H - 76, 'bodyb', 20.5, INK)
+    c.text("and one thing it cannot say", M, H - 93, 'bodyi', 10.6, INK2)
+    rule(c, M, W - M, H - 105, INK, 0.8)
+
+    cw = (W - 2 * M - 44) / 3
+    ends = []
+    for k, (head, body) in enumerate(LESSONS):
+        x = M + k * (cw + 22)
+        numbered(c, k + 1, x, H - 128, STR)
+        y = headline(c, head, x + 18, H - 128, cw - 18) + 12.4
+        ends.append(c.flow(body, x + 18, y - 12.8, cw - 18, 'body', 9.05, 12.3, INK2))
+
+    y = min(ends) - 20
+    colw = 322.0; x2 = M + colw + 24
     A = MEAS['annulus'][-1]
-    y = c.flow(
-        "A conformal map may stretch and bend a shape, but never shear it. Any washer "
-        "maps onto any other with the same ratio $b/a$ — so a washer has exactly one "
-        "shape parameter that conformal maps cannot remove. That leftover number is "
-        "called its modulus, and an amplitude must "
-        "integrate over it, because it sums over every shape the surface can take. Here "
-        f"the modulus is $t = (1/2π)\\rm{{ln}}(b/a)$; on a lattice of unit resistors "
-        f"$a = {A['a']}$, $b = {A['b']}$ give $R = {A['R']:.6f}$ against "
-        f"$t = {A['t']:.6f}$ — {A['err_pct']:.2f}%.",
-        x2, y - 12.8, colw, 'body', 9.05, 12.3, INK2) - 6
-    yend = c.flow(
-        "Conformally the cylinder's length is $\\rm{ln}(b/a) = 2πR/R_s$: resistance is "
-        "separation. So a HIGH-resistance washer is the long-cylinder limit, where only "
-        "the lightest closed states survive — graviton exchange between the rims; as "
-        "$b/a → 1$ the open-string loop takes over instead.",
-        x2, y, colw, 'body', 9.05, 12.3, INK2)
-    assert yend > STRIP_TOP + 4, (
-        f"page 5 right column ends at {yend:.1f}, below the strip at {STRIP_TOP}")
+    yl = headline(c, "What a “modulus” is, and why it is here.", M, y, colw) + 12
+    yl = c.flow(
+        "A conformal map may stretch and bend a shape but never shear it. Any washer maps "
+        "onto any other with the same ratio $b/a$ — and onto NONE with a different one — so "
+        "a washer has exactly one shape parameter conformal maps cannot remove. That "
+        "leftover number is its modulus, $t = (1/2π)\\rm{ln}(b/a)$, and an amplitude must "
+        "integrate over it because it sums over every shape the surface can take: page 3's "
+        f"gauge-fixing, one loop up. Measured, $a = {A['a']}$ and $b = {A['b']}$ give "
+        f"$R = {A['R']:.6f}$ against $t = {A['t']:.6f}$, {A['err_pct']:.2f}% — so an "
+        "ohmmeter on a washer reads a coordinate on the space of shapes.",
+        M, yl - 12.8, colw, 'body', 9.05, 12.3, INK2)
 
-    # ---- the interpretation strip: the point of the page
-    yb = STRIP_TOP - 16
-    rule(c, M, W - M, yb + 16)
-    eyebrow(c, "reading this page correctly", M, yb + 2)
+    yr = headline(c, "What it cannot say.", x2, y, colw) + 12
+    yr = c.flow(
+        "This is the BOSONIC string, and that matters here. Its lightest closed state is not "
+        "the graviton but the closed TACHYON, and the massless level holds a dilaton and a "
+        "B-field beside the graviton — so the long-cylinder limit is not graviton exchange "
+        "alone, nor even dominated by it. More basically: the copper is the WORLDSHEET, so "
+        "gravity arrives as a string STATE, a particle that gets exchanged. The analogy "
+        "gives the particle-physics face of gravity and nothing of the geometric one — no "
+        "metric, no curvature, no Einstein equation.",
+        x2, yr - 12.8, colw, 'body', 9.05, 12.3, INK2)
+
+    yb = min(yl, yr) - 10
+    rule(c, M, W - M, yb + 11)
+    eyebrow(c, "reading all of this correctly", M, yb - 2)
     yb -= 20
     cw3 = (W - 2 * M - 40) / 3
     panes = [
-        ("EXACT — an identity", (0.16, 0.42, 0.29),
-         "The integrand identity itself; the rim-versus-interior factor of two; and "
-         "$R/R_s$ as the annulus modulus. Theorems about one body of mathematics — and "
-         "measured here, not cited."),
-        ("ANALOGY — a dictionary", CU,
-         "A current is one number, a momentum a spacetime vector: one plane, one "
-         "dimension (p. 4). The copper is the WORLDSHEET — this graviton is a state on "
-         "an auxiliary surface, not curvature of the room."),
+        ("EXACT — AN IDENTITY", (0.16, 0.42, 0.29),
+         "The integrand identity; the rim-versus-interior factor of two; $R/R_s$ as the "
+         "annulus modulus. Theorems about one body of mathematics, measured here."),
+        ("ANALOGY — A TRANSLATION", CU,
+         "The page-2 dictionary translates; it does not identify. A current is one number, "
+         "a momentum a spacetime vector — one plane, one dimension (p. 5)."),
         ("NOT CLAIMED", (0.46, 0.24, 0.28),
-         "That a board gravitates beyond the pull of its mass; that measuring copper "
-         "could test string theory; or that this is holography. A resistor network is "
-         "not a quantum theory with a Regge slope."),
+         "That a board gravitates beyond the pull of its mass; that measuring copper could "
+         "test string theory; or that this is holography (p. 5)."),
     ]
     for k, (h_, col, t_) in enumerate(panes):
         x = M + k * (cw3 + 20)
         c.text(h_, x, yb, 'sansb', 7.0, col, 'l', 1.2)
-        c.flow(t_, x, yb - 13, cw3, 'body', 8.6, 11.7, INK2)
+        c.flow(t_, x, yb - 13, cw3, 'body', 8.6, 11.4, INK2)
+    assert yb - 13 - 3 * 11.4 > 62, f"page 7 strip runs to {yb-13-3*11.4:.1f}"
     rule(c, M, W - M, 62)
-    c.text("Page 5 of 5  ·  gravity", M, 50, 'sansm', 7.2, MUTED, 'l', 1.2)
-    c.text("A washer's ohmmeter reading is a measure on moduli space",
-           W - M, 50, 'sansm', 7.2, MUTED, 'r', 1.2)
+    c.text("Page 7 of 7  ·  what it teaches", M, 50, 'sansm', 7.2, MUTED, 'l', 1.2)
     c.endpage()
 
 
@@ -975,7 +1105,8 @@ def main():
         "kCGPDFContextSubject": "The Koba-Nielsen amplitude as Johnson-Nyquist power "
                                 "fluctuations on a two-dimensional resistive sheet",
     })
-    page1(c); page2(c, bmp, n, sl, eq, slices); page3(c); page4(c); page5(c)
+    page1(c); page2(c, bmp, n, sl, eq, slices)
+    page3(c); page4(c); page5(c); page6(c); page7(c)
     c.close()
     print(f"  wrote     {out}  ({os.path.getsize(out)/1024:.0f} kB)")
 
