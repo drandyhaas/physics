@@ -147,27 +147,39 @@ Both sliders are logarithmic with 1× at the middle of their travel — arrow si
 10×, line density 0.2× to 5×. Linear, they would spend most of the travel above 1× and
 leave the small end unreachable.
 
-**Field line density costs more than it looks.** Lines pack in three dimensions, so halving
-the spacing is about seven times the lines, and the seed lattice is what sets it — once the
-separation rule is loose enough to stop binding, the count just tracks the lattice. Measured
-in the browser with **E** and **B** both up, arrows and charge marks on:
+**The movie draws exactly what a stopped frame draws.** Only dragging a handle and
+scrubbing the clock get a coarser picture, because those have to answer the hand. Playback
+does not: it is the thing worth looking at, so it pays full price and runs at whatever frame
+rate that costs.
 
-| density | moving | stopped |
+Which is not many frames a second. **Field line density costs more than it looks** — lines
+pack in three dimensions, so halving the spacing is about seven times the lines, and the
+seed lattice is what sets it, since once the separation rule is loose enough to stop binding
+the count just tracks the lattice. Measured in the browser with **E** and **B** both up,
+arrows and charge marks on:
+
+| density | a frame | while dragging |
 |---|---|---|
-| 0.45× | 38 ms (26 fps) | 127 ms |
-| 0.75× | 58 ms (17 fps) | 364 ms |
-| **1.00×** (default) | 153 ms (7 fps) | 779 ms |
+| 0.45× | 127 ms | 38 ms |
+| 0.75× | 364 ms | 58 ms |
+| **1.00×** (default) | 779 ms | 153 ms |
 
-1× is about double the line count of the version before it. Turn it down to about 0.5×,
-or show one field at a time, if you want the movie to run smoothly; turn it up if you would
-rather have the picture and do not mind the clock stepping.
+1× is about double the line count of the version before it. Turn it down, or show one
+field at a time, if you would rather the movie were smooth than detailed.
 
-**Field lines** are traced every frame, including while the movie runs — coarser then:
-a coarser seed lattice, shorter lines, and a plain Euler step instead of the midpoint rule,
-which halves the field evaluations that are the whole cost of tracing and does not survive a
-frame going past. The seed lattice is the same shape either way, so lines do not jump about as the
-quality changes. Seeds in the dark find no field and produce nothing, so the family grows
-outward on its own as the front passes.
+**The clock keeps real time regardless.** It advances by the wall time each frame actually
+took, so at the default 1 ns/s a 780 ms frame moves it 0.78 ns and the transient still plays
+out over its true number of seconds, however few frames that is. The step is capped at two
+seconds, which is only there to stop a backgrounded tab jumping the clock when it comes
+back; the cap used to be 0.1 s, invisible while frames were 20 ms and a throttle to an
+eighth speed once they were not.
+
+**Field lines** are traced every frame, the movie included. Dragging and scrubbing get a
+coarser seed lattice, shorter lines and a plain Euler step instead of the midpoint rule,
+which halves the field evaluations that are the whole cost of tracing; the lattice is the
+same shape either way, so lines do not jump about as the quality changes. Seeds in the dark
+find no field and produce nothing, so the family grows outward on its own as the front
+passes.
 
 **Wire the news has not reached is drawn dark.** That is the honest way to show where ct
 has got to *along the wire*: it is continuous and exact, where the charge marks are
@@ -198,7 +210,7 @@ quantum. The dimmed wire is what marks the front.
 |---|---|
 | Play / Restart | run the clock; the slider scrubs it |
 | Switch-on time | how long the battery takes to come up |
-| Slow motion | nanoseconds of circuit time per second of yours |
+| Slow motion | nanoseconds of circuit time per second of yours; 1 ns/s by default |
 | drag the background | orbit |
 | scroll / pinch | zoom |
 | drag a white handle | reshape the wire, in the plane of the screen |
