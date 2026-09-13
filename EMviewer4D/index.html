@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Switch-on bench — a circuit turning on, in slow motion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <div class="stage">
+    <canvas id="cv"></canvas>
+
+    <div class="stage-head">
+      <h1>Switch-on bench</h1>
+      <p>The battery comes on over a few nanoseconds.<span class="hint-more"> Drag to orbit, scroll to zoom.</span></p>
+    </div>
+
+    <button class="railtoggle" id="railtoggle" aria-expanded="false">Controls</button>
+
+    <div class="clock" id="clock">
+      <span class="tnow" id="t-now">0.00 ns</span>
+      <span class="tsub" id="t-sub">light has reached 0.00 m</span>
+    </div>
+
+    <div class="readout" id="readout">
+      <div class="rhead" id="rhead">Point at the slice</div>
+      <span class="rl"><span class="rk">|E|</span><span class="rv" id="ro-e">—</span></span>
+      <span class="rl"><span class="rk">|B|</span><span class="rv" id="ro-b">—</span></span>
+      <span class="rl"><span class="rk">|S|</span><span class="rv" id="ro-s">—</span></span>
+      <span class="rl"><span class="rk">V</span><span class="rv" id="ro-v">—</span></span>
+    </div>
+
+    <div class="legend">
+      <div class="cap" id="leg-cap">Field strength</div>
+      <div class="bar" id="leg-bar"></div>
+      <div class="ends"><span id="leg-lo">—</span><span id="leg-hi">—</span></div>
+    </div>
+  </div>
+
+  <aside class="rail" id="rail">
+    <div class="group">
+      <h2>What to draw</h2>
+      <div class="seg" id="modeseg">
+        <button data-mode="E" aria-pressed="true">E</button>
+        <button data-mode="B" aria-pressed="false">B</button>
+        <button data-mode="S" aria-pressed="false">E×B</button>
+      </div>
+      <p class="mode-note" id="modenote"></p>
+    </div>
+
+    <div class="group">
+      <h2>Time</h2>
+      <div class="seg" id="transport">
+        <button id="btn-play">Play</button>
+        <button id="btn-restart">Restart</button>
+      </div>
+      <canvas id="trace" class="trace" width="640" height="150"></canvas>
+      <div class="row"><label for="s-t">Now</label><span class="val" id="v-t">—</span></div>
+      <input type="range" id="s-t" min="0" max="1000" step="1" value="0">
+      <div class="row"><label for="s-tau">Switch-on time</label><span class="val" id="v-tau">—</span></div>
+      <input type="range" id="s-tau" min="2" max="200" step="1" value="20">
+      <div class="row"><label for="s-speed">Slow motion</label><span class="val" id="v-speed">—</span></div>
+      <input type="range" id="s-speed" min="0" max="100" step="1" value="45">
+      <p class="hint" style="margin:9px 0 0">
+        The trace is the battery's EMF and the current it drives. They are not the same
+        shape: the loop's own inductance holds the current back, and the gap between the
+        two curves is what builds the field.
+      </p>
+    </div>
+
+    <div class="group">
+      <h2>Viewpoint</h2>
+      <div class="chips" id="viewchips">
+        <button data-view="iso">Iso</button>
+        <button data-view="front">Front</button>
+        <button data-view="top">Top</button>
+        <button data-view="side">Side</button>
+        <button data-view="reset">Reset</button>
+      </div>
+      <div class="row"><label for="s-az">Rotate (azimuth)</label><span class="val" id="v-az">—</span></div>
+      <input type="range" id="s-az" min="-180" max="180" step="1" value="38">
+      <div class="row"><label for="s-el">Tilt (elevation)</label><span class="val" id="v-el">—</span></div>
+      <input type="range" id="s-el" min="-89" max="89" step="1" value="22">
+      <div class="row"><label for="s-dist">Zoom (distance)</label><span class="val" id="v-dist">—</span></div>
+      <input type="range" id="s-dist" min="30" max="400" step="1" value="150">
+      <div class="row"><label for="s-fov">Lens (field of view)</label><span class="val" id="v-fov">—</span></div>
+      <input type="range" id="s-fov" min="14" max="80" step="1" value="45">
+    </div>
+
+    <div class="group">
+      <h2>Rendering</h2>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="c-arrows" checked> Arrows through the volume</label>
+        <label class="check"><input type="checkbox" id="c-heat" checked> Strength as colour on the slice</label>
+        <label class="check"><input type="checkbox" id="c-charge"> Surface charge (+ / −)</label>
+        <label class="check"><input type="checkbox" id="c-front" checked> Sphere of radius ct</label>
+        <label class="check"><input type="checkbox" id="c-frame" checked> Outline the slice</label>
+      </div>
+      <div class="row"><label for="s-asize">Arrow size</label><span class="val" id="v-asize">—</span></div>
+      <input type="range" id="s-asize" min="35" max="220" step="5" value="100">
+      <p class="hint" style="margin:9px 0 0">
+        The colour map on the slice is where the wavefront shows up most clearly. The sphere
+        is a guide of radius <b>ct</b> about the origin — the circuit is not a point, so the
+        news from its nearest part arrives a little sooner than the sphere suggests.
+      </p>
+    </div>
+
+    <div class="group">
+      <h2>Slice plane</h2>
+      <div class="seg" id="axisseg">
+        <button data-axis="x" aria-pressed="false">x =</button>
+        <button data-axis="y" aria-pressed="false">y =</button>
+        <button data-axis="z" aria-pressed="true">z =</button>
+      </div>
+      <div class="row"><label for="s-off">Offset</label><span class="val" id="v-off">—</span></div>
+      <input type="range" id="s-off" min="-300" max="300" step="1" value="0">
+    </div>
+
+    <div class="group">
+      <h2>Circuit</h2>
+      <div class="row"><label for="s-emf">Battery</label><span class="val" id="v-emf">—</span></div>
+      <input type="range" id="s-emf" min="1" max="12" step="0.5" value="9">
+      <div class="row"><label for="s-led">LED resistance</label><span class="val" id="v-led">—</span></div>
+      <input type="range" id="s-led" min="10" max="600" step="5" value="100">
+      <div class="row"><label for="s-rho">Wire resistance</label><span class="val" id="v-rho">—</span></div>
+      <input type="range" id="s-rho" min="0" max="120" step="1" value="0">
+      <div class="row"><label for="s-rad">Wire radius</label><span class="val" id="v-rad">—</span></div>
+      <input type="range" id="s-rad" min="1" max="12" step="0.5" value="3">
+    </div>
+
+    <div class="group">
+      <h2>Shape</h2>
+      <div class="chips" id="chips">
+        <button data-p="rect">Rectangle</button>
+        <button data-p="circle">Circle</button>
+        <button data-p="tilt">Tilted</button>
+        <button data-p="helix">Solenoid</button>
+        <button data-p="saddle">Saddle</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Numbers</h2>
+      <div class="facts">
+        <div><span>EMF now</span><span id="f-e">—</span></div>
+        <div><span>Current now</span><span id="f-I">—</span></div>
+        <div><span>Settles at</span><span id="f-Iss">—</span></div>
+        <div><span>Loop inductance</span><span id="f-L">—</span></div>
+        <div><span>L / R</span><span id="f-lr">—</span></div>
+        <div><span>Light along the wire</span><span id="f-cross">—</span></div>
+        <div><span>Loop length</span><span id="f-len">—</span></div>
+      </div>
+      <p class="hint" style="margin:10px 0 0">
+        When <b>L/R</b> is much longer than the light-crossing time, the circuit is behaving
+        quasi-statically and the model is on firm ground. Push the switch-on time down until
+        the two are comparable and you are looking at an illustration rather than a
+        derivation — see the README.
+      </p>
+    </div>
+
+    <div class="group">
+      <h2>How this is computed</h2>
+      <p class="prose">
+        Ohm's law along the wire, with the induced field kept: the potential gradient is the
+        battery's EMF, minus the resistive drop, minus ∂<b>A</b>/∂t. Integrated once around
+        the loop those three give <b>L İ + R I = e(t)</b>, and <b>L</b> is not assumed — it
+        is the same geometric kernel the charge solve uses, weighted by <b>t·t′</b> instead
+        of 1.
+      </p>
+      <p class="prose" style="margin-top:9px">
+        The charge is linear in (e, I, İ), so three solves of one matrix give it for all
+        time. Continuity then fixes how the current varies along the wire, and that
+        variation is what radiates. The field comes from Jefimenko's equations at retarded
+        time, so causality is not imposed anywhere: it falls out of the lookup.
+      </p>
+    </div>
+  </aside>
+</div>
+
+<script src="src/solver4d.js"></script>
+<script src="src/view3d.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
