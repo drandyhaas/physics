@@ -138,16 +138,24 @@ outward on its own as the front passes.
 has got to *along the wire*: it is continuous and exact, where the charge marks are
 quantised and cannot be.
 
-**Surface charge** spends one mark per equal quantum of charge, with the quantum fixed to
-the settled state — so the marks thin out towards t = 0 rather than always filling the
-wire, and the count is the charge at every moment. The marks accumulate outward from the
-battery in both directions, because that is the way the charge spreads.
+**Surface charge** marks sit at fixed positions, one per equal quantum of the *settled*
+charge. What changes with time is how filled each one is: |λ| there now over |λ| there
+once settled. They fade up in place, in the order the news reaches them, which is outward
+from the battery.
 
-They do not reach all the way to the front, and should not: λ is exactly zero at the
-front and takes the whole switch-on time to come up, during which the front travels most of
-the way round the loop. Measured, the freshly-lit wire behind the front carries a few
-thousandths of one quantum — a mark placed there would claim a whole quantum where there
-is half a percent of one. The dimmed wire is what marks the front.
+Placing them by integrating |λ| at the current instant is the obvious thing and is what
+this did at first. It is wrong, and visibly so: the point where the running total first
+reaches one quantum moves inward as λ rises everywhere, so every mark slides toward
+wherever the integration started. Anchored at the battery and run outward both ways, it
+reads unmistakably as charge flowing *into* the battery, which is not happening — the
+drift is an artefact of quantising a quantity that is growing. Fixing the positions removes
+the motion entirely, and the count still carries the charge, because each mark is one
+quantum drawn at its fill fraction.
+
+The marks do not reach the front, and should not: λ is exactly zero there and takes the
+whole switch-on time to come up, during which the front travels most of the way round the
+loop. Measured, the freshly-lit wire behind the front carries a few thousandths of one
+quantum. The dimmed wire is what marks the front.
 
 ## Controls
 

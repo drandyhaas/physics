@@ -76,7 +76,7 @@
     cam: { az: 38, el: 22, dist: 1.5, fov: 45, target: { x:0, y:0, z:0 } },
     slice: { axis: 'z', off: 0 },
     drag: -1, hover: -1, dragging: false, orbiting: false, playQuality: false,
-    T: null, vol: null, sl: null, streams: null, range: null, scene: 0.4
+    T: null, vol: null, sl: null, streams: null, marks: null, range: null, scene: 0.4
   };
 
   const $ = id => document.getElementById(id);
@@ -216,9 +216,11 @@
       if (!a || !b) continue;
       items.push({ d:(a[2]+b[2])/2, kind:0, a, b, t:T.type[i], lit: T.delay[i] < t });
     }
-    if (S.charge) for (const c of chargeMarks(T, t)) {
-      const p = V.project(F, c.x, c.y, c.z);
-      if (p) items.push({ d:p[2], kind:1, p, sign:c.sign });
+    if (S.charge && S.marks) for (const m of S.marks) {
+      const st = markState(T, m, t);
+      if (st.fill < 0.02) continue;                 // nothing has arrived here yet
+      const p = V.project(F, m.x, m.y, m.z);
+      if (p) items.push({ d:p[2], kind:1, p, sign:st.sign, fill:st.fill });
     }
     items.sort((p,q) => q.d - p.d);
 
@@ -244,6 +246,7 @@
         ctx.beginPath(); ctx.moveTo(it.a[0],it.a[1]); ctx.lineTo(it.b[0],it.b[1]); ctx.stroke();
       } else {
         const R = clamp(0.006*F.focal/it.d, 2.4, 9), h = R*0.52;
+        ctx.globalAlpha = it.fill;
         ctx.beginPath(); ctx.arc(it.p[0], it.p[1], R, 0, 6.2832);
         ctx.fillStyle = it.sign > 0 ? '#ff8a63' : '#6cc8ff'; ctx.fill();
         ctx.strokeStyle = 'rgba(4,14,19,.9)'; ctx.lineWidth = 1.2; ctx.stroke();
@@ -251,60 +254,73 @@
         ctx.moveTo(it.p[0]-h, it.p[1]); ctx.lineTo(it.p[0]+h, it.p[1]);
         if (it.sign > 0) { ctx.moveTo(it.p[0], it.p[1]-h); ctx.lineTo(it.p[0], it.p[1]+h); }
         ctx.strokeStyle = '#06171d'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.globalAlpha = 1;
       }
     }
   }
 
-  // One mark per equal quantum of charge. The quantum is fixed to the settled
-  // state, so the marks thin out towards t = 0 instead of always filling the
-  // wire -- the count is the charge, at every moment.
-  function chargeMarks(T, t) {
+  /*
+   * Charge marks.
+   *
+   * Positions are fixed, computed once from the SETTLED charge, one mark per
+   * equal quantum of it. What varies with time is how filled each mark is:
+   * |lambda| there now, over |lambda| there once settled.
+   *
+   * Placing them by integrating |lambda| at the current instant instead -- the
+   * obvious thing, and what this did at first -- makes every mark slide toward
+   * whatever point the integration starts from as the charge grows, because the
+   * place where the running total first reaches one quantum moves inward as
+   * lambda rises everywhere. Anchored at the battery and run outward both ways
+   * it reads unmistakably as charge flowing INTO the battery, which is not
+   * happening. The drift is an artefact of quantising a growing quantity.
+   *
+   * Fixing the positions removes the motion entirely: marks fade up in place, in
+   * the order the news reaches them, which is outward from the battery. The
+   * count still carries the charge -- each mark is one quantum of settled charge
+   * and is drawn at its fill fraction, so the total ink is the charge present.
+   */
+  function buildMarks(T) {
     const N = T.N;
-    const lam = new Float64Array(N);
-    let Q = 0;
-    for (let i = 0; i < N; i++) { lam[i] = FB.sourceAt(T, i, t).lam; Q += Math.abs(lam[i])*T.len[i]; }
+    const ref = new Float64Array(N);
     let Qss = 0;
-    for (let i = 0; i < N; i++) Qss += Math.abs(T.emf*T.lamE[i] + T.Iss*T.lamI[i]) * T.len[i];
-    if (!(Qss > 0) || !(Q > 0)) return [];
+    for (let i = 0; i < N; i++) {
+      ref[i] = T.emf*T.lamE[i] + T.Iss*T.lamI[i];
+      Qss += Math.abs(ref[i]) * T.len[i];
+    }
+    if (!(Qss > 0)) return [];
     const M = clamp(Math.round(T.Lloop/(S.scene*0.065)), 16, 240);
     const quantum = Qss / M;
+
     let gx=0, gy=0, gz=0;
     for (let i = 0; i < N; i++) { gx += T.cx[i]; gy += T.cy[i]; gz += T.cz[i]; }
     gx /= N; gy /= N; gz /= N;
     const off = T.a + S.scene*0.022;
-    // Accumulate outward from the battery in both directions rather than from
-    // one end of the index range. The charge spreads both ways from the battery,
-    // so anchoring the marks there makes them grow the way the charge does,
-    // symmetrically, instead of marching round the loop one way.
-    let b0 = 0;
-    for (let i = 1; i < N; i++) if (T.delay[i] < T.delay[b0]) b0 = i;
 
     const out = [];
-    const place = (i, f) => {
-      const x = T.ax[i] + (T.bx[i]-T.ax[i])*f;
-      const y = T.ay[i] + (T.by[i]-T.ay[i])*f;
-      const z = T.az[i] + (T.bz[i]-T.az[i])*f;
-      let nx = x-gx, ny = y-gy, nz = z-gz;
-      const d = nx*T.tx[i] + ny*T.ty[i] + nz*T.tz[i];
-      nx -= d*T.tx[i]; ny -= d*T.ty[i]; nz -= d*T.tz[i];
-      const nn = Math.hypot(nx,ny,nz) || 1;
-      out.push({ x:x+nx/nn*off, y:y+ny/nn*off, z:z+nz/nn*off, sign: lam[i] >= 0 ? 1 : -1 });
-    };
-    for (const dir of [1, -1]) {
-      let acc = 0, next = quantum*0.5;
-      const steps = Math.floor(N/2);
-      for (let k = (dir > 0 ? 0 : 1); k <= steps; k++) {
-        const i = ((b0 + dir*k) % N + N) % N;
-        const q = Math.abs(lam[i])*T.len[i];
-        while (next < acc + q) {
-          const f = (next - acc)/q;
-          place(i, dir > 0 ? f : 1 - f);
-          next += quantum;
-        }
-        acc += q;
+    let acc = 0, next = quantum*0.5;
+    for (let i = 0; i < N; i++) {
+      const q = Math.abs(ref[i]) * T.len[i];
+      while (next < acc + q) {
+        const f = (next - acc)/q;
+        const x = T.ax[i] + (T.bx[i]-T.ax[i])*f;
+        const y = T.ay[i] + (T.by[i]-T.ay[i])*f;
+        const z = T.az[i] + (T.bz[i]-T.az[i])*f;
+        let nx = x-gx, ny = y-gy, nz = z-gz;
+        const d = nx*T.tx[i] + ny*T.ty[i] + nz*T.tz[i];
+        nx -= d*T.tx[i]; ny -= d*T.ty[i]; nz -= d*T.tz[i];
+        const nn = Math.hypot(nx,ny,nz) || 1;
+        out.push({ i, x: x+nx/nn*off, y: y+ny/nn*off, z: z+nz/nn*off, ref: Math.abs(ref[i]) });
+        next += quantum;
       }
+      acc += q;
     }
     return out;
+  }
+
+  // How full each mark is at this instant, and which sign it is carrying.
+  function markState(T, m, t) {
+    const lam = FB.sourceAt(T, m.i, t).lam;
+    return { fill: m.ref > 0 ? clamp(Math.abs(lam)/m.ref, 0, 1) : 0, sign: lam >= 0 ? 1 : -1 };
   }
 
   /*
@@ -530,6 +546,7 @@
     S.tEnd = clamp(4*T.tauLR, 20*NS, 120*NS);
     $('s-t').max = String(Math.round(S.tEnd/NS*10));
     updateRange(T);
+    S.marks = buildMarks(T);
     updateFacts();
     sample();
   }
