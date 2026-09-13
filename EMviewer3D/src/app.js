@@ -57,7 +57,7 @@
   const S = {
     ctrl: FB.PRESETS.rect.map(p => ({ x: p[0], y: p[1], z: p[2] })),
     mode: 'E',
-    arrows: true, heat: false, lines: true, charge: false, frame: true,
+    arrows: true, heat: false, lines: true, charge: false, frame: true, arrowSize: 0.9,
     emf: 9, rLED: 100, rho: 0, radius: 0.003,
     cam: { az: 38, el: 22, dist: 1.15, fov: 45, target: { x: 0, y: 0, z: 0 } },
     slice: { axis: 'z', off: 0 },
@@ -116,7 +116,7 @@
    * wire; E lines run from positive surface charge to negative.
    */
   function trace(sol, mode, p0, sign, step, maxSteps, bound2) {
-    const pts = [[p0.x, p0.y, p0.z]];
+    const pts = [[p0.x, p0.y, p0.z, 0]];      // x, y, z, |F| at that point
     let x = p0.x, y = p0.y, z = p0.z, closed = false, run = 0;
     let lox = x, loy = y, loz = z, hix = x, hiy = y, hiz = z;
     const shut = (step * 0.9) * (step * 0.9);
@@ -126,6 +126,7 @@
       const v1 = FB.modeVec(f1, mode);
       const m1 = Math.hypot(v1.x, v1.y, v1.z);
       if (!(m1 > 0)) break;
+      pts[pts.length - 1][3] = m1;             // we are standing on the last point
       const h = step * sign;
       const mx = x + v1.x / m1 * h * 0.5, my = y + v1.y / m1 * h * 0.5, mz = z + v1.z / m1 * h * 0.5;
       const f2 = FB.fieldAt(sol, mx, my, mz);
@@ -133,7 +134,7 @@
       const m2 = Math.hypot(v2.x, v2.y, v2.z);
       if (!(m2 > 0)) break;
       x += v2.x / m2 * h; y += v2.y / m2 * h; z += v2.z / m2 * h;
-      pts.push([x, y, z]);
+      pts.push([x, y, z, m1]);
       // A ring that comes back to its seed is finished; tracing on would redraw it.
       if (i > 6) {
         const dx = x - p0.x, dy = y - p0.y, dz = z - p0.z;
@@ -268,59 +269,31 @@
   }
 
   /*
-   * One arrow per volume sample, throughout the space rather than on a surface.
-   * Arrow length is a fraction of the distance between neighbouring samples, so
-   * arrows keep the same relationship to the lattice at any zoom instead of
-   * growing into each other. Foreshortening is left alone: an arrow pointing at
-   * the camera is meant to look short, that is the depth cue. Weak field needs
-   * no culling -- the low end of the ramp is the background colour, so those
-   * arrows fade out on their own.
+   * Field lines, and the arrows that ride on them.
+   *
+   * Both are drawn in one walk of each line, because they share the projection
+   * and the far/near decision. An arrow is anchored on the line and points along
+   * it, which needs no extra field evaluation: the tangent of a field line IS
+   * the field direction. Its length is a pixel count converted back to a world
+   * length at that point's depth, so the projection foreshortens it -- an arrow
+   * pointing at the camera is meant to look short, that is the depth cue.
+   *
+   * Lines are split against a single depth threshold, the depth of the loop's
+   * centroid, and drawn in two passes: one before the wire and one after.
+   * Per-segment sorting of thousands of thin strokes would cost more than it shows.
    */
-  function drawArrows(vol, sol, wantFar, split) {
-    const T = vol.n * vol.n * vol.n;
-    for (let k = 0; k < T; k++) {
-      const m = vol.M[k];
-      if (!(m > 0) || vol.D[k] < sol.a * 1.3) continue;
-      const px = vol.P[k*3], py = vol.P[k*3+1], pz = vol.P[k*3+2];
-      const p = V.project(F, px, py, pz);
-      if (!p) continue;
-      if ((p[2] > split) !== wantFar) continue;
-      const tt = toT(m);
-      const cell = vol.step * F.focal / p[2];          // sample spacing, in pixels
-      const pix = clamp(cell * (0.3 + 0.45 * tt), 3.5, 44);
-      const w = pix * p[2] / F.focal;                  // world length giving that many pixels
-      const vx = vol.V[k*3] / m, vy = vol.V[k*3+1] / m, vz = vol.V[k*3+2] / m;
-      const q = V.project(F, px + vx*w, py + vy*w, pz + vz*w);
-      if (!q) continue;
-      const dx = q[0] - p[0], dy = q[1] - p[1];
-      const L = Math.hypot(dx, dy);
-      ctx.strokeStyle = ctx.fillStyle = rampCss(S.mode, tt);
-      ctx.globalAlpha = fade(p[2]) * (0.16 + 0.84 * tt);
-      ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
-      if (L > 4) {                                     // head, only when there is room
-        const ux = dx / L, uy = dy / L, hs = clamp(L * 0.38, 2.5, 5.5);
-        ctx.beginPath();
-        ctx.moveTo(q[0], q[1]);
-        ctx.lineTo(q[0] - ux*hs - uy*hs*0.55, q[1] - uy*hs + ux*hs*0.55);
-        ctx.lineTo(q[0] - ux*hs + uy*hs*0.55, q[1] - uy*hs - ux*hs*0.55);
-        ctx.closePath(); ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-    }
-  }
-
-  // Field lines are split against a single depth threshold rather than sorted
-  // per segment: the wire is one compact object, so "in front of the loop" or
-  // "behind it" is the only ordering that actually reads.
   function drawStreams(streams, wantFar, split) {
     if (!streams) return;
     const tint = LINE_TINT[S.mode];
-    ctx.lineWidth = 1.25; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    const base = 15 * S.arrowSize;              // pixel length at full strength
+    const gap = Math.max(26, base * 2.6);       // pixels between arrows on a line
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
     for (const line of streams) {
-      let run = null, acc = 0, cnt = 0;
+      let run = null, acc = 0, cnt = 0, since = gap * 0.45, prev = null;
       const flush = () => {
         if (run && run.length > 1) {
+          ctx.lineWidth = 1.25;
           ctx.strokeStyle = 'rgba(' + tint + ',' + (fade(acc / cnt) * 0.5).toFixed(3) + ')';
           ctx.beginPath();
           ctx.moveTo(run[0][0], run[0][1]);
@@ -329,14 +302,54 @@
         }
         run = null; acc = 0; cnt = 0;
       };
-      for (const w of line) {
+
+      for (let i = 0; i < line.length; i++) {
+        const w = line[i];
         const p = V.project(F, w[0], w[1], w[2]);
-        if (!p || (p[2] > split) !== wantFar) { flush(); continue; }
-        if (!run) run = [];
-        run.push(p); acc += p[2]; cnt++;
+        if (!p || (p[2] > split) !== wantFar) { flush(); prev = null; continue; }
+
+        if (S.lines) {
+          if (!run) run = [];
+          run.push(p); acc += p[2]; cnt++;
+        }
+
+        if (S.arrows) {
+          if (prev) since += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
+          if (since >= gap && i + 1 < line.length) {
+            const n = line[i + 1];
+            let tx = n[0] - w[0], ty = n[1] - w[1], tz = n[2] - w[2];
+            const tn = Math.hypot(tx, ty, tz);
+            if (tn > 0) {
+              tx /= tn; ty /= tn; tz /= tn;
+              const tt = toT(w[3]);
+              const pix = base * (0.5 + 0.5 * tt);
+              const wl = pix * p[2] / F.focal;
+              const q = V.project(F, w[0] + tx*wl, w[1] + ty*wl, w[2] + tz*wl);
+              if (q) { drawArrow(p, q, tt); since = 0; }
+            }
+          }
+        }
+        prev = p;
       }
       flush();
     }
+  }
+
+  function drawArrow(p, q, tt) {
+    const dx = q[0] - p[0], dy = q[1] - p[1];
+    const L = Math.hypot(dx, dy);
+    if (L < 1.2) return;                        // end-on: nothing legible to draw
+    ctx.strokeStyle = ctx.fillStyle = rampCss(S.mode, tt);
+    ctx.globalAlpha = fade(p[2]) * (0.35 + 0.65 * tt);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+    const ux = dx / L, uy = dy / L, hs = clamp(L * 0.42, 2.2, 6);
+    ctx.beginPath();
+    ctx.moveTo(q[0], q[1]);
+    ctx.lineTo(q[0] - ux*hs - uy*hs*0.55, q[1] - uy*hs + ux*hs*0.55);
+    ctx.lineTo(q[0] - ux*hs + uy*hs*0.55, q[1] - uy*hs - ux*hs*0.55);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1;
   }
 
   /*
@@ -486,13 +499,11 @@
     }
     if (S.frame) drawSliceFrame(planeOf(), S.scene * 1.55);
 
-    if (S.lines) drawStreams(S.streams, true, split);
-    if (S.vol && S.arrows) drawArrows(S.vol, sol, true, split);
+    if (S.lines || S.arrows) drawStreams(S.streams, true, split);
 
     drawCircuit(sol);
 
-    if (S.lines) drawStreams(S.streams, false, split);
-    if (S.vol && S.arrows) drawArrows(S.vol, sol, false, split);
+    if (S.lines || S.arrows) drawStreams(S.streams, false, split);
 
     drawHandles();
     drawTriad();
@@ -514,9 +525,14 @@
       if (!sol) { ctx.fillStyle = '#05141a'; ctx.fillRect(0, 0, W, H); return; }
       S.sol = sol;
       S.scene = sceneRadius(sol);
+      // Sampled only to set the colour range. Nothing is drawn from it now that
+      // the arrows ride on the field lines, and percentiles over a few hundred
+      // points are stable, so it can be coarse. Taking the range from geometry
+      // rather than from whichever lines happen to be traced keeps one colour
+      // meaning one field strength as the circuit is dragged about.
       S.vol = FB.buildVolume(sol, {
         half: S.scene * 1.25,
-        n: hi ? 9 : 6,
+        n: hi ? 7 : 5,
         mode: S.mode
       });
       updateRange(S.vol, sol);
@@ -531,7 +547,7 @@
           mode: S.mode
         });
       } else S.sl = null;
-      S.streams = (hi && S.lines) ? buildStreams(sol, S.mode) : null;
+      S.streams = (hi && (S.lines || S.arrows)) ? buildStreams(sol, S.mode) : null;
       render();
       updateFacts(sol);
     });
@@ -616,7 +632,7 @@
    ['c-charge','charge'], ['c-frame','frame']].forEach(([id, key]) => {
     $(id).addEventListener('change', e => {
       S[key] = e.target.checked;
-      const needsData = (key === 'lines' && e.target.checked && !S.streams) ||
+      const needsData = ((key === 'lines' || key === 'arrows') && e.target.checked && !S.streams) ||
                         (key === 'heat' && e.target.checked && !S.sl);
       if (needsData) settle(); else render();
     });
@@ -642,6 +658,12 @@
     S.slice.off = parseFloat(e.target.value) / 1000;
     $('v-off').textContent = (S.slice.off * 100).toFixed(1) + ' cm';
     S.quality = 'low'; recompute(); bounce();
+  });
+
+  $('s-asize').addEventListener('input', e => {
+    S.arrowSize = parseFloat(e.target.value) / 100;
+    $('v-asize').textContent = S.arrowSize.toFixed(2) + '\u00d7';
+    render();
   });
 
   // camera sliders
@@ -835,6 +857,7 @@
   });
   $('modenote').textContent = MODE_NOTE.E;
   $('v-off').textContent = '0.0 cm';
+  $('v-asize').textContent = S.arrowSize.toFixed(2) + '\u00d7';
   syncCam();
   resize();
 })();

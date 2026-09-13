@@ -93,17 +93,20 @@
     <div class="group">
       <h2>Rendering</h2>
       <div class="checks">
-        <label class="check"><input type="checkbox" id="c-arrows" checked> Arrows through the volume</label>
-        <label class="check"><input type="checkbox" id="c-lines" checked> Field lines through the volume</label>
+        <label class="check"><input type="checkbox" id="c-arrows" checked> Arrows along the field lines</label>
+        <label class="check"><input type="checkbox" id="c-lines" checked> The field lines themselves</label>
         <label class="check"><input type="checkbox" id="c-charge"> Surface charge (+ / −)</label>
         <label class="check"><input type="checkbox" id="c-heat"> Strength as colour on the slice</label>
         <label class="check"><input type="checkbox" id="c-frame" checked> Outline the slice</label>
       </div>
+      <div class="row"><label for="s-asize">Arrow size</label><span class="val" id="v-asize">—</span></div>
+      <input type="range" id="s-asize" min="35" max="220" step="5" value="90">
       <p class="hint" style="margin:9px 0 0">
-        Arrows sit on a lattice filling the space around the circuit, and field lines are
-        seeded on a coarser one — neither is confined to the slice. Arrows in weak field
-        fade into the background rather than being cut off, so what you see thinning out is
-        the field thinning out.
+        Field lines are seeded on a lattice filling the space around the circuit, and the
+        arrows ride on them: a line's tangent is the field direction, so an arrow on a line
+        already points the right way. The two switch independently — arrows alone give a
+        flow without the curves. Arrows in weak field fade rather than being cut off, so
+        what thins out is the field thinning out.
       </p>
     </div>
 

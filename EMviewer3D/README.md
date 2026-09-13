@@ -31,16 +31,19 @@ dimension and they show up as what they are.
 
 ## What is on screen
 
-The field is sampled **throughout the volume**, not on a surface. Arrows sit on a 9×9×9
-lattice filling a box around the circuit, and field lines are seeded on a coarser 4×4×4
-one; both are in space, so the picture has a front and a back rather than being a plane
-seen at an angle.
+The field is drawn **throughout the volume**, not on a surface. Field lines are seeded on
+a 4×4×4 lattice filling a box around the circuit, so the picture has a front and a back
+rather than being a plane seen at an angle.
 
-Lattice points are nudged off the exact grid by a deterministic jitter. Seen down any axis
-a perfect cubic lattice stacks every sample behind another one and most of the field
-vanishes at exactly the viewpoints — front, top, side — where you most want to read it.
-The jitter is a pure function of the lattice indices, so it is identical every frame and
-nothing shimmers as the camera moves.
+**Arrows ride on the field lines.** A field line's tangent is the field direction, so an
+arrow anchored on a line already points the right way, and no extra field evaluation is
+needed to orient it. They are spaced by screen distance, so their density stays put as you
+zoom, and the spacing scales with the size slider so large arrows do not collide. Arrows
+and lines switch independently: arrows alone give the flow without the curves.
+
+Arrow length is a pixel count converted back to a world length at that point's depth, so
+the projection foreshortens it — an arrow pointing at the camera looks short, which is the
+depth cue.
 
 Seeds are taken in lattice order, and one is rejected where an existing line already
 passes — a minimum separation of 0.12 of the scene radius. Order is what keeps the spacing
@@ -62,8 +65,10 @@ concentrated, which in a coil is the entire point; that density is the physics a
 placement artefact.
 
 Weak field is not culled. The bottom of the colour ramp is the background colour and
-opacity falls with it, so distant arrows fade out on their own: what thins out is the
-field thinning out, not a threshold.
+opacity falls with it, so arrows in weak field fade out on their own: what thins out is
+the field thinning out, not a threshold. The colour range itself comes from a coarse
+sampling of the volume — from the geometry rather than from whichever lines happen to be
+traced, so one colour keeps meaning one field strength while the circuit is dragged.
 
 The **slice plane** remains, with a narrower job — a flat cut for the colour map, and the
 surface the readout probes, since a cursor in a 3D scene is a ray rather than a point.

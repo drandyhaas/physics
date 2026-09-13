@@ -359,14 +359,15 @@
   }
 
   /*
-   * Sampling a volume.
+   * Sampling a volume. The app uses this to set its colour range: taking the
+   * range from geometry rather than from whichever field lines happen to be
+   * traced keeps one colour meaning one field strength as the circuit is
+   * dragged about.
    *
-   * Points are nudged off the exact lattice by a deterministic jitter. Seen down
-   * any axis a perfect cubic lattice stacks every sample behind another one and
-   * most of the field disappears at exactly the viewpoints -- front, top, side --
-   * where you most want to read it. The jitter is a pure function of the lattice
-   * indices, so it is the same every frame and nothing shimmers when the camera
-   * moves.
+   * Points are nudged off the exact lattice by a deterministic jitter, which
+   * keeps the samples from lining up with whatever symmetry the circuit has and
+   * biasing the percentiles. It is a pure function of the lattice indices, so
+   * the same circuit always gives the same range.
    */
   function jitter(i, j, k, s) {
     const v = Math.sin(i * 127.1 + j * 311.7 + k * 74.7 + s * 39.3) * 43758.5453;
