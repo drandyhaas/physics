@@ -49,8 +49,8 @@
   const S = {
     ctrl: FB.PRESETS.rect.map(p => ({ x: p[0], y: p[1] })),
     mode: 'E',
-    heat: true, arrows: true, lines: true,
-    emf: 3, rLED: 100, rho: 0, radius: 0.003,
+    heat: false, arrows: true, lines: true,
+    emf: 9, rLED: 100, rho: 0, radius: 0.003,
     drag: -1, hover: -1, dragging: false, quality: 'high',
     sol: null, grid: null, range: { E: null, B: null, S: null }
   };
