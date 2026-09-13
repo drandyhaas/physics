@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>physics — standalone explainers</title>
+<meta name="description" content="Standalone physics explainers: an interactive field map around a real circuit, two E8xE8 heterotic string posters, and a broadside on strings and the copper plane.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#05141a;
+  --panel:#0d272f;
+  --panel-2:#12333d;
+  --rule:#1d4552;
+  --text:#dfeef0;
+  --text-dim:#8bb0b8;
+  --text-faint:#5f8a94;
+  --signal:#e8a33d;
+  --signal-soft:#ffd98a;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--ink);color:var(--text);
+  font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px 72px}
+
+header{padding-block:56px 34px;border-bottom:1px solid var(--rule)}
+h1{
+  margin:0 0 10px;font-size:30px;font-weight:600;letter-spacing:-.02em;
+}
+header p{margin:0;color:var(--text-dim);max-width:62ch}
+
+.projects{list-style:none;margin:0;padding:0}
+.card{
+  border-bottom:1px solid var(--rule);
+  padding-block:30px;
+}
+.card:last-child{border-bottom:0}
+.tag{
+  display:inline-block;font-family:'IBM Plex Mono',ui-monospace,monospace;
+  font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--signal);border:1px solid rgba(232,163,61,.4);
+  border-radius:999px;padding:2px 9px;margin-bottom:11px;
+}
+.tag.quiet{color:var(--text-faint);border-color:var(--rule)}
+h2{margin:0 0 9px;font-size:20px;font-weight:600;letter-spacing:-.01em}
+h2 a{color:var(--text);text-decoration:none}
+h2 a:hover{color:var(--signal-soft)}
+.card p{margin:0 0 15px;color:var(--text-dim);max-width:64ch}
+.card p .lede{color:var(--text)}
+
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.links a{
+  font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;
+  color:var(--text-dim);text-decoration:none;
+  background:var(--panel);border:1px solid var(--rule);border-radius:8px;
+  padding:6px 11px;transition:border-color .12s,color .12s,background .12s;
+}
+.links a:hover{color:var(--text);border-color:var(--text-faint);background:var(--panel-2)}
+.links a.go{
+  color:var(--ink);background:var(--signal);border-color:var(--signal);font-weight:500;
+}
+.links a.go:hover{background:var(--signal-soft);border-color:var(--signal-soft);color:var(--ink)}
+
+footer{
+  padding-top:30px;color:var(--text-faint);font-size:13px;
+}
+footer a{color:var(--text-dim)}
+footer a:hover{color:var(--signal-soft)}
+
+@media (max-width:520px){
+  header{padding-block:40px 26px}
+  h1{font-size:25px}
+  body{font-size:14.5px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>physics</h1>
+  <p>Standalone explainers, one directory per project. Each is self-contained:
+  a finished document plus whatever source or code produces it. Where a project
+  asserts a number, the script that measures it sits in the same directory.</p>
+</header>
+
+<ul class="projects">
+
+  <li class="card">
+    <span class="tag">Interactive</span>
+    <h2><a href="EMviewer/">Field bench</a></h2>
+    <p><span class="lede">An interactive map of <strong>E</strong>, <strong>B</strong> and
+    <strong>S</strong> = E×B/μ₀ everywhere in the plane around a battery–wire–LED
+    circuit.</span> Grab the wire, reshape it, and the fields re-solve as you drag.
+    Along a resistanceless wire <strong>E</strong> meets the metal at exactly a right
+    angle; push the resistance slider off zero and the field tilts over — that tilt
+    is E = ρJ. The energy never travels inside the wire: <strong>S</strong> leaves the
+    battery sideways into empty space, glides along beside the wire, and turns inward
+    at the LED.</p>
+    <div class="links">
+      <a class="go" href="EMviewer/">Open the app →</a>
+      <a href="https://github.com/drandyhaas/physics/tree/main/EMviewer">Source &amp; notes</a>
+    </div>
+  </li>
+
+  <li class="card">
+    <span class="tag quiet">Two posters</span>
+    <h2>E₈×E₈ heterotic posters</h2>
+    <p>Two single-page posters, each authored as one self-contained HTML file and
+    exported to PDF. <em>E8 Static Poster</em> runs from the Planck scale down to the
+    Standard Model: Calabi–Yau compactification, inflation, gaugino condensation
+    breaking supersymmetry, and the VEV cascade E₆ → SO(10) → SU(5) → SM.
+    <em>Heterotic String Lagrangian</em> gives the complete ten-dimensional
+    string-frame action in three lines, then breaks it out field by field.</p>
+    <div class="links">
+      <a href="e8-heterotic-posters/E8.html">Cascade poster</a>
+      <a href="e8-heterotic-posters/E8_eq.html">Lagrangian poster</a>
+      <a href="e8-heterotic-posters/E8%20Static%20Poster.pdf">PDF</a>
+      <a href="e8-heterotic-posters/E8%C3%97E8%20Heterotic%20String%20Lagrangian.pdf">PDF</a>
+    </div>
+  </li>
+
+  <li class="card">
+    <span class="tag quiet">Seven pages</span>
+    <h2>The Worldsheet and the Copper Plane</h2>
+    <p>A broadside on a single claim: the quantum amplitude of interacting
+    <strong>strings</strong> is, integrand for integrand, the same mathematical object
+    as the statistics of <strong>thermal fluctuations of electrical power</strong>
+    across a two-dimensional resistive <strong>copper plane</strong> — each particle's
+    momentum becoming a current injected at a point on the board's edge. It is the
+    Coulomb-gas representation of the Koba–Nielsen amplitude. Every number it quotes
+    comes from a verification script in the same directory.</p>
+    <div class="links">
+      <a href="string-copper-correspondence/string_copper_correspondence.pdf">Read the PDF</a>
+      <a href="https://github.com/drandyhaas/physics/tree/main/string-copper-correspondence">Source &amp; verification</a>
+    </div>
+  </li>
+
+</ul>
+
+<footer>
+  Source for everything here:
+  <a href="https://github.com/drandyhaas/physics">github.com/drandyhaas/physics</a>
+</footer>
+
+</div>
+</body>
+</html>
