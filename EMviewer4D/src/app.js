@@ -72,7 +72,7 @@
     arrows: true, heat: false, charge: true, front: true, frame: true, lines: true,
     arrowSize: 1.0,
     emf: 9, rLED: 100, rho: 0, radius: 0.003,
-    tau: 1e-9, t: 0, tEnd: 40e-9, playing: false, speed: 45, lineDensity: 1,
+    tau: 1e-9, t: 0, tEnd: 40e-9, playing: false, speed: 50, lineDensity: 1,
     cam: { az: 38, el: 22, dist: 1.5, fov: 45, target: { x:0, y:0, z:0 } },
     slice: { axis: 'z', off: 0 },
     drag: -1, hover: -1, dragging: false, orbiting: false, scrubbing: false,
@@ -602,7 +602,10 @@
   function sample() {
     const T = S.T;
     if (!T) return;
-    const fast = S.playing || S.dragging || S.scrubbing;
+    // Only hand interactions get the coarse path. Playback draws exactly what a
+    // stopped frame draws -- the movie is the thing worth looking at, and a
+    // slower clock is a fairer price than a different picture.
+    const fast = S.dragging || S.scrubbing;
     const on = active();
     S.vols = {}; S.sls = {}; S.streams = {};
     if (S.arrows) for (const m of on)
@@ -694,7 +697,7 @@
     $('v-fov').textContent = Math.round(S.cam.fov) + '°';
   }
 
-  const nsPerSec = () => 0.2 * Math.pow(300, S.speed/100);
+  const nsPerSec = () => 0.1 * Math.pow(10, S.speed/50);   // 0 -> 0.1, 50 -> 1, 100 -> 10 ns/s
 
   // Independent toggles, not a one-of-three picker: the fields layer.
   function syncModes() {
@@ -916,7 +919,10 @@
     let t0 = performance.now();
     const step = now => {
       if (!S.playing) { running = false; sample(); return; }
-      const dtWall = Math.min((now - t0)/1000, 0.1); t0 = now;
+      // Capped generously rather than tightly: the cap is only there to stop a
+      // backgrounded tab jumping the clock on return, and a full-quality frame
+      // legitimately takes most of a second.
+      const dtWall = Math.min((now - t0)/1000, 2); t0 = now;
       S.t += dtWall * nsPerSec() * NS;
       if (S.t >= S.tEnd) { S.t = S.tEnd; S.playing = false; $('btn-play').textContent = 'Play'; }
       sample();
