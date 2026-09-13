@@ -54,7 +54,7 @@
   const S = {
     ctrl: FB.PRESETS.rect.map(p => ({ x: p[0], y: p[1] })),
     mode: 'E',
-    heat: false, arrows: true, lines: true,
+    heat: false, arrows: true, lines: true, charge: false,
     emf: 9, rLED: 100, rho: 0, radius: 0.003,
     drag: -1, hover: -1, dragging: false, quality: 'high',
     sol: null, grid: null, range: { E: null, B: null, S: null }
@@ -290,6 +290,69 @@
     }
   }
 
+  /* ---------------- surface charge ---------------- */
+  /*
+   * lam[i] is the line charge density the solver found on segment i. Rather than
+   * scale a glyph by it, spend one mark per equal quantum of charge: the number of
+   * marks in any stretch of wire is then the charge on that stretch, and marks per
+   * unit length is the density itself. The solver constrains the loop to be neutral
+   * (sum of lam*len is zero), so + and - marks always come out equal in number.
+   */
+  const CHARGE_PX = 19;          // mean spacing between marks, screen px
+  function drawCharges(sol) {
+    const N = sol.N, lam = sol.lam, len = sol.len;
+    let Q = 0;
+    for (let i = 0; i < N; i++) Q += Math.abs(lam[i]) * len[i];
+    if (!(Q > 0)) return;
+
+    const M = clamp(Math.round(sol.L * PPM / CHARGE_PX), 16, 320);
+    const quantum = Q / M;
+
+    // Sit the marks just off the metal, on the outside of the loop. Shoelace area
+    // gives the winding, so a circuit dragged into the opposite orientation still
+    // puts its charge on the outside rather than the inside.
+    let area2 = 0;
+    for (let i = 0; i < N; i++) area2 += sol.ax[i]*sol.by[i] - sol.bx[i]*sol.ay[i];
+    const wind = area2 >= 0 ? 1 : -1;
+    const off = (Math.max(2.2, S.radius*PPM) + 7.5) / PPM;
+
+    const plus = [], minus = [];
+    let acc = 0, next = quantum * 0.5;
+    for (let i = 0; i < N; i++) {
+      const q = Math.abs(lam[i]) * len[i];
+      while (next < acc + q) {
+        const f = (next - acc) / q;
+        const nx = sol.ty[i]*wind, ny = -sol.tx[i]*wind;
+        const wx = sol.ax[i] + (sol.bx[i] - sol.ax[i])*f + nx*off;
+        const wy = sol.ay[i] + (sol.by[i] - sol.ay[i])*f + ny*off;
+        (lam[i] >= 0 ? plus : minus).push(toScreen(wx, wy));
+        next += quantum;
+      }
+      acc += q;
+    }
+
+    // Each mark is a bead, not a bare glyph. A row of bare minus signs along a
+    // straight run reads as a dashed line rather than as charges; a disc keeps
+    // every mark discrete whichever way the wire happens to lie.
+    const R = 4.4, h = 2.3;
+    const beads = (arr, col, bothBars) => {
+      if (!arr.length) return;
+      ctx.beginPath();
+      for (const c of arr) { ctx.moveTo(c[0] + R, c[1]); ctx.arc(c[0], c[1], R, 0, 6.2832); }
+      ctx.fillStyle = col; ctx.fill();
+      ctx.strokeStyle = 'rgba(4,14,19,.9)'; ctx.lineWidth = 1.4; ctx.stroke();
+
+      ctx.beginPath();
+      for (const c of arr) {
+        ctx.moveTo(c[0] - h, c[1]); ctx.lineTo(c[0] + h, c[1]);
+        if (bothBars) { ctx.moveTo(c[0], c[1] - h); ctx.lineTo(c[0], c[1] + h); }
+      }
+      ctx.strokeStyle = '#06171d'; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.stroke();
+    };
+    beads(plus, '#ff8a63', true);
+    beads(minus, '#6cc8ff', false);
+  }
+
   function drawHandles() {
     S.ctrl.forEach((p, i) => {
       const c = toScreen(p.x, p.y);
@@ -340,6 +403,7 @@
     if (S.lines && S.quality === 'high') drawLines(G, S.mode);
     if (S.arrows) drawArrows(G, S.mode);
     drawCircuit(sol);
+    if (S.charge) drawCharges(sol);
     drawHandles();
     drawLegend(S.mode);
   }
@@ -432,7 +496,7 @@
   bindSlider('s-rho', 'v-rho', v => S.rho = v,           v => v.toFixed(0) + ' Ω/m');
   bindSlider('s-rad', 'v-rad', v => S.radius = v/1000,   v => v.toFixed(1) + ' mm');
 
-  [['c-heat','heat'], ['c-arrows','arrows'], ['c-lines','lines']].forEach(([id, key]) => {
+  [['c-heat','heat'], ['c-arrows','arrows'], ['c-lines','lines'], ['c-charge','charge']].forEach(([id, key]) => {
     $(id).addEventListener('change', e => { S[key] = e.target.checked; render(); });
   });
 

@@ -46,6 +46,15 @@ in-plane too and the whole picture is honestly two-dimensional.
 
 Nothing in the rendering is hand-drawn. The field-line shapes are the solution.
 
+**Surface charge** turns λ — the thing actually solved for above — into the picture it
+deserves. Rather than scale a glyph by λ, the overlay spends one mark per equal quantum of
+charge, so the count of marks along any stretch of wire *is* the charge on that stretch and
+marks per unit length is the density itself. Because the solve constrains the loop to be
+neutral, the + and − marks always come out equal in number. This is the mechanism behind
+both facts above: the field arrows leave the + beads and arrive at the − beads, and pushing
+wire resistance off zero visibly drags the charge into a gradient along the whole run
+instead of piling it at the terminals.
+
 ## Layout
 
 ```
@@ -89,7 +98,9 @@ The residual 0.5–1% anisotropies are filament discretisation, not physics; the
 | alt-click / long-press a handle | delete it |
 | hover anywhere | live E, B, S and potential at that point |
 
-Scale is 1 px = 1 mm, so the default loop is about 1.7 m of wire.
+The view is fitted to the window, so the whole loop stays framed at any size or
+aspect; 1 px = 1 mm is the ceiling, reached on a wide screen. The default loop is
+about 1.7 m of wire.
 
 ## Modelling choices worth knowing
 
