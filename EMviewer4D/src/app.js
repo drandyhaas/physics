@@ -170,7 +170,10 @@
 
   function drawArrows(vol, T, mode, wantFar, split) {
     const TT = vol.n*vol.n*vol.n;
-    const base = 13 * S.arrowSize;
+    // 52 px at full strength and a 1x slider. The lattice spacing works out near
+    // 120 px on screen at the default zoom, so this is a little under half the
+    // gap between neighbours -- big enough to read a direction from.
+    const base = 52 * S.arrowSize;
     for (let k = 0; k < TT; k++) {
       const m = vol.M[k];
       if (!(m > 0) || vol.D[k] < T.a*1.3) continue;
@@ -190,7 +193,7 @@
       ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.lineTo(q[0],q[1]); ctx.stroke();
       if (L > 4) {
-        const ux = dx/L, uy = dy/L, hs = clamp(L*0.38, 2.5, 5.5);
+        const ux = dx/L, uy = dy/L, hs = clamp(L*0.38, 2.5, base*0.3);
         ctx.beginPath();
         ctx.moveTo(q[0],q[1]);
         ctx.lineTo(q[0]-ux*hs-uy*hs*0.55, q[1]-uy*hs+ux*hs*0.55);
@@ -728,9 +731,11 @@
     S.speed = parseFloat(e.target.value);
     $('v-speed').textContent = nsPerSec().toFixed(1) + ' ns/s';
   });
+  const asizeOf = v => Math.pow(10, (v - 50)/50);      // 0 -> 0.1x, 50 -> 1x, 100 -> 10x
+  const asizeText = a => (a < 0.995 ? a.toFixed(2) : a < 9.95 ? a.toFixed(2) : a.toFixed(1)) + '×';
   $('s-asize').addEventListener('input', e => {
-    S.arrowSize = parseFloat(e.target.value)/100;
-    $('v-asize').textContent = S.arrowSize.toFixed(2) + '×';
+    S.arrowSize = asizeOf(parseFloat(e.target.value));
+    $('v-asize').textContent = asizeText(S.arrowSize);
     render();
   });
   $('s-off').addEventListener('input', e => {
@@ -894,7 +899,7 @@
   $('v-off').textContent = '0.0 cm';
   $('v-tau').textContent = (S.tau/NS).toFixed(1) + ' ns';
   $('v-speed').textContent = nsPerSec().toFixed(1) + ' ns/s';
-  $('v-asize').textContent = S.arrowSize.toFixed(2) + '×';
+  $('v-asize').textContent = asizeText(S.arrowSize);
   syncCam();
   const r0 = cv.getBoundingClientRect();
   W = Math.round(r0.width) || 900; H = Math.round(r0.height) || 700;
