@@ -543,6 +543,7 @@
   function fieldAt(T, px, py, pz, t) {
     const N = T.N, a2 = T.a * T.a;
     const { cx, cy, cz, tx, ty, tz, len, delay } = T;
+    const { LAM, LAMD, CUR, CURD, LAMINF, CURINF, K, dutab } = T;
     const kb = MU0 / (4 * Math.PI);
     let ex=0, ey=0, ez=0, Bx=0, By=0, Bz=0, v=0, dmin=Infinity, near=0;
 
@@ -558,10 +559,28 @@
       // needed; the first is what makes the picture causal about the battery.
       if (tr <= delay[i]) continue;
 
-      const lam  = tab(T, T.LAM,  T.LAMINF, i, tr);
-      const lamd = tab(T, T.LAMD, T.ZERO,   i, tr);
-      const cur  = tab(T, T.CUR,  T.CURINF, i, tr);
-      const curd = tab(T, T.CURD, T.ZERO,   i, tr);
+      // Four reads from four tables at the same instant, so the index is worked
+      // out once and shared. Calling the generic lookup four times repeated the
+      // divide, the floor and the bounds tests every time, and this is the
+      // innermost loop of everything the app does.
+      let lam, lamd, cur, curd;
+      const b = i*K;
+      if (tr >= T.tTab) {
+        const e = Math.exp(-(tr - T.tTab) / T.tauLR), last = b + K - 1;
+        lam  = LAMINF[i] + (LAM[last]  - LAMINF[i]) * e;
+        cur  = CURINF[i] + (CUR[last]  - CURINF[i]) * e;
+        lamd = LAMD[last] * e;
+        curd = CURD[last] * e;
+      } else {
+        const x = tr / dutab;
+        let k = x | 0;
+        if (k > K - 2) k = K - 2;
+        const w = x - k, k0 = b + k, k1 = k0 + 1;
+        lam  = LAM[k0]  + (LAM[k1]  - LAM[k0])  * w;
+        lamd = LAMD[k0] + (LAMD[k1] - LAMD[k0]) * w;
+        cur  = CUR[k0]  + (CUR[k1]  - CUR[k0])  * w;
+        curd = CURD[k0] + (CURD[k1] - CURD[k0]) * w;
+      }
 
       const l = len[i];
       const Rs2 = Rs*Rs, Rs3 = Rs2*Rs;

@@ -140,17 +140,32 @@ more than one is running.
 
 **Arrows** sit on a lattice through the volume, and their length is a pixel count converted
 back to a world length at that point's depth, so the projection foreshortens them — an
-arrow pointing at the camera looks short, which is the depth cue. Full strength is 52 px at
-1×, a little under half the on-screen gap between neighbouring lattice points. The size
-slider runs 0.1× to 10× and is logarithmic, with 1× at the middle of its travel:
-linear, it would spend nine tenths of the travel above 1× and leave the small end
-unreachable.
+arrow pointing at the camera looks short, which is the depth cue. Full strength is 29 px at
+1×, about a quarter of the on-screen gap between neighbouring lattice points.
+
+Both sliders are logarithmic with 1× at the middle of their travel — arrow size 0.1× to
+10×, line density 0.2× to 5×. Linear, they would spend most of the travel above 1× and
+leave the small end unreachable.
+
+**Field line density costs more than it looks.** Lines pack in three dimensions, so halving
+the spacing is about seven times the lines, and the seed lattice is what sets it — once the
+separation rule is loose enough to stop binding, the count just tracks the lattice. Measured
+in the browser with **E** and **B** both up, arrows and charge marks on:
+
+| density | moving | stopped |
+|---|---|---|
+| 0.45× | 38 ms (26 fps) | 127 ms |
+| 0.75× | 58 ms (17 fps) | 364 ms |
+| **1.00×** (default) | 153 ms (7 fps) | 779 ms |
+
+1× is about double the line count of the version before it. Turn it down to about 0.5×,
+or show one field at a time, if you want the movie to run smoothly; turn it up if you would
+rather have the picture and do not mind the clock stepping.
 
 **Field lines** are traced every frame, including while the movie runs — coarser then:
-3³ seeds instead of 4³, shorter lines, and a plain Euler step instead of the midpoint
-rule, which halves the field evaluations that are the whole cost of tracing and does not
-survive a frame going past. Two fields with arrows, lines and charge marks come to about
-30 ms a frame. The seed lattice is the same either way, so lines do not jump about as the
+a coarser seed lattice, shorter lines, and a plain Euler step instead of the midpoint rule,
+which halves the field evaluations that are the whole cost of tracing and does not survive a
+frame going past. The seed lattice is the same shape either way, so lines do not jump about as the
 quality changes. Seeds in the dark find no field and produce nothing, so the family grows
 outward on its own as the front passes.
 

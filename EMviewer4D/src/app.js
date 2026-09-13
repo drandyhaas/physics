@@ -72,7 +72,7 @@
     arrows: true, heat: false, charge: true, front: true, frame: true, lines: true,
     arrowSize: 1.0,
     emf: 9, rLED: 100, rho: 0, radius: 0.003,
-    tau: 1e-9, t: 0, tEnd: 40e-9, playing: false, speed: 45,
+    tau: 1e-9, t: 0, tEnd: 40e-9, playing: false, speed: 45, lineDensity: 1,
     cam: { az: 38, el: 22, dist: 1.5, fov: 45, target: { x:0, y:0, z:0 } },
     slice: { axis: 'z', off: 0 },
     drag: -1, hover: -1, dragging: false, orbiting: false, scrubbing: false,
@@ -170,10 +170,9 @@
 
   function drawArrows(vol, T, mode, wantFar, split) {
     const TT = vol.n*vol.n*vol.n;
-    // 52 px at full strength and a 1x slider. The lattice spacing works out near
-    // 120 px on screen at the default zoom, so this is a little under half the
-    // gap between neighbours -- big enough to read a direction from.
-    const base = 52 * S.arrowSize;
+    // 29 px at full strength and a 1x slider, a quarter of the on-screen gap
+    // between neighbouring lattice points at the default zoom.
+    const base = 29 * S.arrowSize;
     for (let k = 0; k < TT; k++) {
       const m = vol.M[k];
       if (!(m > 0) || vol.D[k] < T.a*1.3) continue;
@@ -389,10 +388,22 @@
   // one either way, so lines do not jump about as the quality changes.
   function buildStreams(T, mode, t, fast, nModes) {
     const R = S.scene;
-    const GRID = fast ? 3 : 4;
+    const d = S.lineDensity;
+    // Spacing is set by the seed lattice, not by the separation rule: once the
+    // rule is loose enough to stop binding, the line count just tracks the
+    // lattice. So density drives GRID, and lines are shorter than they were to
+    // pay for there being many more of them -- a dense field of shorter lines
+    // reads about as well as a sparse field of long ones, and costs the same.
+    // Halving the spacing outright means about seven times the lines, because
+    // they pack in three dimensions -- measured at 556 ms per field for one
+    // paused frame, which freezes the tab with two fields up. So 1x doubles the
+    // line COUNT instead (48 -> 99 paused, 27 -> 62 moving), a spacing of about
+    // 0.79 of what it was, and the slider goes to 5x for anyone willing to pay.
+    const GRID = clamp(Math.round((fast ? 4 : 5) * d), 2, 12);
+    const MAXLINES = fast ? 140 : 240;
     const step = R*0.022, bound2 = (R*3.2)*(R*3.2);
-    const maxSteps = fast ? (nModes > 1 ? 55 : 70) : 120;
-    const dup = R*0.12;
+    const maxSteps = fast ? (nModes > 1 ? 22 : 34) : 45;
+    const dup = R*0.075/d;
     const occupied = new Set();
     const key = (x,y,z) => Math.floor(x/dup)+','+Math.floor(y/dup)+','+Math.floor(z/dup);
     const near = (x,y,z) => {
@@ -402,17 +413,25 @@
       return false;
     };
     const out = [], span = R*1.3;
+    // labelled, because a bare break leaves only the innermost of three loops
+    // and the cap would not actually cap anything
+    seed:
     for (let k = 0; k < GRID; k++) for (let j = 0; j < GRID; j++) for (let i = 0; i < GRID; i++) {
       const p = {
         x: (2*(i+0.5)/GRID-1)*span,
         y: (2*(j+0.5)/GRID-1)*span,
         z: (2*(k+0.5)/GRID-1)*span
       };
+      if (out.length >= MAXLINES) break seed;
+      // Separation first: it is a handful of hash lookups, where a field
+      // evaluation is a sweep over every segment. With the lattice this fine,
+      // most candidates are rejected, and rejecting them cheaply is the
+      // difference between usable and not.
+      if (near(p.x, p.y, p.z)) continue;
       const f = FB.fieldAt(T, p.x, p.y, p.z, t);
       if (f.d < T.a*2.5) continue;
       const q = FB.modeVec(f, mode);
       if (!(Math.hypot(q.x,q.y,q.z) > 0)) continue;    // still dark here
-      if (near(p.x, p.y, p.z)) continue;
       const fwd = traceLine(T, mode, p, +1, step, maxSteps, bound2, t, !fast);
       let line;
       if (fwd.closed) line = fwd.pts;
@@ -706,6 +725,11 @@
   $('btn-play').addEventListener('click', () => setPlaying(!S.playing));
   $('btn-restart').addEventListener('click', () => { S.t = 0; setPlaying(true); });
   function setPlaying(v) {
+    // No-op when nothing changes. Scrubbing calls this on every input event, and
+    // without the guard each one resampled the whole scene at FULL quality --
+    // before the scrub flag was even set -- and then again at the fast one. Two
+    // samples per frame, the expensive one wasted.
+    if (S.playing === v) return;
     S.playing = v;
     $('btn-play').textContent = v ? 'Pause' : 'Play';
     $('btn-play').setAttribute('aria-pressed', String(v));
@@ -716,8 +740,8 @@
   let scrubTimer = null;
   $('s-t').addEventListener('input', e => {
     S.t = parseFloat(e.target.value)/10*NS;
+    S.scrubbing = true;          // before setPlaying, so any sample it does is cheap
     setPlaying(false);
-    S.scrubbing = true;
     sample();
     clearTimeout(scrubTimer);
     scrubTimer = setTimeout(() => { S.scrubbing = false; sample(); }, 200);
@@ -731,6 +755,14 @@
     S.speed = parseFloat(e.target.value);
     $('v-speed').textContent = nsPerSec().toFixed(1) + ' ns/s';
   });
+  // 0.2x to 5x, logarithmic and symmetric about 1x at the middle
+  const ldensOf = v => Math.pow(5, (v - 50)/50);
+  $('s-ldens').addEventListener('input', e => {
+    S.lineDensity = ldensOf(parseFloat(e.target.value));
+    $('v-ldens').textContent = S.lineDensity.toFixed(2) + '×';
+    sample();
+  });
+
   const asizeOf = v => Math.pow(10, (v - 50)/50);      // 0 -> 0.1x, 50 -> 1x, 100 -> 10x
   const asizeText = a => (a < 0.995 ? a.toFixed(2) : a < 9.95 ? a.toFixed(2) : a.toFixed(1)) + '×';
   $('s-asize').addEventListener('input', e => {
@@ -900,6 +932,7 @@
   $('v-tau').textContent = (S.tau/NS).toFixed(1) + ' ns';
   $('v-speed').textContent = nsPerSec().toFixed(1) + ' ns/s';
   $('v-asize').textContent = asizeText(S.arrowSize);
+  $('v-ldens').textContent = S.lineDensity.toFixed(2) + '×';
   syncCam();
   const r0 = cv.getBoundingClientRect();
   W = Math.round(r0.width) || 900; H = Math.round(r0.height) || 700;
