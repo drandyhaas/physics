@@ -128,13 +128,26 @@ The dashed sphere has radius **ct** about the **battery** — the only thing tha
 and so the only place news can start from. It is a boundary rather than a guide: the field
 is strictly zero outside it, which is checked in the tests.
 
-**Field lines** are traced only while the clock is stopped. Tracing is far too slow to redo
-every frame, and a field line of a field that is still arriving is a slippery object.
-Arrows stay on a volume lattice, because those do have to survive being animated.
+**Field lines** are traced every frame, including while the movie runs — coarser then
+(3³ seeds and shorter lines rather than 4³ and longer), which keeps a frame near 20 ms
+instead of 130. The seed lattice is the same either way, so lines do not jump about as the
+quality changes. Seeds in the dark find no field and produce nothing, so the family grows
+outward on its own as the front passes.
+
+**Wire the news has not reached is drawn dark.** That is the honest way to show where ct
+has got to *along the wire*: it is continuous and exact, where the charge marks are
+quantised and cannot be.
 
 **Surface charge** spends one mark per equal quantum of charge, with the quantum fixed to
 the settled state — so the marks thin out towards t = 0 rather than always filling the
-wire, and the count is the charge at every moment.
+wire, and the count is the charge at every moment. The marks accumulate outward from the
+battery in both directions, because that is the way the charge spreads.
+
+They do not reach all the way to the front, and should not: λ is exactly zero at the
+front and takes the whole switch-on time to come up, during which the front travels most of
+the way round the loop. Measured, the freshly-lit wire behind the front carries a few
+thousandths of one quantum — a mark placed there would claim a whole quantum where there
+is half a percent of one. The dimmed wire is what marks the front.
 
 ## Controls
 

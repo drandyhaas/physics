@@ -214,7 +214,7 @@
       const a = V.project(F, T.ax[i], T.ay[i], T.az[i]);
       const b = V.project(F, T.bx[i], T.by[i], T.bz[i]);
       if (!a || !b) continue;
-      items.push({ d:(a[2]+b[2])/2, kind:0, a, b, t:T.type[i] });
+      items.push({ d:(a[2]+b[2])/2, kind:0, a, b, t:T.type[i], lit: T.delay[i] < t });
     }
     if (S.charge) for (const c of chargeMarks(T, t)) {
       const p = V.project(F, c.x, c.y, c.z);
@@ -230,7 +230,16 @@
         ctx.strokeStyle = 'rgba(3,12,16,.92)'; ctx.lineWidth = wpx + 4.5;
         ctx.beginPath(); ctx.moveTo(it.a[0],it.a[1]); ctx.lineTo(it.b[0],it.b[1]); ctx.stroke();
         ctx.lineCap = 'round';
-        ctx.strokeStyle = it.t === FB.BATTERY ? '#7fe6d2' : it.t === FB.LED ? '#ffb765' : '#c6d7da';
+        // Wire the news has not reached yet is drawn dark. This is the honest
+        // way to show where ct has got to along the wire: it is continuous and
+        // exact, where the charge marks are quantised and cannot be. There is
+        // almost no charge just behind the front anyway -- lambda is zero at the
+        // front and takes the whole switch-on time to come up, by which point
+        // the front has run most of the way round -- so a mark placed there
+        // would claim a whole quantum where there is half a percent of one.
+        ctx.strokeStyle = it.lit
+          ? (it.t === FB.BATTERY ? '#7fe6d2' : it.t === FB.LED ? '#ffb765' : '#c6d7da')
+          : (it.t === FB.BATTERY ? '#2c4f49' : it.t === FB.LED ? '#4a3a22' : '#33444a');
         ctx.lineWidth = it.t === FB.WIRE ? wpx : wpx + 3;
         ctx.beginPath(); ctx.moveTo(it.a[0],it.a[1]); ctx.lineTo(it.b[0],it.b[1]); ctx.stroke();
       } else {
@@ -263,23 +272,37 @@
     for (let i = 0; i < N; i++) { gx += T.cx[i]; gy += T.cy[i]; gz += T.cz[i]; }
     gx /= N; gy /= N; gz /= N;
     const off = T.a + S.scene*0.022;
+    // Accumulate outward from the battery in both directions rather than from
+    // one end of the index range. The charge spreads both ways from the battery,
+    // so anchoring the marks there makes them grow the way the charge does,
+    // symmetrically, instead of marching round the loop one way.
+    let b0 = 0;
+    for (let i = 1; i < N; i++) if (T.delay[i] < T.delay[b0]) b0 = i;
+
     const out = [];
-    let acc = 0, next = quantum*0.5;
-    for (let i = 0; i < N; i++) {
-      const q = Math.abs(lam[i])*T.len[i];
-      while (next < acc + q) {
-        const f = (next - acc)/q;
-        const x = T.ax[i] + (T.bx[i]-T.ax[i])*f;
-        const y = T.ay[i] + (T.by[i]-T.ay[i])*f;
-        const z = T.az[i] + (T.bz[i]-T.az[i])*f;
-        let nx = x-gx, ny = y-gy, nz = z-gz;
-        const d = nx*T.tx[i] + ny*T.ty[i] + nz*T.tz[i];
-        nx -= d*T.tx[i]; ny -= d*T.ty[i]; nz -= d*T.tz[i];
-        const nn = Math.hypot(nx,ny,nz) || 1;
-        out.push({ x:x+nx/nn*off, y:y+ny/nn*off, z:z+nz/nn*off, sign: lam[i] >= 0 ? 1 : -1 });
-        next += quantum;
+    const place = (i, f) => {
+      const x = T.ax[i] + (T.bx[i]-T.ax[i])*f;
+      const y = T.ay[i] + (T.by[i]-T.ay[i])*f;
+      const z = T.az[i] + (T.bz[i]-T.az[i])*f;
+      let nx = x-gx, ny = y-gy, nz = z-gz;
+      const d = nx*T.tx[i] + ny*T.ty[i] + nz*T.tz[i];
+      nx -= d*T.tx[i]; ny -= d*T.ty[i]; nz -= d*T.tz[i];
+      const nn = Math.hypot(nx,ny,nz) || 1;
+      out.push({ x:x+nx/nn*off, y:y+ny/nn*off, z:z+nz/nn*off, sign: lam[i] >= 0 ? 1 : -1 });
+    };
+    for (const dir of [1, -1]) {
+      let acc = 0, next = quantum*0.5;
+      const steps = Math.floor(N/2);
+      for (let k = (dir > 0 ? 0 : 1); k <= steps; k++) {
+        const i = ((b0 + dir*k) % N + N) % N;
+        const q = Math.abs(lam[i])*T.len[i];
+        while (next < acc + q) {
+          const f = (next - acc)/q;
+          place(i, dir > 0 ? f : 1 - f);
+          next += quantum;
+        }
+        acc += q;
       }
-      acc += q;
     }
     return out;
   }
@@ -291,7 +314,6 @@
    * slippery object. Seeds in the dark find no field and produce nothing, so the
    * family grows outward on its own as the front passes.
    */
-  const GRID = 4;
   function traceLine(T, mode, p0, sign, step, maxSteps, bound2, t) {
     const pts = [[p0.x, p0.y, p0.z]];
     let x = p0.x, y = p0.y, z = p0.z, closed = false, run = 0;
@@ -327,9 +349,13 @@
     return { pts, closed };
   }
 
-  function buildStreams(T, mode, t) {
+  // Coarser while the clock is running: fewer seeds and shorter lines, which is
+  // what buys a moving picture rather than a slide show. The lattice is the same
+  // one either way, so lines do not jump about as the quality changes.
+  function buildStreams(T, mode, t, fast) {
     const R = S.scene;
-    const step = R*0.022, maxSteps = 120, bound2 = (R*3.2)*(R*3.2);
+    const GRID = fast ? 3 : 4;
+    const step = R*0.022, maxSteps = fast ? 70 : 120, bound2 = (R*3.2)*(R*3.2);
     const dup = R*0.12;
     const occupied = new Set();
     const key = (x,y,z) => Math.floor(x/dup)+','+Math.floor(y/dup)+','+Math.floor(z/dup);
@@ -522,7 +548,7 @@
         n: fast ? 34 : 60, mode: S.mode, t: S.t
       });
     } else S.sl = null;
-    S.streams = (!fast && S.lines) ? buildStreams(T, S.mode, S.t) : null;
+    S.streams = S.lines ? buildStreams(T, S.mode, S.t, fast) : null;
     render();
   }
 
