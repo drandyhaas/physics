@@ -6,7 +6,12 @@
   'use strict';
 
   const { MU0, clamp, lerp } = FB;
-  const PPM = 1000;                 // pixels per metre: 1 px = 1 mm
+  // Pixels per metre. Fitted to the stage in resize() so the whole circuit stays
+  // framed whatever the screen is; 1 px = 1 mm is only the large-monitor ceiling.
+  let PPM = 1000;
+  const VIEW_HW = 0.40;   // half-width of the world box kept on screen, metres
+  const VIEW_HH = 0.24;   // half-height of the same box (covers every preset + margin)
+  const PPM_MAX = 1000;
 
   /* ---------------- number formatting ---------------- */
   const PREFIX = [[1e9,'G'],[1e6,'M'],[1e3,'k'],[1,''],[1e-3,'m'],[1e-6,'µ'],[1e-9,'n'],[1e-12,'p'],[1e-15,'f']];
@@ -384,9 +389,13 @@
   /* ---------------- layout ---------------- */
   function resize() {
     const r = cv.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) return;   // stage not laid out yet
     DPR = Math.min(window.devicePixelRatio || 1, 2);
-    W = Math.max(320, Math.round(r.width));
-    H = Math.max(260, Math.round(r.height));
+    W = Math.round(r.width);
+    H = Math.round(r.height);
+    // Contain-fit the world box: the narrower axis sets the scale, so a tall phone,
+    // a squat landscape window and a wide monitor all show the whole circuit.
+    PPM = Math.min(PPM_MAX, W / (2*VIEW_HW), H / (2*VIEW_HH));
     cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     recompute();

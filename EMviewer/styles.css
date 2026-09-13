@@ -12,11 +12,12 @@
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
+@supports (height:100dvh){html,body,.shell{height:100dvh}}
 body{
   background:var(--ink);
   color:var(--text);
   font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
-  font-size:14px;line-height:1.5;overflow:hidden;
+  font-size:14px;line-height:1.5;overflow:hidden;overscroll-behavior:none;
 }
 .shell{display:flex;height:100%;width:100%}
 
@@ -118,11 +119,35 @@ input[type=range]:focus-visible{outline:2px solid var(--signal);outline-offset:3
     position:absolute;inset:auto 0 0 0;height:64%;width:100%;
     border-left:0;border-top:1px solid var(--rule);border-radius:14px 14px 0 0;
     transform:translateY(100%);transition:transform .22s ease;z-index:4;
+    padding-bottom:calc(28px + env(safe-area-inset-bottom));
   }
   .rail.open{transform:translateY(0)}
   .railtoggle{display:block}
-  .readout{bottom:auto;top:58px;left:12px;min-width:0;font-size:11px}
-  .legend{right:12px;bottom:12px}
-  .legend .bar{width:110px}
+  /* Leave a lane for the Controls button so the title never runs under it. */
+  .stage-head{padding:12px 108px 22px 14px}
+  .stage-head h1{font-size:16px}
+  /* Readout moves off the wrapping title and shares the bottom edge with the
+     legend, which is where both sit on a wide screen anyway. */
+  .readout{
+    top:auto;bottom:calc(12px + env(safe-area-inset-bottom));
+    left:calc(12px + env(safe-area-inset-left));
+    min-width:150px;font-size:11px;padding:8px 10px;
+  }
+  .legend{
+    bottom:calc(12px + env(safe-area-inset-bottom));
+    right:calc(12px + env(safe-area-inset-right));padding:8px 10px;
+  }
+  .legend .bar{width:96px}
+}
+@media (max-width:560px){
+  /* Double-click has no touch equivalent; drop it rather than wrap four lines. */
+  .hint-more{display:none}
+}
+@media (orientation:landscape) and (max-height:480px){
+  .stage-head{padding-bottom:14px}
+  .stage-head p{display:none}
+  .readout,.legend{font-size:10.5px}
+  .readout{min-width:136px}
+  .legend .bar{width:84px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
