@@ -22,8 +22,9 @@ dimension and they show up as what they are.
   through the middle of the loop and straight down outside it, and the field lines arch
   over the wire and back — one continuous set of closed rings, with the wire threaded
   through them.
-- Load the **solenoid** and the same field gathers into a bundle down the axis. Nothing
-  in the code knows what a solenoid is; it is two turns of the same filament.
+- Load the **solenoid** and the same field gathers into a bundle down the axis, splaying
+  out at the ends and looping back around the outside. Nothing in the code knows what a
+  solenoid is; it is five turns of the same filament.
 - Tilt a flat loop out of the plane and every number stays put. The `tilt` preset is the
   rectangle rotated 40° about x, and its loop length and peak charge density agree with
   the flat one to nine figures — a rotation is not physics.
@@ -41,11 +42,24 @@ vanishes at exactly the viewpoints — front, top, side — where you most want 
 The jitter is a pure function of the lattice indices, so it is identical every frame and
 nothing shimmers as the camera moves.
 
-Seeds are taken in lattice order, with a small hash rejecting a seed that an
-already-traced line runs through. Order is what keeps the spacing even: seeding
-strongest-field-first, or letting a whole traced line fence off the space around it, puts
-the lines at intervals that look arbitrary — worst for **B**, whose lines are long rings
-that block an awkward region apiece.
+Seeds are taken in lattice order, and one is rejected where an existing line already
+passes — a minimum separation of 0.12 of the scene radius. Order is what keeps the spacing
+even: seeding strongest-field-first puts the lines at intervals that look arbitrary.
+Because the order is regular, the separation rule only ever thins, leaving a regular subset
+of the lattice. It thins where thinning is needed and nowhere else: the solenoid drops from
+51 lines to 35, the saddle from 60 to 44, the flat loop stays at 28.
+
+Tracing stops on two conditions besides running out of steps or leaving the box. A line
+that returns to its own seed has **closed**, and is finished — without that test a ring is
+traced past its seed and then traced again backwards, drawing it two or three times over.
+And a line whose path length exceeds four times its own bounding-box diagonal has stopped
+going anywhere: near a curved wire a **B** line does not close but winds helically around
+the wire, spending every step adding length inside a small volume. A full circular ring
+scores 2.2 by that measure and is untouched; the winders reach 5 or 6.
+
+Lines still crowd inside the solenoid, and should. Field lines bunch where the flux is
+concentrated, which in a coil is the entire point; that density is the physics and not a
+placement artefact.
 
 Weak field is not culled. The bottom of the colour ramp is the background colour and
 opacity falls with it, so distant arrows fade out on their own: what thins out is the

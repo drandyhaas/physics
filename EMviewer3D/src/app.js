@@ -117,7 +117,9 @@
    */
   function trace(sol, mode, p0, sign, step, maxSteps, bound2) {
     const pts = [[p0.x, p0.y, p0.z]];
-    let x = p0.x, y = p0.y, z = p0.z;
+    let x = p0.x, y = p0.y, z = p0.z, closed = false, run = 0;
+    let lox = x, loy = y, loz = z, hix = x, hiy = y, hiz = z;
+    const shut = (step * 0.9) * (step * 0.9);
     for (let i = 0; i < maxSteps; i++) {
       const f1 = FB.fieldAt(sol, x, y, z);
       if (f1.d < sol.a * 1.1) break;              // ran into the metal
@@ -132,9 +134,27 @@
       if (!(m2 > 0)) break;
       x += v2.x / m2 * h; y += v2.y / m2 * h; z += v2.z / m2 * h;
       pts.push([x, y, z]);
+      // A ring that comes back to its seed is finished; tracing on would redraw it.
+      if (i > 6) {
+        const dx = x - p0.x, dy = y - p0.y, dz = z - p0.z;
+        if (dx*dx + dy*dy + dz*dz < shut) { closed = true; break; }
+      }
+      // Near a curved wire a B line does not close: it winds helically around the
+      // wire, drifting along it. Left to run it spends every step adding length
+      // inside a small volume and paints a dense scribble. So stop a line once it
+      // has covered more than a few times its own extent -- a full circular ring
+      // scores 2.2 by this measure and is untouched, while the winders reach 5-6.
+      run += step;
+      lox = Math.min(lox, x); hix = Math.max(hix, x);
+      loy = Math.min(loy, y); hiy = Math.max(hiy, y);
+      loz = Math.min(loz, z); hiz = Math.max(hiz, z);
+      if (i > 15) {
+        const ex = hix - lox, ey = hiy - loy, ez = hiz - loz;
+        if (run > 4 * Math.sqrt(ex*ex + ey*ey + ez*ez)) break;
+      }
       if (x*x + y*y + z*z > bound2) break;
     }
-    return pts;
+    return { pts, closed };
   }
 
   /*
@@ -151,11 +171,21 @@
   function buildStreams(sol, mode) {
     const R = S.scene;
     const step = R * 0.022, maxSteps = 120, bound2 = (R * 2.3) * (R * 2.3);
-    // About a fifth of the seed spacing: wide enough to catch a seed some other
-    // line already runs through, narrow enough to leave the lattice in charge of
-    // where the lines go. Tightening it to one integration step lets near
-    // duplicates survive and the family turns back into a tangle.
-    const dup = R * 0.05;
+    // Minimum separation between lines, as a fraction of the scene. Seeds are
+    // rejected where an existing line already passes, so this both removes
+    // duplicates and keeps neighbours apart. It is only ever a thinning rule:
+    // because seeds are taken in lattice order, what survives is a regular
+    // subset of the lattice rather than a greedy fill of whatever space is left.
+    // Measured over the presets, raising it from 0.05 thins the crowded ones and
+    // leaves the sparse ones alone: the 5-turn solenoid goes from 51 lines to 35
+    // and its share of sampled points lying within 0.04R of another line from
+    // 16.6% to 12.3%, the saddle from 60 to 44, while the flat loop stays at 28
+    // because its lines were never close to begin with.
+    //
+    // The solenoid does not reach zero and should not. Field lines crowd where
+    // the flux is concentrated, which inside a coil is the whole point; that
+    // density is the physics, not a placement artefact.
+    const dup = R * 0.12;
     const occupied = new Set();
     const key = (x, y, z) => Math.floor(x/dup) + ',' + Math.floor(y/dup) + ',' + Math.floor(z/dup);
     const near = (x, y, z) => {
@@ -181,9 +211,14 @@
           if (!(Math.hypot(q.x, q.y, q.z) > 0)) continue;  // nothing to follow
           if (near(p.x, p.y, p.z)) continue;               // already on a line drawn
           const fwd = trace(sol, mode, p, +1, step, maxSteps, bound2);
-          const back = trace(sol, mode, p, -1, step, maxSteps, bound2);
-          back.reverse(); back.pop();
-          const line = back.concat(fwd);
+          let line;
+          if (fwd.closed) {
+            line = fwd.pts;          // came back to the seed; tracing the other
+          } else {                   // way would only redraw the same ring
+            const back = trace(sol, mode, p, -1, step, maxSteps, bound2).pts;
+            back.reverse(); back.pop();
+            line = back.concat(fwd.pts);
+          }
           if (line.length < 8) continue;
           for (const w of line) occupied.add(key(w[0], w[1], w[2]));
           out.push(line);
@@ -401,7 +436,8 @@
     list.sort((a, b) => b.s[2] - a.s[2]);
     for (const { s, i } of list) {
       const act = i === S.hover || i === S.drag;
-      const r = clamp(0.008 * F.focal / s[2], 3.5, 11) * (act ? 1.3 : 1);
+      const shrink = clamp(14 / S.ctrl.length, 0.5, 1);   // a 5-turn coil has 33
+      const r = clamp(0.008 * F.focal / s[2], 3.5, 11) * shrink * (act ? 1.35 : 1);
       ctx.beginPath(); ctx.arc(s[0], s[1], r, 0, 7);
       ctx.fillStyle = act ? '#ffffff' : 'rgba(240,252,252,.8)'; ctx.fill();
       ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(5,20,26,.85)'; ctx.stroke();

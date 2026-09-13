@@ -417,17 +417,17 @@
     const c = Math.cos(0.7), s = Math.sin(0.7);
     return rect.map(p => [p[0], p[1] * c, p[1] * s]);
   })();
-  // Two turns of a solenoid, closed by a return leg up one side. The coil winds
+  // Five turns of a solenoid, closed by a return leg up one side. The coil winds
   // about z rather than about a horizontal axis so that the default viewpoint
   // looks across it and it reads as a spring; wound about x it is seen close to
   // end-on, and the turns fold over each other into an unreadable tangle.
   const helix = (() => {
-    const a = [], turns = 2, perTurn = 6, R = 0.1, n = turns * perTurn;
+    const a = [], turns = 5, perTurn = 6, R = 0.1, n = turns * perTurn;
     for (let i = 0; i < n; i++) {
       const t = i / perTurn * 2 * Math.PI;
-      a.push([R * Math.cos(t), R * Math.sin(t), -0.18 + 0.36 * i / (n - 1)]);
+      a.push([R * Math.cos(t), R * Math.sin(t), -0.2 + 0.4 * i / (n - 1)]);
     }
-    a.push([0.27, 0, 0.22], [0.31, 0, 0], [0.27, 0, -0.22]);
+    a.push([0.27, 0, 0.24], [0.31, 0, 0], [0.27, 0, -0.24]);
     return a;
   })();
   // A saddle: the rectangle with opposite corners pushed out of plane.
