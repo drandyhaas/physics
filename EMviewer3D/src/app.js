@@ -136,47 +136,59 @@
     return pts;
   }
 
+  /*
+   * Seeds sit on a regular lattice across the slice and are taken in that order.
+   * Two earlier choices made the spacing look arbitrary, and B showed it worst:
+   * seeds were taken strongest-field-first, which is field order rather than
+   * spatial order, and every point of an already-traced line blocked further
+   * seeds within a wide radius. A B line is a long ring, so one of them fenced
+   * off a big awkward region and the next seed went wherever the hole happened
+   * to be. Regular order is what fixes the spacing; the hash is demoted to a
+   * duplicate guard.
+   */
+  const GRID = 6;              // lattice side; one field line per lattice point
   function buildStreams(sol, sl, mode) {
     const R = S.scene;
     const step = R * 0.022, maxSteps = 120, bound2 = (R * 2.3) * (R * 2.3);
-    const sep = R * 0.17, MAXLINES = 22;
+    // A fifth of the lattice spacing: wide enough to catch a seed some other
+    // line already runs through, narrow enough to leave the lattice in charge of
+    // where lines go. A B ring crosses the slice twice, so without this the same
+    // ring is traced from both crossings and the family turns into a tangle;
+    // tightening it to one integration step brings that tangle straight back.
+    const dup = R * 0.05;
     const occupied = new Set();
-    const key = (x, y, z) => Math.floor(x/sep) + ',' + Math.floor(y/sep) + ',' + Math.floor(z/sep);
+    const key = (x, y, z) => Math.floor(x/dup) + ',' + Math.floor(y/dup) + ',' + Math.floor(z/dup);
     const near = (x, y, z) => {
-      const i = Math.floor(x/sep), j = Math.floor(y/sep), k = Math.floor(z/sep);
+      const i = Math.floor(x/dup), j = Math.floor(y/dup), k = Math.floor(z/dup);
       for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let c = -1; c <= 1; c++)
         if (occupied.has((i+a) + ',' + (j+b) + ',' + (k+c))) return true;
       return false;
     };
 
-    const cand = [];
-    const n = sl.n, stride = Math.max(1, Math.round(n / 18));
-    for (let j = 1; j < n; j += stride) {
-      for (let i = 1; i < n; i += stride) {
-        const k = j * n + i;
-        if (sl.D[k] < sol.a * 2.5 || !(sl.M[k] > 0)) continue;
-        const t = -sl.half + i * sl.step, b = -sl.half + j * sl.step;
-        cand.push({
-          m: sl.M[k],
+    const out = [];
+    const span = sl.half * 0.92;
+    for (let j = 0; j < GRID; j++) {
+      for (let i = 0; i < GRID; i++) {
+        const t = (2 * (i + 0.5) / GRID - 1) * span;
+        const b = (2 * (j + 0.5) / GRID - 1) * span;
+        const p = {
           x: sl.o.x + sl.u.x * t + sl.v.x * b,
           y: sl.o.y + sl.u.y * t + sl.v.y * b,
           z: sl.o.z + sl.u.z * t + sl.v.z * b
-        });
+        };
+        const f = FB.fieldAt(sol, p.x, p.y, p.z);
+        if (f.d < sol.a * 2.5) continue;                 // seed is in the metal
+        const q = FB.modeVec(f, mode);
+        if (!(Math.hypot(q.x, q.y, q.z) > 0)) continue;  // nothing to follow
+        if (near(p.x, p.y, p.z)) continue;               // already on a line drawn
+        const fwd = trace(sol, mode, p, +1, step, maxSteps, bound2);
+        const back = trace(sol, mode, p, -1, step, maxSteps, bound2);
+        back.reverse(); back.pop();
+        const line = back.concat(fwd);
+        if (line.length < 8) continue;
+        for (const w of line) occupied.add(key(w[0], w[1], w[2]));
+        out.push(line);
       }
-    }
-    cand.sort((a, b) => b.m - a.m);
-
-    const out = [];
-    for (const p of cand) {
-      if (out.length >= MAXLINES) break;
-      if (near(p.x, p.y, p.z)) continue;
-      const fwd = trace(sol, mode, p, +1, step, maxSteps, bound2);
-      const back = trace(sol, mode, p, -1, step, maxSteps, bound2);
-      back.reverse(); back.pop();
-      const line = back.concat(fwd);
-      if (line.length < 8) continue;
-      for (const q of line) occupied.add(key(q[0], q[1], q[2]));
-      out.push(line);
     }
     return out;
   }

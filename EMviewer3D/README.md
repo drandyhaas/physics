@@ -35,6 +35,12 @@ direct analogue of the planar bench's whole picture, and with `z = 0` and a flat
 two apps agree exactly. Field lines are *not* confined to it — they are seeded from the
 plane and then traced in three dimensions, so they leave it immediately and generally do.
 
+Field lines are seeded on a **regular lattice** across the slice and traced in lattice
+order, with a small hash rejecting a seed that an already-traced line runs through. The
+ordering is what keeps the spacing even: seeding strongest-field-first, or letting a whole
+traced line fence off the space around it, puts the lines at intervals that look arbitrary
+— worst for **B**, whose lines are long rings that block an awkward region apiece.
+
 **Surface charge** spends one mark per equal quantum of charge, so the count of marks
 along a stretch of wire is the charge on it. The loop is held neutral by the solve, so
 there are always as many + as −.
