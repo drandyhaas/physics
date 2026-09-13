@@ -68,15 +68,15 @@
   /* ---------------- state ---------------- */
   const S = {
     ctrl: FB.PRESETS.rect.map(p => ({ x:p[0], y:p[1], z:p[2] })),
-    mode: 'E',
-    arrows: true, heat: true, charge: false, front: true, frame: true, lines: true,
+    modes: { E: true, B: true, S: false },
+    arrows: true, heat: false, charge: true, front: true, frame: true, lines: true,
     arrowSize: 1.0,
     emf: 9, rLED: 100, rho: 0, radius: 0.003,
-    tau: 2e-9, t: 0, tEnd: 40e-9, playing: false, speed: 45,
+    tau: 1e-9, t: 0, tEnd: 40e-9, playing: false, speed: 45,
     cam: { az: 38, el: 22, dist: 1.5, fov: 45, target: { x:0, y:0, z:0 } },
     slice: { axis: 'z', off: 0 },
-    drag: -1, hover: -1, dragging: false, orbiting: false, playQuality: false,
-    T: null, vol: null, sl: null, streams: null, marks: null, range: null, scene: 0.4
+    drag: -1, hover: -1, dragging: false, orbiting: false, scrubbing: false,
+    T: null, vols: {}, sls: {}, streams: {}, marks: null, ranges: {}, scene: 0.4
   };
 
   const $ = id => document.getElementById(id);
@@ -106,39 +106,48 @@
      look the same brightness at every moment. */
   function updateRange(T) {
     const half = S.scene * 1.8, n = 9, step = (2*half)/(n-1);
-    const vals = [];
     const tLate = 900e-9;
+    const bag = { E: [], B: [], S: [] };
     for (let k = 0; k < n; k++) for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
       const x = -half + i*step, y = -half + j*step, z = -half + k*step;
       const f = FB.fieldAt(T, x, y, z, tLate + Math.hypot(x,y,z)/C);
       if (f.d < T.a*1.2) continue;
-      const q = FB.modeVec(f, S.mode);
-      const m = Math.hypot(q.x, q.y, q.z);
-      if (m > 0) vals.push(m);
+      // one field evaluation serves all three, which is why several modes at
+      // once costs far less than several times as much
+      for (const m of ['E','B','S']) {
+        const q = FB.modeVec(f, m);
+        const v = Math.hypot(q.x, q.y, q.z);
+        if (v > 0) bag[m].push(v);
+      }
     }
-    if (vals.length < 8) { S.range = null; return; }
-    vals.sort((a,b) => a-b);
-    const at = p => vals[clamp(Math.floor(p*(vals.length-1)), 0, vals.length-1)];
-    let lo = at(0.18), hi = at(0.985);
-    if (!(hi > lo*1.0001)) hi = lo*1.0001;
-    S.range = { lo, hi, llo: Math.log(lo), lhi: Math.log(hi) };
+    S.ranges = {};
+    for (const m of ['E','B','S']) {
+      const vals = bag[m];
+      if (vals.length < 8) continue;
+      vals.sort((a,b) => a-b);
+      const at = p => vals[clamp(Math.floor(p*(vals.length-1)), 0, vals.length-1)];
+      let lo = at(0.18), hi = at(0.985);
+      if (!(hi > lo*1.0001)) hi = lo*1.0001;
+      S.ranges[m] = { lo, hi, llo: Math.log(lo), lhi: Math.log(hi) };
+    }
   }
-  const toT = m => {
-    const r = S.range;
+  const toT = (mode, m) => {
+    const r = S.ranges[mode];
     if (!r || !(m > 0)) return 0;
     return clamp((Math.log(m) - r.llo) / (r.lhi - r.llo), 0, 1);
   };
+  const active = () => ['E','B','S'].filter(m => S.modes[m]);
 
   /* ---------------- drawing ---------------- */
   const fade = d => clamp(1.25 - d/(S.cam.dist*1.7), 0.12, 1);
 
-  function drawHeat(sl, proj) {
+  function drawHeat(sl, proj, mode) {
     const n = sl.n;
     for (let j = 0; j < n-1; j++) for (let i = 0; i < n-1; i++) {
       const a = proj[j*n+i], b = proj[j*n+i+1], c = proj[(j+1)*n+i+1], d = proj[(j+1)*n+i];
       if (!a || !b || !c || !d) continue;
       const m = (sl.M[j*n+i] + sl.M[j*n+i+1] + sl.M[(j+1)*n+i+1] + sl.M[(j+1)*n+i]) / 4;
-      ctx.fillStyle = rampCss(S.mode, toT(m));
+      ctx.fillStyle = rampCss(mode, toT(mode, m));
       ctx.beginPath();
       ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.lineTo(c[0],c[1]); ctx.lineTo(d[0],d[1]);
       ctx.closePath(); ctx.fill();
@@ -159,7 +168,7 @@
     ctx.stroke(); ctx.setLineDash([]);
   }
 
-  function drawArrows(vol, T, wantFar, split) {
+  function drawArrows(vol, T, mode, wantFar, split) {
     const TT = vol.n*vol.n*vol.n;
     const base = 13 * S.arrowSize;
     for (let k = 0; k < TT; k++) {
@@ -169,14 +178,14 @@
       const p = V.project(F, px, py, pz);
       if (!p) continue;
       if ((p[2] > split) !== wantFar) continue;
-      const tt = toT(m);
+      const tt = toT(mode, m);
       const pix = base * (0.35 + 0.65*tt);
       const wl = pix * p[2] / F.focal;
       const vx = vol.V[k*3]/m, vy = vol.V[k*3+1]/m, vz = vol.V[k*3+2]/m;
       const q = V.project(F, px+vx*wl, py+vy*wl, pz+vz*wl);
       if (!q) continue;
       const dx = q[0]-p[0], dy = q[1]-p[1], L = Math.hypot(dx, dy);
-      ctx.strokeStyle = ctx.fillStyle = rampCss(S.mode, tt);
+      ctx.strokeStyle = ctx.fillStyle = rampCss(mode, tt);
       ctx.globalAlpha = fade(p[2]) * (0.16 + 0.84*tt);
       ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.lineTo(q[0],q[1]); ctx.stroke();
@@ -330,7 +339,7 @@
    * slippery object. Seeds in the dark find no field and produce nothing, so the
    * family grows outward on its own as the front passes.
    */
-  function traceLine(T, mode, p0, sign, step, maxSteps, bound2, t) {
+  function traceLine(T, mode, p0, sign, step, maxSteps, bound2, t, rk2) {
     const pts = [[p0.x, p0.y, p0.z]];
     let x = p0.x, y = p0.y, z = p0.z, closed = false, run = 0;
     let lox=x, loy=y, loz=z, hix=x, hiy=y, hiz=z;
@@ -342,11 +351,18 @@
       const m1 = Math.hypot(v1.x, v1.y, v1.z);
       if (!(m1 > 0)) break;
       const h = step*sign;
-      const f2 = FB.fieldAt(T, x+v1.x/m1*h*0.5, y+v1.y/m1*h*0.5, z+v1.z/m1*h*0.5, t);
-      const v2 = FB.modeVec(f2, mode);
-      const m2 = Math.hypot(v2.x, v2.y, v2.z);
-      if (!(m2 > 0)) break;
-      x += v2.x/m2*h; y += v2.y/m2*h; z += v2.z/m2*h;
+      // Midpoint while stopped; a plain Euler step while the picture is moving.
+      // That halves the field evaluations, which are the whole cost of tracing,
+      // and the difference does not survive a frame going past.
+      let ux = v1.x/m1, uy = v1.y/m1, uz = v1.z/m1;
+      if (rk2) {
+        const f2 = FB.fieldAt(T, x+ux*h*0.5, y+uy*h*0.5, z+uz*h*0.5, t);
+        const v2 = FB.modeVec(f2, mode);
+        const m2 = Math.hypot(v2.x, v2.y, v2.z);
+        if (!(m2 > 0)) break;
+        ux = v2.x/m2; uy = v2.y/m2; uz = v2.z/m2;
+      }
+      x += ux*h; y += uy*h; z += uz*h;
       pts.push([x, y, z]);
       if (i > 6) {
         const dx = x-p0.x, dy = y-p0.y, dz = z-p0.z;
@@ -368,10 +384,11 @@
   // Coarser while the clock is running: fewer seeds and shorter lines, which is
   // what buys a moving picture rather than a slide show. The lattice is the same
   // one either way, so lines do not jump about as the quality changes.
-  function buildStreams(T, mode, t, fast) {
+  function buildStreams(T, mode, t, fast, nModes) {
     const R = S.scene;
     const GRID = fast ? 3 : 4;
-    const step = R*0.022, maxSteps = fast ? 70 : 120, bound2 = (R*3.2)*(R*3.2);
+    const step = R*0.022, bound2 = (R*3.2)*(R*3.2);
+    const maxSteps = fast ? (nModes > 1 ? 55 : 70) : 120;
     const dup = R*0.12;
     const occupied = new Set();
     const key = (x,y,z) => Math.floor(x/dup)+','+Math.floor(y/dup)+','+Math.floor(z/dup);
@@ -393,11 +410,11 @@
       const q = FB.modeVec(f, mode);
       if (!(Math.hypot(q.x,q.y,q.z) > 0)) continue;    // still dark here
       if (near(p.x, p.y, p.z)) continue;
-      const fwd = traceLine(T, mode, p, +1, step, maxSteps, bound2, t);
+      const fwd = traceLine(T, mode, p, +1, step, maxSteps, bound2, t, !fast);
       let line;
       if (fwd.closed) line = fwd.pts;
       else {
-        const back = traceLine(T, mode, p, -1, step, maxSteps, bound2, t).pts;
+        const back = traceLine(T, mode, p, -1, step, maxSteps, bound2, t, !fast).pts;
         back.reverse(); back.pop();
         line = back.concat(fwd.pts);
       }
@@ -408,9 +425,9 @@
     return out;
   }
 
-  function drawStreams(streams, wantFar, split) {
+  function drawStreams(streams, mode, wantFar, split) {
     if (!streams) return;
-    const tint = LINE_TINT[S.mode];
+    const tint = LINE_TINT[mode];
     ctx.lineWidth = 1.25; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     for (const line of streams) {
       let run = null, acc = 0, cnt = 0;
@@ -511,20 +528,29 @@
     for (let i = 0; i < T.N; i++) { gx += T.cx[i]; gy += T.cy[i]; gz += T.cz[i]; }
     const split = V.depthOf(F, gx/T.N, gy/T.N, gz/T.N);
 
-    if (S.sl && S.heat) {
-      const sl = S.sl, n = sl.n, proj = new Array(n*n);
+    const on = active();
+    // The colour map can only carry one field at a time -- two of them over the
+    // same plane is mud -- so it takes the first one switched on. Arrows and
+    // field lines layer perfectly well, each in its own ramp.
+    const heatMode = on[0];
+    if (S.heat && heatMode && S.sls[heatMode]) {
+      const sl = S.sls[heatMode], n = sl.n, proj = new Array(n*n);
       for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
         const a = -sl.half + i*sl.step, b = -sl.half + j*sl.step;
         proj[j*n+i] = V.project(F, sl.o.x+sl.u.x*a+sl.v.x*b, sl.o.y+sl.u.y*a+sl.v.y*b, sl.o.z+sl.u.z*a+sl.v.z*b);
       }
-      drawHeat(sl, proj);
+      drawHeat(sl, proj, heatMode);
     }
     if (S.frame) drawSliceFrame(planeOf(), S.scene*2.6);
-    if (S.lines) drawStreams(S.streams, true, split);
-    if (S.vol && S.arrows) drawArrows(S.vol, T, true, split);
+    for (const m of on) {
+      if (S.lines) drawStreams(S.streams[m], m, true, split);
+      if (S.arrows && S.vols[m]) drawArrows(S.vols[m], T, m, true, split);
+    }
     drawCircuit(T, S.t);
-    if (S.lines) drawStreams(S.streams, false, split);
-    if (S.vol && S.arrows) drawArrows(S.vol, T, false, split);
+    for (const m of on) {
+      if (S.lines) drawStreams(S.streams[m], m, false, split);
+      if (S.arrows && S.vols[m]) drawArrows(S.vols[m], T, m, false, split);
+    }
     if (S.front) drawFront(T, S.t);
     drawHandles();
     drawTriad();
@@ -554,18 +580,23 @@
   function sample() {
     const T = S.T;
     if (!T) return;
-    const fast = S.playing || S.dragging;
-    if (S.arrows) {
-      S.vol = FB.buildVolume(T, { half: S.scene*1.8, n: fast ? 7 : 9, mode: S.mode, t: S.t });
-    } else S.vol = null;
-    if (S.heat) {
-      const pl = planeOf();
-      S.sl = FB.buildSlice(T, {
+    const fast = S.playing || S.dragging || S.scrubbing;
+    const on = active();
+    S.vols = {}; S.sls = {}; S.streams = {};
+    if (S.arrows) for (const m of on)
+      S.vols[m] = FB.buildVolume(T, { half: S.scene*1.8, n: fast ? 7 : 9, mode: m, t: S.t });
+    if (S.heat && on.length) {
+      const pl = planeOf(), m = on[0];
+      S.sls[m] = FB.buildSlice(T, {
         o: pl.o, u: pl.u, v: pl.v, half: S.scene*2.6,
-        n: fast ? 34 : 60, mode: S.mode, t: S.t
+        n: fast ? 34 : 60, mode: m, t: S.t
       });
-    } else S.sl = null;
-    S.streams = S.lines ? buildStreams(T, S.mode, S.t, fast) : null;
+    }
+    // Tracing is the one cost that really does multiply with the number of
+    // fields shown, because each follows its own path. Lines get shorter when
+    // more than one is running so a frame stays inside its budget.
+    if (S.lines) for (const m of on)
+      S.streams[m] = buildStreams(T, m, S.t, fast, on.length);
     render();
   }
 
@@ -587,17 +618,25 @@
     S: 'Energy flow, S = E×B/μ₀. Zero until both fields exist at a point, which is why the load learns about the battery no faster than light can carry the news.'
   };
   const LEG_CAP = { E:'Field strength |E|', B:'Field strength |B|', S:'Energy flux |S|' };
+  const LEG_LABEL = { E:'E', B:'B', S:'E\u00d7B' };
   const LEG_UNIT = { E:'V/m', B:'T', S:'W/m²' };
 
   function drawLegend() {
-    const r = S.range;
-    $('leg-cap').textContent = LEG_CAP[S.mode];
-    if (!r) { $('leg-lo').textContent = $('leg-hi').textContent = '—'; return; }
-    $('leg-lo').textContent = fmt(r.lo, LEG_UNIT[S.mode]);
-    $('leg-hi').textContent = fmt(r.hi, LEG_UNIT[S.mode]);
-    const stops = [];
-    for (let i = 0; i <= 6; i++) stops.push(rampCss(S.mode, i/6) + ' ' + Math.round(i/6*100) + '%');
-    $('leg-bar').style.background = 'linear-gradient(90deg,' + stops.join(',') + ')';
+    const on = active();
+    const box = $('legend-rows');
+    if (!on.length) { box.innerHTML = '<div class="cap">nothing selected</div>'; return; }
+    let html = '';
+    for (const m of on) {
+      const r = S.ranges[m];
+      const stops = [];
+      for (let i = 0; i <= 6; i++) stops.push(rampCss(m, i/6) + ' ' + Math.round(i/6*100) + '%');
+      html += '<div class="legrow">' +
+        '<div class="cap">' + LEG_CAP[m] + '</div>' +
+        '<div class="bar" style="background:linear-gradient(90deg,' + stops.join(',') + ')"></div>' +
+        '<div class="ends"><span>' + (r ? fmt(r.lo, LEG_UNIT[m]) : '—') + '</span>' +
+        '<span>' + (r ? fmt(r.hi, LEG_UNIT[m]) : '—') + '</span></div></div>';
+    }
+    box.innerHTML = html;
   }
 
   function updateClock() {
@@ -635,12 +674,22 @@
 
   const nsPerSec = () => 0.2 * Math.pow(300, S.speed/100);
 
+  // Independent toggles, not a one-of-three picker: the fields layer.
+  function syncModes() {
+    [...$('modeseg').children].forEach(x =>
+      x.setAttribute('aria-pressed', String(!!S.modes[x.dataset.mode])));
+    const on = active();
+    $('modenote').innerHTML = on.length
+      ? on.map(m => '<b>' + LEG_LABEL[m] + '</b> ' + MODE_NOTE[m]).join('<br><br>')
+      : 'Nothing selected.';
+  }
   $('modeseg').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    S.mode = b.dataset.mode;
-    [...$('modeseg').children].forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    $('modenote').textContent = MODE_NOTE[S.mode];
-    updateRange(S.T); sample();
+    const m = b.dataset.mode;
+    // never leave all three off; the last one on stays on
+    if (S.modes[m] && active().length === 1) return;
+    S.modes[m] = !S.modes[m];
+    syncModes(); sample();
   });
   $('axisseg').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -661,9 +710,14 @@
     else sample();
   }
 
+  let scrubTimer = null;
   $('s-t').addEventListener('input', e => {
     S.t = parseFloat(e.target.value)/10*NS;
-    setPlaying(false); sample();
+    setPlaying(false);
+    S.scrubbing = true;
+    sample();
+    clearTimeout(scrubTimer);
+    scrubTimer = setTimeout(() => { S.scrubbing = false; sample(); }, 200);
   });
   $('s-tau').addEventListener('input', e => {
     S.tau = parseFloat(e.target.value)/10*NS;
@@ -836,7 +890,7 @@
 
   /* ---------------- go ---------------- */
   window.addEventListener('resize', () => resize());
-  $('modenote').textContent = MODE_NOTE.E;
+  syncModes();
   $('v-off').textContent = '0.0 cm';
   $('v-tau').textContent = (S.tau/NS).toFixed(1) + ' ns';
   $('v-speed').textContent = nsPerSec().toFixed(1) + ' ns/s';

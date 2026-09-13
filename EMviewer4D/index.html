@@ -34,11 +34,7 @@
       <span class="rl"><span class="rk">V</span><span class="rv" id="ro-v">—</span></span>
     </div>
 
-    <div class="legend">
-      <div class="cap" id="leg-cap">Field strength</div>
-      <div class="bar" id="leg-bar"></div>
-      <div class="ends"><span id="leg-lo">—</span><span id="leg-hi">—</span></div>
-    </div>
+    <div class="legend" id="legend-rows"></div>
   </div>
 
   <aside class="rail" id="rail">
@@ -46,9 +42,10 @@
       <h2>What to draw</h2>
       <div class="seg" id="modeseg">
         <button data-mode="E" aria-pressed="true">E</button>
-        <button data-mode="B" aria-pressed="false">B</button>
+        <button data-mode="B" aria-pressed="true">B</button>
         <button data-mode="S" aria-pressed="false">E×B</button>
       </div>
+      <p class="hint" style="margin:8px 0 0">Any combination; they layer.</p>
       <p class="mode-note" id="modenote"></p>
     </div>
 
@@ -62,7 +59,7 @@
       <div class="row"><label for="s-t">Now</label><span class="val" id="v-t">—</span></div>
       <input type="range" id="s-t" min="0" max="1000" step="1" value="0">
       <div class="row"><label for="s-tau">Switch-on time</label><span class="val" id="v-tau">—</span></div>
-      <input type="range" id="s-tau" min="2" max="200" step="1" value="20">
+      <input type="range" id="s-tau" min="2" max="200" step="1" value="10">
       <div class="row"><label for="s-speed">Slow motion</label><span class="val" id="v-speed">—</span></div>
       <input type="range" id="s-speed" min="0" max="100" step="1" value="45">
       <p class="hint" style="margin:9px 0 0">
@@ -95,16 +92,18 @@
       <h2>Rendering</h2>
       <div class="checks">
         <label class="check"><input type="checkbox" id="c-arrows" checked> Arrows through the volume</label>
-        <label class="check"><input type="checkbox" id="c-heat" checked> Strength as colour on the slice</label>
+        <label class="check"><input type="checkbox" id="c-heat"> Strength as colour on the slice</label>
         <label class="check"><input type="checkbox" id="c-lines" checked> Field lines in space</label>
-        <label class="check"><input type="checkbox" id="c-charge"> Surface charge (+ / −)</label>
+        <label class="check"><input type="checkbox" id="c-charge" checked> Surface charge (+ / −)</label>
         <label class="check"><input type="checkbox" id="c-front" checked> Sphere of radius ct</label>
         <label class="check"><input type="checkbox" id="c-frame" checked> Outline the slice</label>
       </div>
       <div class="row"><label for="s-asize">Arrow size</label><span class="val" id="v-asize">—</span></div>
       <input type="range" id="s-asize" min="35" max="220" step="5" value="100">
       <p class="hint" style="margin:9px 0 0">
-        The colour map on the slice is where the wavefront shows up most clearly. The sphere
+        With more than one field shown, the colour map takes the first of them &mdash; two
+        over one plane is mud &mdash; while arrows and field lines layer happily, each in its
+        own colour. The colour map is where the wavefront shows up most clearly. The sphere
         has radius <b>ct</b> about the <b>battery</b>, which is the only thing that changes:
         nothing else can respond until the news reaches it, so the field is strictly zero
         outside it. Wire the news has not reached is drawn dark, which is where <b>ct</b> has got

@@ -173,3 +173,7 @@ input[type=range]:focus-visible{outline:2px solid var(--signal);outline-offset:3
   .clock{top:auto;bottom:calc(78px + env(safe-area-inset-bottom));}
   .clock .tnow{font-size:17px}
 }
+
+/* a legend row per field being shown */
+.legend{padding:9px 12px 10px}
+.legrow + .legrow{margin-top:8px;padding-top:8px;border-top:1px solid var(--rule)}

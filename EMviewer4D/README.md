@@ -128,9 +128,21 @@ The dashed sphere has radius **ct** about the **battery** — the only thing tha
 and so the only place news can start from. It is a boundary rather than a guide: the field
 is strictly zero outside it, which is checked in the tests.
 
-**Field lines** are traced every frame, including while the movie runs — coarser then
-(3³ seeds and shorter lines rather than 4³ and longer), which keeps a frame near 20 ms
-instead of 130. The seed lattice is the same either way, so lines do not jump about as the
+**E, B and E×B can all be shown at once**, and are independent toggles rather than a
+one-of-three picker — **E** and **B** are on by default. Arrows and field lines layer
+happily, each in its own ramp. The colour map cannot: two of them over one plane is mud, so
+it takes the first field switched on.
+
+Showing several fields is much cheaper than several times the cost, because one field
+evaluation serves all of them — the colour ranges are gathered in a single sweep. Tracing
+is the exception, since each field's lines follow their own path, so lines get shorter when
+more than one is running.
+
+**Field lines** are traced every frame, including while the movie runs — coarser then:
+3³ seeds instead of 4³, shorter lines, and a plain Euler step instead of the midpoint
+rule, which halves the field evaluations that are the whole cost of tracing and does not
+survive a frame going past. Two fields with arrows, lines and charge marks come to about
+30 ms a frame. The seed lattice is the same either way, so lines do not jump about as the
 quality changes. Seeds in the dark find no field and produce nothing, so the family grows
 outward on its own as the front passes.
 
