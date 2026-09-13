@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Field bench 3D — E, B and E×B around a circuit in space</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <div class="stage">
+    <canvas id="cv"></canvas>
+
+    <div class="stage-head">
+      <h1>Field bench 3D</h1>
+      <p>Drag the background to orbit, a white handle to reshape the loop.<span class="hint-more"> Scroll to zoom.</span></p>
+    </div>
+
+    <button class="railtoggle" id="railtoggle" aria-expanded="false">Controls</button>
+
+    <div class="readout" id="readout">
+      <div class="rhead" id="rhead">Point at the slice</div>
+      <span class="rl"><span class="rk">|E|</span><span class="rv" id="ro-e">—</span></span>
+      <span class="rl"><span class="rk">|B|</span><span class="rv" id="ro-b">—</span></span>
+      <span class="rl"><span class="rk">|S|</span><span class="rv" id="ro-s">—</span></span>
+      <span class="rl"><span class="rk">V</span><span class="rv" id="ro-v">—</span></span>
+    </div>
+
+    <div class="legend">
+      <div class="cap" id="leg-cap">Field strength</div>
+      <div class="bar" id="leg-bar"></div>
+      <div class="ends"><span id="leg-lo">—</span><span id="leg-hi">—</span></div>
+    </div>
+  </div>
+
+  <aside class="rail" id="rail">
+    <div class="group">
+      <h2>What to draw</h2>
+      <div class="seg" id="modeseg">
+        <button data-mode="E" aria-pressed="true">E</button>
+        <button data-mode="B" aria-pressed="false">B</button>
+        <button data-mode="S" aria-pressed="false">E×B</button>
+      </div>
+      <p class="mode-note" id="modenote"></p>
+    </div>
+
+    <div class="group">
+      <h2>Viewpoint</h2>
+      <div class="chips" id="viewchips">
+        <button data-view="iso">Iso</button>
+        <button data-view="front">Front</button>
+        <button data-view="top">Top</button>
+        <button data-view="side">Side</button>
+        <button data-view="reset">Reset</button>
+      </div>
+      <div class="row"><label for="s-az">Rotate (azimuth)</label><span class="val" id="v-az">—</span></div>
+      <input type="range" id="s-az" min="-180" max="180" step="1" value="38">
+      <div class="row"><label for="s-el">Tilt (elevation)</label><span class="val" id="v-el">—</span></div>
+      <input type="range" id="s-el" min="-89" max="89" step="1" value="22">
+      <div class="row"><label for="s-dist">Zoom (distance)</label><span class="val" id="v-dist">—</span></div>
+      <input type="range" id="s-dist" min="30" max="300" step="1" value="115">
+      <div class="row"><label for="s-fov">Lens (field of view)</label><span class="val" id="v-fov">—</span></div>
+      <input type="range" id="s-fov" min="14" max="80" step="1" value="45">
+      <div class="checks" style="margin-top:10px">
+        <label class="check"><input type="checkbox" id="c-spin"> Turn it slowly</label>
+      </div>
+      <p class="hint" style="margin:9px 0 0">
+        Drag the background to orbit and scroll to zoom; the sliders do the same thing.
+        A narrow lens flattens the perspective, a wide one exaggerates depth.
+      </p>
+    </div>
+
+    <div class="group">
+      <h2>Slice plane</h2>
+      <div class="seg" id="axisseg">
+        <button data-axis="x" aria-pressed="false">x =</button>
+        <button data-axis="y" aria-pressed="false">y =</button>
+        <button data-axis="z" aria-pressed="true">z =</button>
+      </div>
+      <div class="row"><label for="s-off">Offset</label><span class="val" id="v-off">—</span></div>
+      <input type="range" id="s-off" min="-300" max="300" step="1" value="0">
+      <p class="hint" style="margin:9px 0 0">
+        The field is sampled on this plane. With <b>z = 0</b> and a flat loop this is exactly
+        the planar field bench, seen from wherever you are standing.
+      </p>
+    </div>
+
+    <div class="group">
+      <h2>Rendering</h2>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="c-arrows" checked> Arrows on the slice</label>
+        <label class="check"><input type="checkbox" id="c-heat"> Strength as colour on the slice</label>
+        <label class="check"><input type="checkbox" id="c-lines" checked> Field lines in space</label>
+        <label class="check"><input type="checkbox" id="c-charge"> Surface charge (+ / −)</label>
+        <label class="check"><input type="checkbox" id="c-frame" checked> Outline the slice</label>
+      </div>
+      <p class="hint" style="margin:9px 0 0">
+        Field lines are traced in three dimensions, not on the plane — they are seeded from it
+        and then go wherever the field goes.
+      </p>
+    </div>
+
+    <div class="group">
+      <h2>Circuit</h2>
+      <div class="row"><label for="s-emf">Battery</label><span class="val" id="v-emf">—</span></div>
+      <input type="range" id="s-emf" min="1" max="12" step="0.5" value="9">
+      <div class="row"><label for="s-led">LED resistance</label><span class="val" id="v-led">—</span></div>
+      <input type="range" id="s-led" min="10" max="600" step="5" value="100">
+      <div class="row"><label for="s-rho">Wire resistance</label><span class="val" id="v-rho">—</span></div>
+      <input type="range" id="s-rho" min="0" max="120" step="1" value="0">
+      <div class="row"><label for="s-rad">Wire radius</label><span class="val" id="v-rad">—</span></div>
+      <input type="range" id="s-rad" min="1" max="12" step="0.5" value="3">
+      <p class="hint" style="margin:9px 0 0">Fatten the wire to see the field in its interior.</p>
+    </div>
+
+    <div class="group">
+      <h2>Shape</h2>
+      <div class="chips" id="chips">
+        <button data-p="rect">Rectangle</button>
+        <button data-p="circle">Circle</button>
+        <button data-p="tilt">Tilted</button>
+        <button data-p="helix">Solenoid</button>
+        <button data-p="saddle">Saddle</button>
+      </div>
+      <p class="hint" style="margin:9px 0 0">
+        Dragging a handle moves it in the plane of the screen, so orbit first, then drag:
+        the direction you push it depends on where you are looking from.
+        Handles in use: <span id="f-n">8</span>
+      </p>
+    </div>
+
+    <div class="group">
+      <h2>Numbers</h2>
+      <div class="facts">
+        <div><span>Current</span><span id="f-I">—</span></div>
+        <div><span>Power into LED</span><span id="f-P">—</span></div>
+        <div><span>Loop length</span><span id="f-L">—</span></div>
+        <div><span>E inside plain wire</span><span id="f-Ew">—</span></div>
+        <div><span>E inside LED</span><span id="f-El">—</span></div>
+        <div><span>Peak surface charge</span><span id="f-q">—</span></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>How this is computed</h2>
+      <p class="prose">
+        The wire is a closed filament in space carrying an unknown line charge density. Ohm's
+        law fixes the potential along it — flat along ideal wire, sloping across the LED,
+        stepping up across the battery — so the charge is whatever reproduces that potential.
+        The app solves that boundary-value problem, then takes <b>E</b> from Coulomb and
+        <b>B</b> from the exact field of each finite straight filament.
+      </p>
+      <p class="prose" style="margin-top:9px">
+        The Coulomb kernel was always three-dimensional, so the charge solve is the same one
+        the planar bench does. What is new is that <b>B</b> is a full vector rather than one
+        component, which is why the loop no longer has to lie in a plane.
+      </p>
+    </div>
+  </aside>
+</div>
+
+<script src="src/solver3d.js"></script>
+<script src="src/view3d.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
