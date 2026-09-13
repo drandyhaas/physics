@@ -30,16 +30,31 @@ dimension and they show up as what they are.
 
 ## What is on screen
 
-The field is sampled on a **slice plane** you can move and reorient: that plane is the
-direct analogue of the planar bench's whole picture, and with `z = 0` and a flat loop the
-two apps agree exactly. Field lines are *not* confined to it — they are seeded from the
-plane and then traced in three dimensions, so they leave it immediately and generally do.
+The field is sampled **throughout the volume**, not on a surface. Arrows sit on a 9×9×9
+lattice filling a box around the circuit, and field lines are seeded on a coarser 4×4×4
+one; both are in space, so the picture has a front and a back rather than being a plane
+seen at an angle.
 
-Field lines are seeded on a **regular lattice** across the slice and traced in lattice
-order, with a small hash rejecting a seed that an already-traced line runs through. The
-ordering is what keeps the spacing even: seeding strongest-field-first, or letting a whole
-traced line fence off the space around it, puts the lines at intervals that look arbitrary
-— worst for **B**, whose lines are long rings that block an awkward region apiece.
+Lattice points are nudged off the exact grid by a deterministic jitter. Seen down any axis
+a perfect cubic lattice stacks every sample behind another one and most of the field
+vanishes at exactly the viewpoints — front, top, side — where you most want to read it.
+The jitter is a pure function of the lattice indices, so it is identical every frame and
+nothing shimmers as the camera moves.
+
+Seeds are taken in lattice order, with a small hash rejecting a seed that an
+already-traced line runs through. Order is what keeps the spacing even: seeding
+strongest-field-first, or letting a whole traced line fence off the space around it, puts
+the lines at intervals that look arbitrary — worst for **B**, whose lines are long rings
+that block an awkward region apiece.
+
+Weak field is not culled. The bottom of the colour ramp is the background colour and
+opacity falls with it, so distant arrows fade out on their own: what thins out is the
+field thinning out, not a threshold.
+
+The **slice plane** remains, with a narrower job — a flat cut for the colour map, and the
+surface the readout probes, since a cursor in a 3D scene is a ray rather than a point.
+With `z = 0` and a flat loop it is the planar field bench, seen from wherever you happen
+to be standing.
 
 **Surface charge** spends one mark per equal quantum of charge, so the count of marks
 along a stretch of wire is the charge on it. The loop is held neutral by the solve, so
@@ -97,7 +112,7 @@ at any window shape rather than pushing it out through the sides of a tall one.
 | scroll / pinch | zoom |
 | drag a white handle | reshape the wire, in the plane of the screen at that handle's depth |
 | double-click the wire | insert a handle |
-| hover | E, B, S and potential where the cursor ray meets the slice plane |
+| hover | E, B, S and potential where the cursor's line of sight crosses the slice plane |
 
 Dragging a handle moves it in the plane of the screen, so which way it goes depends on
 where you are standing. Orbit first, then drag.

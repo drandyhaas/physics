@@ -358,6 +358,54 @@
     return { n, half, o, u, v: w, step, V, M, D, max: mx, mode: opts.mode };
   }
 
+  /*
+   * Sampling a volume.
+   *
+   * Points are nudged off the exact lattice by a deterministic jitter. Seen down
+   * any axis a perfect cubic lattice stacks every sample behind another one and
+   * most of the field disappears at exactly the viewpoints -- front, top, side --
+   * where you most want to read it. The jitter is a pure function of the lattice
+   * indices, so it is the same every frame and nothing shimmers when the camera
+   * moves.
+   */
+  function jitter(i, j, k, s) {
+    const v = Math.sin(i * 127.1 + j * 311.7 + k * 74.7 + s * 39.3) * 43758.5453;
+    return v - Math.floor(v) - 0.5;
+  }
+
+  /**
+   * opts: { half, n, mode }
+   * n^3 samples spanning [-half, half] on each axis, centred on the origin.
+   * Returns each sample's position, the mode vector there, its magnitude, and
+   * the distance to the wire so the caller can drop samples inside the metal.
+   */
+  function buildVolume(sol, opts) {
+    const n = opts.n | 0, half = opts.half;
+    const step = (2 * half) / (n - 1), jit = step * 0.34;
+    const T = n * n * n;
+    const P = new Float32Array(T * 3), V = new Float32Array(T * 3);
+    const M = new Float32Array(T), D = new Float32Array(T);
+    let mx = 0;
+    for (let k = 0; k < n; k++) {
+      for (let j = 0; j < n; j++) {
+        for (let i = 0; i < n; i++) {
+          const id = (k * n + j) * n + i;
+          const px = -half + i * step + jitter(i, j, k, 0) * jit;
+          const py = -half + j * step + jitter(i, j, k, 1) * jit;
+          const pz = -half + k * step + jitter(i, j, k, 2) * jit;
+          const f = fieldAt(sol, px, py, pz);
+          const q = modeVec(f, opts.mode);
+          P[id*3] = px; P[id*3+1] = py; P[id*3+2] = pz;
+          V[id*3] = q.x; V[id*3+1] = q.y; V[id*3+2] = q.z;
+          const m = Math.hypot(q.x, q.y, q.z);
+          M[id] = m; D[id] = f.d;
+          if (f.d > sol.a && m > mx) mx = m;
+        }
+      }
+    }
+    return { n, half, step, P, V, M, D, max: mx, mode: opts.mode };
+  }
+
   /* ---------------------------------------------------------------
      presets
      --------------------------------------------------------------- */
@@ -391,6 +439,6 @@
     EPS0, KC, MU0, WIRE, BATTERY, LED, PRESETS,
     clamp, lerp, v3, add, sub, scale, dot, cross, norm, unit,
     densePath, resample, gauss,
-    solveCircuit, fieldAt, buildSlice, poynting, modeVec
+    solveCircuit, fieldAt, buildSlice, buildVolume, poynting, modeVec
   };
 });

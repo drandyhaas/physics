@@ -83,23 +83,27 @@
       <div class="row"><label for="s-off">Offset</label><span class="val" id="v-off">—</span></div>
       <input type="range" id="s-off" min="-300" max="300" step="1" value="0">
       <p class="hint" style="margin:9px 0 0">
-        The field is sampled on this plane. With <b>z = 0</b> and a flat loop this is exactly
-        the planar field bench, seen from wherever you are standing.
+        A flat cut through the field, for the colour map and for the readout: hovering
+        reports the field where the cursor's line of sight crosses this plane. With
+        <b>z = 0</b> and a flat loop it is the planar field bench, seen from wherever you
+        happen to be standing.
       </p>
     </div>
 
     <div class="group">
       <h2>Rendering</h2>
       <div class="checks">
-        <label class="check"><input type="checkbox" id="c-arrows" checked> Arrows on the slice</label>
-        <label class="check"><input type="checkbox" id="c-heat"> Strength as colour on the slice</label>
-        <label class="check"><input type="checkbox" id="c-lines" checked> Field lines in space</label>
+        <label class="check"><input type="checkbox" id="c-arrows" checked> Arrows through the volume</label>
+        <label class="check"><input type="checkbox" id="c-lines" checked> Field lines through the volume</label>
         <label class="check"><input type="checkbox" id="c-charge"> Surface charge (+ / −)</label>
+        <label class="check"><input type="checkbox" id="c-heat"> Strength as colour on the slice</label>
         <label class="check"><input type="checkbox" id="c-frame" checked> Outline the slice</label>
       </div>
       <p class="hint" style="margin:9px 0 0">
-        Field lines are traced in three dimensions, not on the plane — they are seeded from it
-        and then go wherever the field goes.
+        Arrows sit on a lattice filling the space around the circuit, and field lines are
+        seeded on a coarser one — neither is confined to the slice. Arrows in weak field
+        fade into the background rather than being cut off, so what you see thinning out is
+        the field thinning out.
       </p>
     </div>
 

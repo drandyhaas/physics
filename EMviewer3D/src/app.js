@@ -63,7 +63,7 @@
     slice: { axis: 'z', off: 0 },
     spin: false,
     drag: -1, hover: -1, dragging: false, orbiting: false, quality: 'high',
-    sol: null, sl: null, streams: null, range: null, scene: 0.4
+    sol: null, sl: null, vol: null, streams: null, range: null, scene: 0.4
   };
 
   const $ = id => document.getElementById(id);
@@ -91,13 +91,14 @@
   /* ---------------- colour range ---------------- */
   // Fields run over decades, so the ramp is logarithmic between two percentiles
   // of what is actually on the slice, ignoring samples inside the metal.
-  function updateRange(sl, sol) {
+  function updateRange(vol, sol) {
     const vals = [];
-    for (let k = 0; k < sl.n * sl.n; k++) if (sl.D[k] > sol.a * 1.2 && sl.M[k] > 0) vals.push(sl.M[k]);
+    const T = vol.n * vol.n * vol.n;
+    for (let k = 0; k < T; k++) if (vol.D[k] > sol.a * 1.2 && vol.M[k] > 0) vals.push(vol.M[k]);
     if (vals.length < 8) { S.range = null; return; }
     vals.sort((a, b) => a - b);
     const at = p => vals[clamp(Math.floor(p * (vals.length - 1)), 0, vals.length - 1)];
-    let lo = at(0.12), hi = at(0.97);
+    let lo = at(0.30), hi = at(0.985);
     if (!(hi > lo * 1.0001)) hi = lo * 1.0001;
     S.range = { lo, hi, llo: Math.log(lo), lhi: Math.log(hi) };
   }
@@ -137,24 +138,23 @@
   }
 
   /*
-   * Seeds sit on a regular lattice across the slice and are taken in that order.
-   * Two earlier choices made the spacing look arbitrary, and B showed it worst:
-   * seeds were taken strongest-field-first, which is field order rather than
-   * spatial order, and every point of an already-traced line blocked further
-   * seeds within a wide radius. A B line is a long ring, so one of them fenced
-   * off a big awkward region and the next seed went wherever the hole happened
-   * to be. Regular order is what fixes the spacing; the hash is demoted to a
+   * Seeds sit on a regular lattice through the VOLUME and are taken in that
+   * order, so the lines fill the space instead of fanning out of one plane.
+   *
+   * Order is what keeps the spacing even. Seeding strongest-field-first is field
+   * order rather than spatial order, and letting every point of a traced line
+   * block further seeds lets one long B ring fence off an awkward region so the
+   * next seed goes wherever the hole happens to be. The hash survives only as a
    * duplicate guard.
    */
-  const GRID = 6;              // lattice side; one field line per lattice point
-  function buildStreams(sol, sl, mode) {
+  const GRID = 4;              // seed lattice side; GRID^3 candidates
+  function buildStreams(sol, mode) {
     const R = S.scene;
     const step = R * 0.022, maxSteps = 120, bound2 = (R * 2.3) * (R * 2.3);
-    // A fifth of the lattice spacing: wide enough to catch a seed some other
+    // About a fifth of the seed spacing: wide enough to catch a seed some other
     // line already runs through, narrow enough to leave the lattice in charge of
-    // where lines go. A B ring crosses the slice twice, so without this the same
-    // ring is traced from both crossings and the family turns into a tangle;
-    // tightening it to one integration step brings that tangle straight back.
+    // where the lines go. Tightening it to one integration step lets near
+    // duplicates survive and the family turns back into a tangle.
     const dup = R * 0.05;
     const occupied = new Set();
     const key = (x, y, z) => Math.floor(x/dup) + ',' + Math.floor(y/dup) + ',' + Math.floor(z/dup);
@@ -166,28 +166,28 @@
     };
 
     const out = [];
-    const span = sl.half * 0.92;
-    for (let j = 0; j < GRID; j++) {
-      for (let i = 0; i < GRID; i++) {
-        const t = (2 * (i + 0.5) / GRID - 1) * span;
-        const b = (2 * (j + 0.5) / GRID - 1) * span;
-        const p = {
-          x: sl.o.x + sl.u.x * t + sl.v.x * b,
-          y: sl.o.y + sl.u.y * t + sl.v.y * b,
-          z: sl.o.z + sl.u.z * t + sl.v.z * b
-        };
-        const f = FB.fieldAt(sol, p.x, p.y, p.z);
-        if (f.d < sol.a * 2.5) continue;                 // seed is in the metal
-        const q = FB.modeVec(f, mode);
-        if (!(Math.hypot(q.x, q.y, q.z) > 0)) continue;  // nothing to follow
-        if (near(p.x, p.y, p.z)) continue;               // already on a line drawn
-        const fwd = trace(sol, mode, p, +1, step, maxSteps, bound2);
-        const back = trace(sol, mode, p, -1, step, maxSteps, bound2);
-        back.reverse(); back.pop();
-        const line = back.concat(fwd);
-        if (line.length < 8) continue;
-        for (const w of line) occupied.add(key(w[0], w[1], w[2]));
-        out.push(line);
+    const span = R * 1.15;
+    for (let k = 0; k < GRID; k++) {
+      for (let j = 0; j < GRID; j++) {
+        for (let i = 0; i < GRID; i++) {
+          const p = {
+            x: (2 * (i + 0.5) / GRID - 1) * span,
+            y: (2 * (j + 0.5) / GRID - 1) * span,
+            z: (2 * (k + 0.5) / GRID - 1) * span
+          };
+          const f = FB.fieldAt(sol, p.x, p.y, p.z);
+          if (f.d < sol.a * 2.5) continue;                 // seed is in the metal
+          const q = FB.modeVec(f, mode);
+          if (!(Math.hypot(q.x, q.y, q.z) > 0)) continue;  // nothing to follow
+          if (near(p.x, p.y, p.z)) continue;               // already on a line drawn
+          const fwd = trace(sol, mode, p, +1, step, maxSteps, bound2);
+          const back = trace(sol, mode, p, -1, step, maxSteps, bound2);
+          back.reverse(); back.pop();
+          const line = back.concat(fwd);
+          if (line.length < 8) continue;
+          for (const w of line) occupied.add(key(w[0], w[1], w[2]));
+          out.push(line);
+        }
       }
     }
     return out;
@@ -214,13 +214,13 @@
     }
   }
 
-  function drawSliceFrame(sl) {
-    const h = sl.half, c = [];
+  function drawSliceFrame(pl, h) {
+    const c = [];
     for (const [a, b] of [[-1,-1],[1,-1],[1,1],[-1,1]]) {
       const p = V.project(F,
-        sl.o.x + sl.u.x*h*a + sl.v.x*h*b,
-        sl.o.y + sl.u.y*h*a + sl.v.y*h*b,
-        sl.o.z + sl.u.z*h*a + sl.v.z*h*b);
+        pl.o.x + pl.u.x*h*a + pl.v.x*h*b,
+        pl.o.y + pl.u.y*h*a + pl.v.y*h*b,
+        pl.o.z + pl.u.z*h*a + pl.v.z*h*b);
       if (!p) return;
       c.push(p);
     }
@@ -232,46 +232,46 @@
     ctx.stroke(); ctx.setLineDash([]);
   }
 
-  // One arrow per sampled node, drawn at a pixel length that encodes magnitude.
-  // Foreshortening is left alone: an arrow pointing at the camera is meant to
-  // look short, that is the depth cue.
-  function drawArrows(sl, sol, wantFar, split) {
-    const n = sl.n, stride = Math.max(1, Math.round(n / 17));
-    const base = clamp(Math.min(W, H) / 46, 9, 20);
-    for (let j = 1; j < n - 1; j += stride) {
-      for (let i = 1; i < n - 1; i += stride) {
-        const k = j * n + i;
-        const m = sl.M[k];
-        if (!(m > 0) || sl.D[k] < sol.a * 1.3) continue;
-        const t = -sl.half + i * sl.step, b = -sl.half + j * sl.step;
-        const px = sl.o.x + sl.u.x*t + sl.v.x*b;
-        const py = sl.o.y + sl.u.y*t + sl.v.y*b;
-        const pz = sl.o.z + sl.u.z*t + sl.v.z*b;
-        const p = V.project(F, px, py, pz);
-        if (!p) continue;
-        if ((p[2] > split) !== wantFar) continue;
-        const tt = toT(m);
-        const pix = base * (0.34 + 0.66 * tt);
-        const w = pix * p[2] / F.focal;            // world length giving that many pixels
-        const vx = sl.V[k*3] / m, vy = sl.V[k*3+1] / m, vz = sl.V[k*3+2] / m;
-        const q = V.project(F, px + vx*w, py + vy*w, pz + vz*w);
-        if (!q) continue;
-        const dx = q[0] - p[0], dy = q[1] - p[1];
-        const L = Math.hypot(dx, dy);
-        ctx.strokeStyle = ctx.fillStyle = rampCss(S.mode, tt);
-        ctx.globalAlpha = fade(p[2]) * 0.92;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
-        if (L > 4) {                                // head, only when there is room
-          const ux = dx / L, uy = dy / L, hs = clamp(L * 0.4, 2.5, 5);
-          ctx.beginPath();
-          ctx.moveTo(q[0], q[1]);
-          ctx.lineTo(q[0] - ux*hs - uy*hs*0.55, q[1] - uy*hs + ux*hs*0.55);
-          ctx.lineTo(q[0] - ux*hs + uy*hs*0.55, q[1] - uy*hs - ux*hs*0.55);
-          ctx.closePath(); ctx.fill();
-        }
-        ctx.globalAlpha = 1;
+  /*
+   * One arrow per volume sample, throughout the space rather than on a surface.
+   * Arrow length is a fraction of the distance between neighbouring samples, so
+   * arrows keep the same relationship to the lattice at any zoom instead of
+   * growing into each other. Foreshortening is left alone: an arrow pointing at
+   * the camera is meant to look short, that is the depth cue. Weak field needs
+   * no culling -- the low end of the ramp is the background colour, so those
+   * arrows fade out on their own.
+   */
+  function drawArrows(vol, sol, wantFar, split) {
+    const T = vol.n * vol.n * vol.n;
+    for (let k = 0; k < T; k++) {
+      const m = vol.M[k];
+      if (!(m > 0) || vol.D[k] < sol.a * 1.3) continue;
+      const px = vol.P[k*3], py = vol.P[k*3+1], pz = vol.P[k*3+2];
+      const p = V.project(F, px, py, pz);
+      if (!p) continue;
+      if ((p[2] > split) !== wantFar) continue;
+      const tt = toT(m);
+      const cell = vol.step * F.focal / p[2];          // sample spacing, in pixels
+      const pix = clamp(cell * (0.3 + 0.45 * tt), 3.5, 44);
+      const w = pix * p[2] / F.focal;                  // world length giving that many pixels
+      const vx = vol.V[k*3] / m, vy = vol.V[k*3+1] / m, vz = vol.V[k*3+2] / m;
+      const q = V.project(F, px + vx*w, py + vy*w, pz + vz*w);
+      if (!q) continue;
+      const dx = q[0] - p[0], dy = q[1] - p[1];
+      const L = Math.hypot(dx, dy);
+      ctx.strokeStyle = ctx.fillStyle = rampCss(S.mode, tt);
+      ctx.globalAlpha = fade(p[2]) * (0.16 + 0.84 * tt);
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+      if (L > 4) {                                     // head, only when there is room
+        const ux = dx / L, uy = dy / L, hs = clamp(L * 0.38, 2.5, 5.5);
+        ctx.beginPath();
+        ctx.moveTo(q[0], q[1]);
+        ctx.lineTo(q[0] - ux*hs - uy*hs*0.55, q[1] - uy*hs + ux*hs*0.55);
+        ctx.lineTo(q[0] - ux*hs + uy*hs*0.55, q[1] - uy*hs - ux*hs*0.55);
+        ctx.closePath(); ctx.fill();
       }
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -437,28 +437,26 @@
     for (let i = 0; i < sol.N; i++) { gx += sol.cx[i]; gy += sol.cy[i]; gz += sol.cz[i]; }
     const split = V.depthOf(F, gx / sol.N, gy / sol.N, gz / sol.N);
 
-    if (sl) {
+    if (sl && S.heat) {
       const n = sl.n, proj = new Array(n * n);
-      if (S.heat) {
-        for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-          const t = -sl.half + i * sl.step, b = -sl.half + j * sl.step;
-          proj[j*n+i] = V.project(F,
-            sl.o.x + sl.u.x*t + sl.v.x*b,
-            sl.o.y + sl.u.y*t + sl.v.y*b,
-            sl.o.z + sl.u.z*t + sl.v.z*b);
-        }
-        drawHeat(sl, proj);
+      for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+        const t = -sl.half + i * sl.step, b = -sl.half + j * sl.step;
+        proj[j*n+i] = V.project(F,
+          sl.o.x + sl.u.x*t + sl.v.x*b,
+          sl.o.y + sl.u.y*t + sl.v.y*b,
+          sl.o.z + sl.u.z*t + sl.v.z*b);
       }
-      if (S.frame) drawSliceFrame(sl);
+      drawHeat(sl, proj);
     }
+    if (S.frame) drawSliceFrame(planeOf(), S.scene * 1.55);
 
     if (S.lines) drawStreams(S.streams, true, split);
-    if (sl && S.arrows) drawArrows(sl, sol, true, split);
+    if (S.vol && S.arrows) drawArrows(S.vol, sol, true, split);
 
     drawCircuit(sol);
 
     if (S.lines) drawStreams(S.streams, false, split);
-    if (sl && S.arrows) drawArrows(sl, sol, false, split);
+    if (S.vol && S.arrows) drawArrows(S.vol, sol, false, split);
 
     drawHandles();
     drawTriad();
@@ -480,15 +478,24 @@
       if (!sol) { ctx.fillStyle = '#05141a'; ctx.fillRect(0, 0, W, H); return; }
       S.sol = sol;
       S.scene = sceneRadius(sol);
-      const pl = planeOf();
-      S.sl = FB.buildSlice(sol, {
-        o: pl.o, u: pl.u, v: pl.v,
-        half: S.scene * 1.55,
-        n: hi ? 40 : 20,
+      S.vol = FB.buildVolume(sol, {
+        half: S.scene * 1.25,
+        n: hi ? 9 : 6,
         mode: S.mode
       });
-      updateRange(S.sl, sol);
-      S.streams = (hi && S.lines) ? buildStreams(sol, S.sl, S.mode) : null;
+      updateRange(S.vol, sol);
+      // The slice is sampled only for the heatmap now; the outline needs just
+      // the plane, and the readout evaluates the field where the ray lands.
+      if (S.heat) {
+        const pl = planeOf();
+        S.sl = FB.buildSlice(sol, {
+          o: pl.o, u: pl.u, v: pl.v,
+          half: S.scene * 1.55,
+          n: hi ? 40 : 20,
+          mode: S.mode
+        });
+      } else S.sl = null;
+      S.streams = (hi && S.lines) ? buildStreams(sol, S.mode) : null;
       render();
       updateFacts(sol);
     });
@@ -573,7 +580,9 @@
    ['c-charge','charge'], ['c-frame','frame']].forEach(([id, key]) => {
     $(id).addEventListener('change', e => {
       S[key] = e.target.checked;
-      if (key === 'lines' && e.target.checked && !S.streams) settle(); else render();
+      const needsData = (key === 'lines' && e.target.checked && !S.streams) ||
+                        (key === 'heat' && e.target.checked && !S.sl);
+      if (needsData) settle(); else render();
     });
   });
   $('c-spin').addEventListener('change', e => { S.spin = e.target.checked; if (S.spin) tick(); });
