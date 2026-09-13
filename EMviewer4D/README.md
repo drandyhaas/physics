@@ -138,6 +138,14 @@ evaluation serves all of them — the colour ranges are gathered in a single swe
 is the exception, since each field's lines follow their own path, so lines get shorter when
 more than one is running.
 
+**Arrows** sit on a lattice through the volume, and their length is a pixel count converted
+back to a world length at that point's depth, so the projection foreshortens them — an
+arrow pointing at the camera looks short, which is the depth cue. Full strength is 52 px at
+1×, a little under half the on-screen gap between neighbouring lattice points. The size
+slider runs 0.1× to 10× and is logarithmic, with 1× at the middle of its travel:
+linear, it would spend nine tenths of the travel above 1× and leave the small end
+unreachable.
+
 **Field lines** are traced every frame, including while the movie runs — coarser then:
 3³ seeds instead of 4³, shorter lines, and a plain Euler step instead of the midpoint
 rule, which halves the field evaluations that are the whole cost of tracing and does not
