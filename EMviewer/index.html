@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Field bench — E, B and E×B around a real circuit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <div class="stage">
+    <canvas id="cv"></canvas>
+
+    <div class="stage-head">
+      <h1>Field bench</h1>
+      <p>Drag the white handles to reshape the circuit. Double-click the canvas to add a bend.</p>
+    </div>
+
+    <button class="railtoggle" id="railtoggle" aria-expanded="false">Controls</button>
+
+    <div class="readout" id="readout">
+      <div class="rhead" id="rhead">Point at the field</div>
+      <span class="rl"><span class="rk">|E|</span><span class="rv" id="ro-e">—</span></span>
+      <span class="rl"><span class="rk">B<sub>z</sub></span><span class="rv" id="ro-b">—</span></span>
+      <span class="rl"><span class="rk">|S|</span><span class="rv" id="ro-s">—</span></span>
+      <span class="rl"><span class="rk">V</span><span class="rv" id="ro-v">—</span></span>
+    </div>
+
+    <div class="legend">
+      <div class="cap" id="leg-cap">Field strength</div>
+      <div class="bar" id="leg-bar"></div>
+      <div class="ends"><span id="leg-lo">—</span><span id="leg-hi">—</span></div>
+    </div>
+  </div>
+
+  <aside class="rail" id="rail">
+    <div class="group">
+      <h2>What to draw</h2>
+      <div class="seg" role="group" aria-label="Field to display">
+        <button id="m-E" aria-pressed="true">E</button>
+        <button id="m-B" aria-pressed="false">B</button>
+        <button id="m-S" aria-pressed="false">E×B</button>
+      </div>
+      <p class="mode-note" id="modenote"></p>
+    </div>
+
+    <div class="group">
+      <h2>Rendering</h2>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="c-heat" checked> Strength as background colour</label>
+        <label class="check"><input type="checkbox" id="c-arrows" checked> Direction arrows</label>
+        <label class="check"><input type="checkbox" id="c-lines" checked> Field lines</label>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Circuit</h2>
+      <div class="row"><label for="s-emf">Battery</label><span class="val" id="v-emf"></span></div>
+      <input type="range" id="s-emf" min="0.2" max="12" step="0.1" value="3">
+
+      <div class="row"><label for="s-led">LED resistance</label><span class="val" id="v-led"></span></div>
+      <input type="range" id="s-led" min="5" max="600" step="5" value="100">
+
+      <div class="row"><label for="s-rho">Wire resistance</label><span class="val" id="v-rho"></span></div>
+      <input type="range" id="s-rho" min="0" max="120" step="1" value="0">
+
+      <div class="row"><label for="s-rad">Wire radius</label><span class="val" id="v-rad"></span></div>
+      <input type="range" id="s-rad" min="1" max="12" step="0.5" value="3">
+      <p class="hint" style="margin:6px 0 0">Fatten the wire to see the field in its interior.</p>
+    </div>
+
+    <div class="group">
+      <h2>Shape</h2>
+      <div class="chips">
+        <button data-preset="rect">Rectangle</button>
+        <button data-preset="circle">Circle</button>
+        <button data-preset="long">Long run</button>
+        <button data-preset="kink">Kinked</button>
+        <button data-preset="folded">Folded back</button>
+      </div>
+      <p class="hint" style="margin:10px 0 0">Alt-click or long-press a handle to delete it. Handles in use: <span id="nh">—</span></p>
+    </div>
+
+    <div class="group">
+      <h2>Numbers</h2>
+      <div class="facts">
+        <div><span>Current</span><span id="f-I">—</span></div>
+        <div><span>Power into LED</span><span id="f-P">—</span></div>
+        <div><span>Loop length</span><span id="f-L">—</span></div>
+        <div><span>E inside plain wire</span><span id="f-Ew">—</span></div>
+        <div><span>E inside LED</span><span id="f-El">—</span></div>
+        <div><span>E inside battery</span><span id="f-Eb">—</span></div>
+        <div><span>Peak surface charge</span><span id="f-q">—</span></div>
+      </div>
+      <p class="prose" style="margin:12px 0 0">
+        Push <b>wire resistance</b> off zero and the field inside the plain wire stops being zero.
+        That is Ohm's law, E = ρJ, sitting inside the metal — and the energy flow tips inward
+        along the whole run instead of gliding past it.
+      </p>
+    </div>
+
+    <div class="group">
+      <h2>How this is computed</h2>
+      <p class="prose">
+        The wire is a filament carrying an unknown surface charge. Ohm's law fixes the potential
+        everywhere along it — flat along ideal wire, sloping across the LED, stepping up across the
+        battery — so the charge is whatever reproduces that potential. The app solves that
+        boundary-value problem, then takes <b>E</b> from Coulomb and <b>B</b> from Biot–Savart.
+        Nothing here is drawn by hand; the field shapes are the solution.
+      </p>
+      <p class="prose" style="margin-top:9px">
+        The LED is modelled as a plain resistor, the wire as a thin filament, and everything is
+        shown in the plane of the circuit, where <b>B</b> points purely in and out of the screen.
+      </p>
+    </div>
+  </aside>
+</div>
+
+<script src="src/solver.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
