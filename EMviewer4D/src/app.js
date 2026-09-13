@@ -59,6 +59,7 @@
     S: ramp([[0,hex(BG)],[.3,hex('#7a3d10')],[.62,hex('#e8a33d')],[.85,hex('#ffd98a')],[1,hex('#fff8ea')]]),
     B: ramp([[0,hex(BG)],[.3,hex('#4a2a7a')],[.58,hex('#9a5ad0')],[.82,hex('#d9a8f0')],[1,hex('#fdf2ff')]])
   };
+  const LINE_TINT = { E: '160,214,220', B: '196,160,230', S: '232,190,120' };
   const rampCss = (mode, t) => {
     const i = clamp(Math.round(t*255), 0, 255)*3, L = RAMP[mode];
     return 'rgb(' + L[i] + ',' + L[i+1] + ',' + L[i+2] + ')';
@@ -68,14 +69,14 @@
   const S = {
     ctrl: FB.PRESETS.rect.map(p => ({ x:p[0], y:p[1], z:p[2] })),
     mode: 'E',
-    arrows: true, heat: true, charge: false, front: true, frame: true,
+    arrows: true, heat: true, charge: false, front: true, frame: true, lines: true,
     arrowSize: 1.0,
     emf: 9, rLED: 100, rho: 0, radius: 0.003,
     tau: 2e-9, t: 0, tEnd: 40e-9, playing: false, speed: 45,
     cam: { az: 38, el: 22, dist: 1.5, fov: 45, target: { x:0, y:0, z:0 } },
     slice: { axis: 'z', off: 0 },
     drag: -1, hover: -1, dragging: false, orbiting: false, playQuality: false,
-    T: null, vol: null, sl: null, range: null, scene: 0.4
+    T: null, vol: null, sl: null, streams: null, range: null, scene: 0.4
   };
 
   const $ = id => document.getElementById(id);
@@ -191,12 +192,13 @@
     }
   }
 
-  // A guide, not a result: the circuit is not a point, so news from its nearest
-  // part arrives before this sphere does.
-  function drawFront(t) {
+  // Centred on the battery, because that is the only thing that changes: the
+  // rest of the circuit cannot respond until the news gets to it. The field is
+  // strictly zero outside this sphere -- it is a boundary, not a guide.
+  function drawFront(T, t) {
     const r = C * t;
     if (!(r > 0)) return;
-    const c = V.project(F, 0, 0, 0);
+    const c = V.project(F, T.battery.x, T.battery.y, T.battery.z);
     if (!c) return;
     const rp = r * F.focal / c[2];
     if (!(rp > 2) || rp > 20000) return;
@@ -280,6 +282,114 @@
       acc += q;
     }
     return out;
+  }
+
+  /*
+   * Field lines at one instant. Tracing is far too slow to redo every frame, so
+   * they are built only while the clock is stopped -- which is also the only
+   * time they mean much, a field line of a field that is still arriving being a
+   * slippery object. Seeds in the dark find no field and produce nothing, so the
+   * family grows outward on its own as the front passes.
+   */
+  const GRID = 4;
+  function traceLine(T, mode, p0, sign, step, maxSteps, bound2, t) {
+    const pts = [[p0.x, p0.y, p0.z]];
+    let x = p0.x, y = p0.y, z = p0.z, closed = false, run = 0;
+    let lox=x, loy=y, loz=z, hix=x, hiy=y, hiz=z;
+    const shut = (step*0.9)*(step*0.9);
+    for (let i = 0; i < maxSteps; i++) {
+      const f1 = FB.fieldAt(T, x, y, z, t);
+      if (f1.d < T.a*1.1) break;
+      const v1 = FB.modeVec(f1, mode);
+      const m1 = Math.hypot(v1.x, v1.y, v1.z);
+      if (!(m1 > 0)) break;
+      const h = step*sign;
+      const f2 = FB.fieldAt(T, x+v1.x/m1*h*0.5, y+v1.y/m1*h*0.5, z+v1.z/m1*h*0.5, t);
+      const v2 = FB.modeVec(f2, mode);
+      const m2 = Math.hypot(v2.x, v2.y, v2.z);
+      if (!(m2 > 0)) break;
+      x += v2.x/m2*h; y += v2.y/m2*h; z += v2.z/m2*h;
+      pts.push([x, y, z]);
+      if (i > 6) {
+        const dx = x-p0.x, dy = y-p0.y, dz = z-p0.z;
+        if (dx*dx + dy*dy + dz*dz < shut) { closed = true; break; }
+      }
+      run += step;
+      lox = Math.min(lox,x); hix = Math.max(hix,x);
+      loy = Math.min(loy,y); hiy = Math.max(hiy,y);
+      loz = Math.min(loz,z); hiz = Math.max(hiz,z);
+      if (i > 15) {
+        const ex = hix-lox, ey = hiy-loy, ez = hiz-loz;
+        if (run > 4*Math.sqrt(ex*ex + ey*ey + ez*ez)) break;
+      }
+      if (x*x + y*y + z*z > bound2) break;
+    }
+    return { pts, closed };
+  }
+
+  function buildStreams(T, mode, t) {
+    const R = S.scene;
+    const step = R*0.022, maxSteps = 120, bound2 = (R*3.2)*(R*3.2);
+    const dup = R*0.12;
+    const occupied = new Set();
+    const key = (x,y,z) => Math.floor(x/dup)+','+Math.floor(y/dup)+','+Math.floor(z/dup);
+    const near = (x,y,z) => {
+      const i = Math.floor(x/dup), j = Math.floor(y/dup), k = Math.floor(z/dup);
+      for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++) for (let c=-1;c<=1;c++)
+        if (occupied.has((i+a)+','+(j+b)+','+(k+c))) return true;
+      return false;
+    };
+    const out = [], span = R*1.3;
+    for (let k = 0; k < GRID; k++) for (let j = 0; j < GRID; j++) for (let i = 0; i < GRID; i++) {
+      const p = {
+        x: (2*(i+0.5)/GRID-1)*span,
+        y: (2*(j+0.5)/GRID-1)*span,
+        z: (2*(k+0.5)/GRID-1)*span
+      };
+      const f = FB.fieldAt(T, p.x, p.y, p.z, t);
+      if (f.d < T.a*2.5) continue;
+      const q = FB.modeVec(f, mode);
+      if (!(Math.hypot(q.x,q.y,q.z) > 0)) continue;    // still dark here
+      if (near(p.x, p.y, p.z)) continue;
+      const fwd = traceLine(T, mode, p, +1, step, maxSteps, bound2, t);
+      let line;
+      if (fwd.closed) line = fwd.pts;
+      else {
+        const back = traceLine(T, mode, p, -1, step, maxSteps, bound2, t).pts;
+        back.reverse(); back.pop();
+        line = back.concat(fwd.pts);
+      }
+      if (line.length < 8) continue;
+      for (const w of line) occupied.add(key(w[0], w[1], w[2]));
+      out.push(line);
+    }
+    return out;
+  }
+
+  function drawStreams(streams, wantFar, split) {
+    if (!streams) return;
+    const tint = LINE_TINT[S.mode];
+    ctx.lineWidth = 1.25; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    for (const line of streams) {
+      let run = null, acc = 0, cnt = 0;
+      const flush = () => {
+        if (run && run.length > 1) {
+          ctx.strokeStyle = 'rgba(' + tint + ',' + (fade(acc/cnt)*0.55).toFixed(3) + ')';
+          ctx.beginPath();
+          ctx.moveTo(run[0][0], run[0][1]);
+          for (let i = 1; i < run.length; i++) ctx.lineTo(run[i][0], run[i][1]);
+          ctx.stroke();
+        }
+        run = null; acc = 0; cnt = 0;
+      };
+      for (const w of line) {
+        const p = V.project(F, w[0], w[1], w[2]);
+        if (!p || (p[2] > split) !== wantFar) { flush(); continue; }
+        if (!run) run = [];
+        run.push(p); acc += p[2]; cnt++;
+      }
+      flush();
+    }
   }
 
   function drawHandles() {
@@ -368,10 +478,12 @@
       drawHeat(sl, proj);
     }
     if (S.frame) drawSliceFrame(planeOf(), S.scene*2.6);
+    if (S.lines) drawStreams(S.streams, true, split);
     if (S.vol && S.arrows) drawArrows(S.vol, T, true, split);
     drawCircuit(T, S.t);
+    if (S.lines) drawStreams(S.streams, false, split);
     if (S.vol && S.arrows) drawArrows(S.vol, T, false, split);
-    if (S.front) drawFront(S.t);
+    if (S.front) drawFront(T, S.t);
     drawHandles();
     drawTriad();
     drawLegend();
@@ -410,6 +522,7 @@
         n: fast ? 34 : 60, mode: S.mode, t: S.t
       });
     } else S.sl = null;
+    S.streams = (!fast && S.lines) ? buildStreams(T, S.mode, S.t) : null;
     render();
   }
 
@@ -492,7 +605,7 @@
     [...$('axisseg').children].forEach(x => x.setAttribute('aria-pressed', String(x === b)));
     sample();
   });
-  [['c-arrows','arrows'],['c-heat','heat'],['c-charge','charge'],['c-front','front'],['c-frame','frame']]
+  [['c-arrows','arrows'],['c-heat','heat'],['c-lines','lines'],['c-charge','charge'],['c-front','front'],['c-frame','frame']]
     .forEach(([id,key]) => $(id).addEventListener('change', e => { S[key] = e.target.checked; sample(); }));
 
   $('btn-play').addEventListener('click', () => setPlaying(!S.playing));

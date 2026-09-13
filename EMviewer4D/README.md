@@ -16,11 +16,10 @@ None of the three depends on the others.
 A circuit diagram implies the load learns about the battery the moment the switch closes.
 It doesn't. Three separate delays show up here, on three different scales:
 
-- **The field spreads at c.** Before the switch there is no field at all; then a front of
-  it sweeps outward. At any moment the region that knows about the battery is bounded, and
-  the colour map on the slice goes exactly black outside it — not dim, black. That boundary
-  is not drawn or imposed: every history is zero before t = 0, so a point whose retarded
-  time has not yet gone positive sums to nothing.
+- **The field spreads at c from the battery.** Before the switch there is no field at all;
+  then a front of it sweeps outward, and the colour map goes exactly black outside — not
+  dim, black. The dashed sphere is that boundary, radius ct about the battery, and nothing
+  crosses it.
 - **The current lags the EMF.** The loop is an inductor, and the trace in the rail shows
   the two curves failing to coincide: the EMF arrives in a couple of nanoseconds, the
   current takes L/R to follow. The gap between the curves is what builds the field.
@@ -32,6 +31,28 @@ panel prints L/R against the time light takes to run along the wire, which is th
 that decides whether the model below is on firm ground.
 
 ## How it's computed
+
+**Causality first.** A quasi-static solve on its own is *acausal*: it redistributes charge
+along the whole wire the instant the battery moves, so every segment starts radiating at
+once. Measured, that put field at a probe at up to 226% of its settled value 1.75 ns before
+news from the battery could have got there, and charge on stretches of wire the light had
+not reached. So each segment's response is delayed by its own light time from the battery,
+`δᵢ = |cᵢ − battery| / c`. Nothing can then reach a probe sooner than
+`(|battery→segment| + |segment→probe|)/c`, which is never less than `|battery→probe|/c`.
+
+Two things must be repaired after delaying, and they are why the source is tabulated rather
+than evaluated in closed form:
+
+- **Neutrality.** The un-delayed charge sums to zero at a common instant; delayed, it does
+  not — by up to 40% of the charge present, on the solenoid. The excess is removed *in
+  proportion to |λ| itself*, which restores the sum to zero exactly while staying zero
+  wherever the charge is still zero. A uniform subtraction would have put charge on
+  segments the news had not reached, which is the very thing being fixed.
+- **Continuity.** The current can no longer be a closed-form expression, because ∂λ/∂t now
+  varies with each segment's own delay. It is re-derived by integrating ∂I/∂s = −∂λ/∂t
+  along the wire. While part of the loop is still dark the constant of integration is fixed
+  by requiring zero current there — there is no closed path yet, so nothing can circulate.
+  Once the loop is lit the lumped I(t) takes over, blended across the moment it closes.
 
 **The source.** Ohm's law along the wire, with the induced part of the field kept:
 
@@ -75,11 +96,12 @@ all evaluated at `t_r = t − R/c`. Causality is never imposed; it falls out of 
 
 ## What is approximated
 
-**The source model is quasi-static.** I(t) comes from a lumped circuit equation using an
-instantaneous inductance, and λ from an instantaneous boundary-value problem. That is sound
-when the switch-on time is long compared with the time light takes to cross the loop, and
-it is being stretched when it is not. The fields are then *exact for that source* — but
-this is not a self-consistent time-domain integral equation and does not pretend to be.
+**The response is a delayed quasi-static one, not a self-consistent solve.** The *shape* of
+λ at each instant is still the instantaneous boundary-value solution, and I(t) still comes
+from a lumped circuit equation; both are then delayed. That is sound when the switch-on
+time is long compared with the time light takes to cross the loop, and it is being
+stretched when it is not. The fields are then *exact for that source* — but this is not a
+time-domain integral equation and does not pretend to be.
 
 The numbers panel prints both times so you can see which regime you are in. With the
 default rectangle, L/R is about 14 ns against 5.6 ns for light along the wire, which is a
@@ -102,16 +124,17 @@ The colour range is fixed to the **settled** field, not to the present instant. 
 recomputed each frame would rescale as the field grows and every moment would look equally
 bright, which is the one thing that must not happen.
 
-The dashed sphere is a guide of radius **ct** about the origin. The circuit is not a point,
-so news from its nearest part arrives a little sooner than the sphere suggests.
+The dashed sphere has radius **ct** about the **battery** — the only thing that changes,
+and so the only place news can start from. It is a boundary rather than a guide: the field
+is strictly zero outside it, which is checked in the tests.
+
+**Field lines** are traced only while the clock is stopped. Tracing is far too slow to redo
+every frame, and a field line of a field that is still arriving is a slippery object.
+Arrows stay on a volume lattice, because those do have to survive being animated.
 
 **Surface charge** spends one mark per equal quantum of charge, with the quantum fixed to
 the settled state — so the marks thin out towards t = 0 rather than always filling the
 wire, and the count is the charge at every moment.
-
-There are no traced field lines here. Tracing is far too slow to redo every frame, and a
-field line of a field that is still arriving is a confusing object anyway; the steady
-benches are the place for those.
 
 ## Controls
 
@@ -151,8 +174,10 @@ Checked against things known independently of this code:
   convergence in step size, which moves the answer by 4×10⁻¹¹ when the step is quartered.
 - **Continuity**: ∂I/∂s + ∂λ/∂t around the whole loop, to 0.01% of peak λ̇; the analytic
   time derivatives against numerical ones; and neutrality at every instant.
-- **Causality**: the field at a probe is *exactly* zero until R/c and non-zero just after,
-  and a probe twice as far waits twice as long.
+- **Causality**: the field at a probe is *exactly* zero until the battery's light time and
+  non-zero just after; a probe twice as far waits twice as long; and — the point of
+  delaying the source — nothing arrives at the *nearest-wire* light time, which for the
+  test probe is 1.8 ns earlier.
 - **Radiation**: |B| falls as 1/R in the far field during the switch — measured in the
   plane of the loop, since the loop axis is the null of magnetic dipole radiation — and the
   settled axial field goes back to the 1/R³ of a dipole.

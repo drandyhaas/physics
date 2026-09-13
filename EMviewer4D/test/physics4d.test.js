@@ -100,7 +100,8 @@ section('The source conserves charge');
         'worst ' + (100*worst).toFixed(2) + '% of peak d(lambda)/dt');
 
   // and the analytic time derivative must match a numerical one
-  const h = 1e-12; let wd = 0, sc = 0;
+  const h = 2 * T.dutab;   // the tables are interpolated, so differencing below
+  let wd = 0, sc = 0;      // their grid spacing measures the interpolation
   for (let i = 0; i < T.N; i += 7) {
     const a = F.sourceAt(T, i, 3e-9 - h), b = F.sourceAt(T, i, 3e-9 + h);
     const num = (b.lam - a.lam) / (2*h);
@@ -113,37 +114,50 @@ section('The source conserves charge');
   // the loop stays neutral at every instant
   let qw = 0;
   for (const t of [0.5e-9, 2e-9, 10e-9, 50e-9]) {
-    let q = 0;
-    for (let i = 0; i < T.N; i++) q += F.sourceAt(T, i, t).lam * T.len[i];
-    qw = Math.max(qw, Math.abs(q));
+    let q = 0, mag = 0;
+    for (let i = 0; i < T.N; i++) {
+      const l = F.sourceAt(T, i, t).lam;
+      q += l * T.len[i]; mag += Math.abs(l) * T.len[i];
+    }
+    if (mag > 0) qw = Math.max(qw, Math.abs(q) / mag);
   }
-  check('loop is neutral at every instant', qw < 1e-22, 'worst |Q| = ' + qw.toExponential(2) + ' C');
+  // relative, because the tables are Float32: the absolute residual is round-off
+  check('loop is neutral at every instant', qw < 1e-5,
+        'worst net charge ' + qw.toExponential(2) + ' of the charge present');
 }
 
 /* ------------------------------------------------------------------ */
 section('The field is retarded');
 {
   const T = build({});
+  const B = T.battery;
   const p = [1.4, 0.9, 0.7];
-  let dmin = Infinity;
+  const dBat = Math.hypot(p[0]-B.x, p[1]-B.y, p[2]-B.z);
+  let dWire = Infinity;
   for (let i = 0; i < T.N; i++)
-    dmin = Math.min(dmin, Math.hypot(p[0]-T.cx[i], p[1]-T.cy[i], p[2]-T.cz[i]));
-  const arrive = dmin / C;
+    dWire = Math.min(dWire, Math.hypot(p[0]-T.cx[i], p[1]-T.cy[i], p[2]-T.cz[i]));
   const mag = t => { const f = F.fieldAt(T, p[0], p[1], p[2], t);
                      return Math.hypot(f.ex, f.ey, f.ez); };
-  check('field is exactly zero before the news could arrive',
-        mag(arrive * 0.98) === 0, 'probe at ' + dmin.toFixed(3) + ' m, arrival ' + (arrive*1e9).toFixed(3) + ' ns');
-  check('field is non-zero shortly after', mag(arrive * 1.05) > 0);
-  // the arrival time must track the distance, not just be early
-  const q = [2.8, 1.8, 1.4];
-  let dq = Infinity;
-  for (let i = 0; i < T.N; i++)
-    dq = Math.min(dq, Math.hypot(q[0]-T.cx[i], q[1]-T.cy[i], q[2]-T.cz[i]));
+  check('field is exactly zero before the news could arrive', mag(dBat/C * 0.99) === 0,
+        'probe ' + dBat.toFixed(3) + ' m from the battery, arrival ' + (dBat/C*1e9).toFixed(3) + ' ns');
+  check('field is non-zero shortly after', mag(dBat/C * 1.06) > 0);
+
+  // The point of delaying the source: the wire runs much closer to the probe
+  // than the battery does, and a quasi-static source would have lit it up at
+  // dWire/c. Nothing may arrive before the battery's own light time.
+  check('nothing arrives at the nearest-wire light time', mag(dWire/C * 1.05) === 0,
+        'nearest wire is ' + dWire.toFixed(3) + ' m (' + (dWire/C*1e9).toFixed(2) +
+        ' ns), battery ' + dBat.toFixed(3) + ' m (' + (dBat/C*1e9).toFixed(2) + ' ns)');
+  check('and the quiet window really is the gap between the two',
+        dBat > 1.3 * dWire, 'ratio ' + (dBat/dWire).toFixed(2) + 'x');
+
+  const q = [3.3, 2.2, 1.7];
+  const dq = Math.hypot(q[0]-B.x, q[1]-B.y, q[2]-B.z);
   const magq = t => { const f = F.fieldAt(T, q[0], q[1], q[2], t);
                       return Math.hypot(f.ex, f.ey, f.ez); };
   check('a probe twice as far waits twice as long',
-        magq(dq/C * 0.98) === 0 && magq(dq/C * 1.05) > 0 && dq > 1.9 * dmin,
-        'near ' + dmin.toFixed(2) + ' m, far ' + dq.toFixed(2) + ' m');
+        magq(dq/C * 0.99) === 0 && magq(dq/C * 1.06) > 0 && dq > 1.9 * dBat,
+        'near ' + dBat.toFixed(2) + ' m, far ' + dq.toFixed(2) + ' m');
 }
 
 /* ------------------------------------------------------------------ */
@@ -158,7 +172,10 @@ section('Radiation: the far field falls off as 1/R');
   // reads the near field and gives a slope between -1 and -2.
   const dir = [1, 0, 0];
   const at = R => {
-    const f = F.fieldAt(T, dir[0]*R, dir[1]*R, dir[2]*R, tPeak + R/C);
+    const p = [dir[0]*R, dir[1]*R, dir[2]*R];
+    // phased against the battery: that is where the clock now starts
+    const d = Math.hypot(p[0]-T.battery.x, p[1]-T.battery.y, p[2]-T.battery.z);
+    const f = F.fieldAt(T, p[0], p[1], p[2], tPeak + d/C);
     return Math.hypot(f.bx, f.by, f.bz);
   };
   const R1 = 200, R2 = 400;
@@ -168,7 +185,7 @@ section('Radiation: the far field falls off as 1/R');
   // and once settled there is no radiation left, so it goes back to 1/R^2... R^3
   // on the axis of a loop, which is the dipole result
   const late = R => {
-    const f = F.fieldAt(T, 0, 0, R, 300e-9);
+    const f = F.fieldAt(T, 0, 0, R, 3000e-9);
     return Math.hypot(f.bx, f.by, f.bz);
   };
   const ls = Math.log(late(8)/late(4)) / Math.log(2);

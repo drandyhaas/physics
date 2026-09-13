@@ -56,14 +56,46 @@
  * and falls away as the wire is cut finer.
  *
  *
- * WHAT IS APPROXIMATED
+ * MAKING THE SOURCE CAUSAL
  *
- * The source is quasi-static: I(t) is solved from a lumped circuit equation
- * using an instantaneous inductance, and lambda from an instantaneous
- * boundary-value problem. That is good when the switch-on time is long compared
- * with the time light takes to cross the loop, and it is stretched when it is
- * not. The fields are then exact for that source. This is not a self-consistent
- * time-domain integral equation, and it is not pretending to be.
+ * A quasi-static solve on its own is acausal: it redistributes charge along the
+ * whole wire the instant the battery moves, so every segment starts radiating at
+ * once and field appears at a probe long before news from the battery could have
+ * reached it -- measured at up to 226% of the settled field, 1.75 ns early.
+ *
+ * So each segment's response is delayed by the time light takes to get there
+ * from the battery, delta_i = |c_i - battery| / c. Nothing can then reach a
+ * probe sooner than (|battery to segment| + |segment to probe|)/c, which is
+ * never less than |battery to probe|/c: the field is strictly zero outside the
+ * light sphere about the battery.
+ *
+ * Two things have to be repaired after delaying, and they are why this is
+ * tabulated rather than evaluated in closed form:
+ *
+ *   NEUTRALITY. The un-delayed charge sums to zero at a common instant; delayed,
+ *   it does not -- by up to 40% of the charge present, on the solenoid. The
+ *   excess is removed in proportion to |lambda| itself, which restores the sum
+ *   to zero exactly while staying zero wherever the charge is still zero. A
+ *   uniform subtraction would have put charge on segments the news has not
+ *   reached, which is the very thing being fixed.
+ *
+ *   CONTINUITY. The current can no longer be the closed-form expression, because
+ *   d(lambda)/dt now varies with each segment's own delay. It is re-derived by
+ *   integrating dI/ds = -d(lambda)/dt along the wire. While part of the loop is
+ *   still dark the constant of integration is fixed by requiring zero current
+ *   there -- there is no closed path yet, so no circulating current can exist.
+ *   Once the loop is lit the constant becomes the lumped I(t) again, blended
+ *   across the moment the loop closes.
+ *
+ *
+ * WHAT IS STILL APPROXIMATED
+ *
+ * The response is a delayed quasi-static one, not a self-consistent solve: the
+ * shape of lambda at each instant is still the instantaneous boundary-value
+ * solution, and I(t) still comes from a lumped circuit equation. That is sound
+ * while the switch-on time is long compared with the light-crossing time of the
+ * loop, and stretched when it is not. The fields are then exact for that source.
+ * This is not a time-domain integral equation and does not pretend to be.
  *
  * Usable both as a browser global (window.FB4) and as a CommonJS module.
  */
@@ -316,13 +348,25 @@
       Ihist[k+1] = I + dt * (k1 + 2*k2 + 2*k3 + k4) / 6;
     }
 
-    return {
+    /* --- delay each segment by its light-time from the battery ------------ */
+    let bcx = 0, bcy = 0, bcz = 0, nb = 0;
+    for (let i = 0; i < N; i++) if (type[i] === BATTERY) { bcx += cx[i]; bcy += cy[i]; bcz += cz[i]; nb++; }
+    bcx /= nb; bcy /= nb; bcz /= nb;
+    const delay = new Float64Array(N);
+    let dmax = 0;
+    for (let i = 0; i < N; i++) {
+      delay[i] = Math.hypot(cx[i]-bcx, cy[i]-bcy, cz[i]-bcz) / C;
+      if (delay[i] > dmax) dmax = delay[i];
+    }
+
+    const T = {
       N, Lloop, a, Rtot, Lind, batLen, ledLen, wireLen, compLen,
       emf: E0, tau, dt, tMax: opts.tMax, steps, rLED: opts.rLED, rho: opts.rho,
       Iss: E0 / Rtot, tauLR: Lind / Rtot, cross: Lloop / C,
       cx, cy, cz, ax, ay, az, bx, by, bz, tx, ty, tz,
       len, s: sArr, type, aTan,
       lamE, lamI, lamL, cumE, cumI, cumL, Ihist,
+      delay, dmax, battery: { x: bcx, y: bcy, z: bcz },
       outline: rs.pts,
       lo: (() => { const l = [Infinity,Infinity,Infinity];
         for (let i=0;i<N;i++){ if(cx[i]<l[0])l[0]=cx[i]; if(cy[i]<l[1])l[1]=cy[i]; if(cz[i]<l[2])l[2]=cz[i]; }
@@ -332,6 +376,129 @@
         return h; })(),
       WIRE, BATTERY, LED
     };
+    buildTables(T);
+    return T;
+  }
+
+  /* ---------------------------------------------------------------
+     the causal source, tabulated
+     --------------------------------------------------------------- */
+  /*
+   * lambda and I are no longer closed-form combinations of a few scalar
+   * histories, because every segment now runs on its own clock. They are swept
+   * once onto a time grid and interpolated afterwards, which is what keeps the
+   * clock free to move: the tables are built when the circuit is solved, never
+   * when the time changes.
+   */
+  function buildTables(T) {
+    const N = T.N;
+    // Fine enough to resolve the ramp, long enough to reach the settled state.
+    const tTab = clamp(5*T.tauLR, 25e-9, 150e-9) + T.dmax + 5*T.tau;
+    const du = Math.min(T.tau/12, 6e-11, tTab/400);
+    const K = clamp(Math.round(tTab/du) + 1, 400, 4000);
+    const dutab = tTab / (K - 1);
+
+    const LAM = new Float32Array(N*K), LAMD = new Float32Array(N*K);
+    const CUR = new Float32Array(N*K), CURD = new Float32Array(N*K);
+    const rho = new Float64Array(N), lam = new Float64Array(N), P = new Float64Array(N);
+
+    // arc length to the middle of each segment, for the mean-centring below
+    const ell = new Float64Array(N);
+    { let accl = 0;
+      for (let i = 0; i < N; i++) { ell[i] = accl + T.len[i]/2; accl += T.len[i]; } }
+
+    // pass 1: the charge, delayed and then made neutral again
+    for (let k = 0; k < K; k++) {
+      const u = k * dutab;
+      let A = 0, Aabs = 0;
+      for (let i = 0; i < N; i++) {
+        const h = histAt(T, u - T.delay[i]);
+        const r = h.e*T.lamE[i] + h.I*T.lamI[i] + h.Id*T.lamL[i];
+        rho[i] = r; A += r*T.len[i]; Aabs += Math.abs(r)*T.len[i];
+      }
+      // Take the excess out in proportion to |lambda|, so it is removed only
+      // where there is charge to remove it from, and the dark part stays dark.
+      const corr = Aabs > 0 ? A/Aabs : 0;
+      for (let i = 0; i < N; i++) LAM[i*K + k] = rho[i] - corr*Math.abs(rho[i]);
+    }
+
+    // pass 2: d(lambda)/dt by central difference on the grid
+    for (let i = 0; i < N; i++) {
+      const b = i*K;
+      for (let k = 0; k < K; k++) {
+        const km = k > 0 ? k-1 : k, kp = k < K-1 ? k+1 : k;
+        LAMD[b+k] = (LAM[b+kp] - LAM[b+km]) / ((kp-km)*dutab || 1);
+      }
+    }
+
+    // pass 3: the current, from dI/ds = -d(lambda)/dt
+    for (let k = 0; k < K; k++) {
+      const u = k * dutab;
+      let acc = 0;
+      for (let i = 0; i < N; i++) {
+        P[i] = acc + LAMD[i*K+k]*T.len[i]/2;
+        acc += LAMD[i*K+k]*T.len[i];
+      }
+      // Constant of integration. While any of the loop is still dark there is no
+      // closed path, so no current can circulate: fix it to zero there. Once the
+      // loop is lit the lumped I(t) takes over, blended across the changeover.
+      let darkSum = 0, darkN = 0, meanP = 0;
+      for (let i = 0; i < N; i++) {
+        meanP += P[i]*T.len[i];
+        if (u <= T.delay[i]) { darkSum += P[i]; darkN++; }
+      }
+      meanP /= T.Lloop;
+      const Iode = histAt(T, u).I;
+      const cDark = darkN ? darkSum/darkN : meanP;
+      const cLoop = Iode + meanP;
+      const w = smooth((u - T.dmax) / (0.5*T.dmax || 1e-12));
+      const cst = cDark + (cLoop - cDark)*w;
+      for (let i = 0; i < N; i++) CUR[i*K + k] = cst - P[i];
+    }
+
+    // pass 4: dI/dt, again by central difference
+    for (let i = 0; i < N; i++) {
+      const b = i*K;
+      for (let k = 0; k < K; k++) {
+        const km = k > 0 ? k-1 : k, kp = k < K-1 ? k+1 : k;
+        CURD[b+k] = (CUR[b+kp] - CUR[b+km]) / ((kp-km)*dutab || 1);
+      }
+    }
+
+    // What each quantity is heading for, so the table can be left early and
+    // finished analytically. Clamping at the last row instead would freeze the
+    // field a few tenths of a percent short of its own steady state, which is
+    // exactly the settled value every cross-check is against.
+    const LAMINF = new Float64Array(N), CURINF = new Float64Array(N);
+    for (let i = 0; i < N; i++) {
+      LAMINF[i] = T.emf*T.lamE[i] + T.Iss*T.lamI[i];
+      CURINF[i] = T.Iss;
+    }
+    T.K = K; T.dutab = dutab; T.tTab = tTab;
+    T.LAM = LAM; T.LAMD = LAMD; T.CUR = CUR; T.CURD = CURD;
+    T.LAMINF = LAMINF; T.CURINF = CURINF; T.ZERO = new Float64Array(N);
+  }
+
+  const smooth = x => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    return x*x*x*(10 + x*(-15 + 6*x));
+  };
+
+  // Interpolate one tabulated quantity for segment i at time u. Zero before the
+  // news arrives, held at the settled value after the table runs out.
+  function tab(T, arr, inf, i, u) {
+    if (u <= T.delay[i]) return 0;
+    const b = i*T.K;
+    if (u >= T.tTab) {
+      // past the table the EMF is long constant, so what is left is a pure
+      // exponential relaxation onto the steady value
+      const f = inf[i];
+      return f + (arr[b + T.K - 1] - f) * Math.exp(-(u - T.tTab) / T.tauLR);
+    }
+    const x = u / T.dutab, k = Math.floor(x);
+    if (k >= T.K - 1) return arr[b + T.K - 1];
+    return arr[b+k] + (arr[b+k+1] - arr[b+k]) * (x - k);
   }
 
   /* ---------------------------------------------------------------
@@ -360,14 +527,13 @@
   }
 
   // Charge density and current on segment i at time t, with their time
-  // derivatives. All four are exact linear combinations of the histories.
+  // derivatives, read from the causal tables.
   function sourceAt(T, i, t) {
-    const h = histAt(T, t);
     return {
-      lam:  h.e  * T.lamE[i] + h.I   * T.lamI[i] + h.Id   * T.lamL[i],
-      lamd: h.ed * T.lamE[i] + h.Id  * T.lamI[i] + h.Idd  * T.lamL[i],
-      cur:  h.I  - (h.ed  * T.cumE[i] + h.Id  * T.cumI[i] + h.Idd  * T.cumL[i]),
-      curd: h.Id - (h.edd * T.cumE[i] + h.Idd * T.cumI[i] + h.Iddd * T.cumL[i])
+      lam:  tab(T, T.LAM,  T.LAMINF, i, t),
+      lamd: tab(T, T.LAMD, T.ZERO,   i, t),
+      cur:  tab(T, T.CUR,  T.CURINF, i, t),
+      curd: tab(T, T.CURD, T.ZERO,   i, t)
     };
   }
 
@@ -376,7 +542,7 @@
      --------------------------------------------------------------- */
   function fieldAt(T, px, py, pz, t) {
     const N = T.N, a2 = T.a * T.a;
-    const { cx, cy, cz, tx, ty, tz, len, lamE, lamI, lamL, cumE, cumI, cumL } = T;
+    const { cx, cy, cz, tx, ty, tz, len, delay } = T;
     const kb = MU0 / (4 * Math.PI);
     let ex=0, ey=0, ez=0, Bx=0, By=0, Bz=0, v=0, dmin=Infinity, near=0;
 
@@ -387,13 +553,15 @@
       const R = Math.sqrt(r2), Rs = Math.sqrt(r2 + a2);
       const Rb = Math.sqrt(r2 + 1e-20);        // B is NOT softened -- see below
       const tr = t - R / C;
-      if (tr <= 0) continue;                       // the news has not arrived
+      // Nothing here yet if the news has not reached this segment from the
+      // battery and then reached the probe from this segment. Both halves are
+      // needed; the first is what makes the picture causal about the battery.
+      if (tr <= delay[i]) continue;
 
-      const h = histAt(T, tr);
-      const lam  = h.e  * lamE[i] + h.I   * lamI[i] + h.Id   * lamL[i];
-      const lamd = h.ed * lamE[i] + h.Id  * lamI[i] + h.Idd  * lamL[i];
-      const cur  = h.I  - (h.ed  * cumE[i] + h.Id  * cumI[i] + h.Idd  * cumL[i]);
-      const curd = h.Id - (h.edd * cumE[i] + h.Idd * cumI[i] + h.Iddd * cumL[i]);
+      const lam  = tab(T, T.LAM,  T.LAMINF, i, tr);
+      const lamd = tab(T, T.LAMD, T.ZERO,   i, tr);
+      const cur  = tab(T, T.CUR,  T.CURINF, i, tr);
+      const curd = tab(T, T.CURD, T.ZERO,   i, tr);
 
       const l = len[i];
       const Rs2 = Rs*Rs, Rs3 = Rs2*Rs;

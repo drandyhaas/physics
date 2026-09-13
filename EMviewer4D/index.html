@@ -96,6 +96,7 @@
       <div class="checks">
         <label class="check"><input type="checkbox" id="c-arrows" checked> Arrows through the volume</label>
         <label class="check"><input type="checkbox" id="c-heat" checked> Strength as colour on the slice</label>
+        <label class="check"><input type="checkbox" id="c-lines" checked> Field lines (while stopped)</label>
         <label class="check"><input type="checkbox" id="c-charge"> Surface charge (+ / −)</label>
         <label class="check"><input type="checkbox" id="c-front" checked> Sphere of radius ct</label>
         <label class="check"><input type="checkbox" id="c-frame" checked> Outline the slice</label>
@@ -104,8 +105,10 @@
       <input type="range" id="s-asize" min="35" max="220" step="5" value="100">
       <p class="hint" style="margin:9px 0 0">
         The colour map on the slice is where the wavefront shows up most clearly. The sphere
-        is a guide of radius <b>ct</b> about the origin — the circuit is not a point, so the
-        news from its nearest part arrives a little sooner than the sphere suggests.
+        has radius <b>ct</b> about the <b>battery</b>, which is the only thing that changes:
+        nothing else can respond until the news reaches it, so the field is strictly zero
+        outside it. Field lines are traced only while the clock is stopped — far too slow to
+        redo every frame, and a field line of a field still arriving is a slippery object.
       </p>
     </div>
 
