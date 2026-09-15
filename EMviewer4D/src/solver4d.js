@@ -669,6 +669,179 @@
     return { n, half, o, u, v: w, step, V, M, D, max: mx, mode: opts.mode, t };
   }
 
+
+  /*
+   * Field lines at one instant. Tracing is far too slow to redo every frame, so
+   * they are built only while the clock is stopped -- which is also the only
+   * time they mean much, a field line of a field that is still arriving being a
+   * slippery object. Seeds in the dark find no field and produce nothing, so the
+   * family grows outward on its own as the front passes.
+   */
+  function traceLine(T, mode, p0, sign, step, maxSteps, bound2, t, rk2) {
+    const pts = [[p0.x, p0.y, p0.z]];
+    let x = p0.x, y = p0.y, z = p0.z, closed = false, run = 0;
+    let lox=x, loy=y, loz=z, hix=x, hiy=y, hiz=z;
+    const shut = (step*0.9)*(step*0.9);
+    for (let i = 0; i < maxSteps; i++) {
+      const f1 = fieldAt(T, x, y, z, t);
+      if (f1.d < T.a*1.1) break;
+      const v1 = modeVec(f1, mode);
+      const m1 = Math.hypot(v1.x, v1.y, v1.z);
+      if (!(m1 > 0)) break;
+      const h = step*sign;
+      // Midpoint while stopped; a plain Euler step while the picture is moving.
+      // That halves the field evaluations, which are the whole cost of tracing,
+      // and the difference does not survive a frame going past.
+      let ux = v1.x/m1, uy = v1.y/m1, uz = v1.z/m1;
+      if (rk2) {
+        const f2 = fieldAt(T, x+ux*h*0.5, y+uy*h*0.5, z+uz*h*0.5, t);
+        const v2 = modeVec(f2, mode);
+        const m2 = Math.hypot(v2.x, v2.y, v2.z);
+        if (!(m2 > 0)) break;
+        ux = v2.x/m2; uy = v2.y/m2; uz = v2.z/m2;
+      }
+      x += ux*h; y += uy*h; z += uz*h;
+      pts.push([x, y, z]);
+      if (i > 6) {
+        const dx = x-p0.x, dy = y-p0.y, dz = z-p0.z;
+        if (dx*dx + dy*dy + dz*dz < shut) { closed = true; break; }
+      }
+      run += step;
+      lox = Math.min(lox,x); hix = Math.max(hix,x);
+      loy = Math.min(loy,y); hiy = Math.max(hiy,y);
+      loz = Math.min(loz,z); hiz = Math.max(hiz,z);
+      if (i > 15) {
+        const ex = hix-lox, ey = hiy-loy, ez = hiz-loz;
+        if (run > 4*Math.sqrt(ex*ex + ey*ey + ez*ez)) break;
+      }
+      if (x*x + y*y + z*z > bound2) break;
+    }
+    return { pts, closed };
+  }
+
+  /*
+   * Where a line is allowed to start.
+   *
+   * The lattice fills a VOLUME, and it has to: a line can be anywhere, and a
+   * lattice through the cube is the only thing that finds one without knowing
+   * where to look. But the region a loop encloses is a SHEET through that cube,
+   * of no volume at all, so the lattice lands in it only by accident -- three
+   * seeds out of a hundred and twenty-five at the default density, and when
+   * GRID comes out even, which is what the moving picture uses, not one. The
+   * inside of the loop drew nothing, and drew nothing most reliably while the
+   * movie was playing. For E that is the worst place to lose: the lines that
+   * run from the + charge across to the - charge are the ones the bench is for.
+   *
+   * The wire is the one curve guaranteed to lie on the edge of that sheet, so
+   * seed a ring of points a few radii off it and the sheet is covered by
+   * construction -- with no notion of "the plane of the loop" needed anywhere,
+   * which is as well, since the helix and saddle presets have not got one. It
+   * is also where E lines begin, E being the one field here with ends.
+   *
+   * Measured by the coverage audit in the tests, on the distance from a random
+   * point to the nearest line of its own field: inside the loop, E goes from
+   * 0.177R to 0.152R on the rectangle and 0.159R to 0.127R on the circle, E x B
+   * from 0.182R to 0.162R, and B -- whose rings thread the loop anyway and were
+   * never the problem -- does not move. Nothing outside gets worse; the line
+   * count rises by under a tenth. So it runs for every field, not just E.
+   *
+   * Four azimuths is already more than the separation rule will accept; six
+   * measured identical.
+   */
+  function seedPoints(T, GRID, span, d) {
+    const out = [];
+    const off = T.a*5, stride = Math.max(1, Math.round(T.N/(16*d)));
+    for (let i = 0; i < T.N; i += stride) {
+      const tx = T.tx[i], ty = T.ty[i], tz = T.tz[i];
+      // any unit vector across the wire; the branch only avoids the degenerate one
+      let ux, uy, uz;
+      if (Math.abs(tz) < 0.9) { ux = -ty; uy = tx; uz = 0; }
+      else                    { ux = 0; uy = -tz; uz = ty; }
+      const n = Math.hypot(ux,uy,uz) || 1; ux /= n; uy /= n; uz /= n;
+      const vx = ty*uz-tz*uy, vy = tz*ux-tx*uz, vz = tx*uy-ty*ux;
+      for (let k = 0; k < 4; k++) {
+        const c = Math.cos(k*Math.PI/2), w = Math.sin(k*Math.PI/2);
+        out.push({ x: T.cx[i]+off*(ux*c+vx*w),
+                   y: T.cy[i]+off*(uy*c+vy*w),
+                   z: T.cz[i]+off*(uz*c+vz*w) });
+      }
+    }
+    // and on the sheet itself: the cone over the wire from the loop's own
+    // centroid, which is a surface spanned by the loop whatever it is bent
+    // into. The ring above is not enough on its own for E x B, which points
+    // ALONG the wire where it is close to it -- energy running down the line --
+    // so a line started there follows the wire out and never crosses the middle.
+    let gx = 0, gy = 0, gz = 0;
+    for (let i = 0; i < T.N; i++) { gx += T.cx[i]; gy += T.cy[i]; gz += T.cz[i]; }
+    gx /= T.N; gy /= T.N; gz /= T.N;
+    for (let i = 0; i < T.N; i += stride) for (let k = 1; k <= 3; k++) {
+      const f = k/4;
+      out.push({ x: T.cx[i] + (gx-T.cx[i])*f,
+                 y: T.cy[i] + (gy-T.cy[i])*f,
+                 z: T.cz[i] + (gz-T.cz[i])*f });
+    }
+    for (let k = 0; k < GRID; k++) for (let j = 0; j < GRID; j++) for (let i = 0; i < GRID; i++)
+      out.push({ x: (2*(i+0.5)/GRID-1)*span,
+                 y: (2*(j+0.5)/GRID-1)*span,
+                 z: (2*(k+0.5)/GRID-1)*span });
+    return out;
+  }
+
+  function buildStreams(T, opts) {
+    const mode = opts.mode, t = opts.t, fast = !!opts.fast;
+    const nModes = opts.nModes || 1;
+    const R = opts.scene, d = opts.density;
+    // Spacing is set by the seed lattice, not by the separation rule: once the
+    // rule is loose enough to stop binding, the line count just tracks the
+    // lattice. So density drives GRID, and lines are shorter than they were to
+    // pay for there being many more of them -- a dense field of shorter lines
+    // reads about as well as a sparse field of long ones, and costs the same.
+    // Halving the spacing outright means about seven times the lines, because
+    // they pack in three dimensions -- measured at 556 ms per field for one
+    // paused frame, which freezes the tab with two fields up. So 1x doubles the
+    // line COUNT instead (48 -> 99 paused, 27 -> 62 moving), a spacing of about
+    // 0.79 of what it was, and the slider goes to 5x for anyone willing to pay.
+    const GRID = clamp(Math.round((fast ? 4 : 5) * d), 2, 12);
+    const MAXLINES = fast ? 140 : 240;
+    const step = R*0.022, bound2 = (R*3.2)*(R*3.2);
+    const maxSteps = fast ? (nModes > 1 ? 22 : 34) : 45;
+    const dup = R*0.075/d;
+    const occupied = new Set();
+    const key = (x,y,z) => Math.floor(x/dup)+','+Math.floor(y/dup)+','+Math.floor(z/dup);
+    const near = (x,y,z) => {
+      const i = Math.floor(x/dup), j = Math.floor(y/dup), k = Math.floor(z/dup);
+      for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++) for (let c=-1;c<=1;c++)
+        if (occupied.has((i+a)+','+(j+b)+','+(k+c))) return true;
+      return false;
+    };
+    const out = [];
+    for (const p of seedPoints(T, GRID, R*1.3, d)) {
+      if (out.length >= MAXLINES) break;
+      // Separation first: it is a handful of hash lookups, where a field
+      // evaluation is a sweep over every segment. With the lattice this fine,
+      // most candidates are rejected, and rejecting them cheaply is the
+      // difference between usable and not.
+      if (near(p.x, p.y, p.z)) continue;
+      const f = fieldAt(T, p.x, p.y, p.z, t);
+      if (f.d < T.a*2.5) continue;
+      const q = modeVec(f, mode);
+      if (!(Math.hypot(q.x,q.y,q.z) > 0)) continue;    // still dark here
+      const fwd = traceLine(T, mode, p, +1, step, maxSteps, bound2, t, !fast);
+      let line;
+      if (fwd.closed) line = fwd.pts;
+      else {
+        const back = traceLine(T, mode, p, -1, step, maxSteps, bound2, t, !fast).pts;
+        back.reverse(); back.pop();
+        line = back.concat(fwd.pts);
+      }
+      if (line.length < 8) continue;
+      for (const w of line) occupied.add(key(w[0], w[1], w[2]));
+      out.push(line);
+    }
+    return out;
+  }
+
+
   /* ---------------------------------------------------------------
      presets
      --------------------------------------------------------------- */
@@ -688,6 +861,6 @@
     EPS0, KC, MU0, C, WIRE, BATTERY, LED, PRESETS,
     clamp, lerp, densePath, resample, luFactor, luSolve, emfAt,
     buildTransient, histAt, sourceAt, fieldAt, poynting, modeVec,
-    buildVolume, buildSlice
+    buildVolume, buildSlice, traceLine, seedPoints, buildStreams
   };
 });

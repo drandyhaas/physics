@@ -167,6 +167,10 @@ arrows and charge marks on:
 1× is about double the line count of the version before it. Turn it down, or show one
 field at a time, if you would rather the movie were smooth than detailed.
 
+Those absolute numbers are from the machine the table was taken on and the code as it stood
+before the wire and sheet seeds; scale them by the fifth and the two fifths above. The
+ratios are what travel between machines — a faster one here runs a 1× frame in about 130 ms.
+
 **The clock keeps real time regardless.** It advances by the wall time each frame actually
 took, so at the default 1 ns/s a 780 ms frame moves it 0.78 ns and the transient still plays
 out over its true number of seconds, however few frames that is. The step is capped at two
@@ -180,6 +184,26 @@ which halves the field evaluations that are the whole cost of tracing; the latti
 same shape either way, so lines do not jump about as the quality changes. Seeds in the dark
 find no field and produce nothing, so the family grows outward on its own as the front
 passes.
+
+Seeds come from three places, and the lattice alone is not enough. It fills a **volume**,
+which it has to: a line can be anywhere. But the region the loop encloses is a **sheet**
+through that volume, with no volume of its own, so the lattice landed in it only by
+accident — three seeds out of a hundred and twenty-five at the default density, and when
+the lattice side came out even, which is what the moving picture uses, not one. The inside
+of the loop drew nothing, and drew nothing most reliably while the movie was playing. That
+is the worst place to lose: the **E** lines running from the + charge across to the − charge
+are a good part of what the bench is for.
+
+So the wire is seeded too — a ring of points a few radii off it, and the cone from the
+loop's centroid over it, which is a surface the loop spans whatever it is bent into. No
+notion of "the plane of the loop" appears anywhere, which is as well, since the helix and
+saddle presets have not got one. The ring alone does not do it for **E×B**, which points
+*along* the wire where it is close to it — energy running down the line — so a line started
+there follows the wire out and never crosses the middle; that is what the cone is for.
+
+This costs what it draws and no more: about a fifth more time for a stopped frame, which
+buys about an eighth more lines, and about two fifths more on the dragging path, which had
+no interior lines at all before. The per-line cost is unchanged.
 
 **Wire the news has not reached is drawn dark.** That is the honest way to show where ct
 has got to *along the wire*: it is continuous and exact, where the charge marks are
@@ -252,6 +276,17 @@ Checked against things known independently of this code:
 - **The steady state**: late in the history, λ and I settle to the DC solution, and the
   field matches what `../EMviewer3D` computes to machine precision when that sibling is
   present. It is not a dependency; the check skips if it is absent.
+- **Field-line coverage**, which is about the drawing rather than the field. Random points
+  are thrown into the scene and each is asked how far it is to the nearest drawn line of
+  its own field. Points inside the loop are told apart from points outside by the solid
+  angle the loop subtends at them — ±2π on the spanning surface, zero far off — so it needs
+  no plane and works on the presets that have not got one, and both populations are held to
+  the same band of distances from the wire so the comparison is of seeding and not of
+  falloff. Inside must come out covered like outside, no point may be stranded, and where a
+  line does pass close its tangent must agree with the field there to a degree or so — in
+  sign as well as axis, since a whole line runs with +F from end to end. This is the check
+  that the missing interior lines would have failed, and no test of the field could: nothing
+  about the field was wrong.
 
 ## Ideas not built yet
 

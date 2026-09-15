@@ -57,7 +57,7 @@
   const S = {
     ctrl: FB.PRESETS.rect.map(p => ({ x: p[0], y: p[1], z: p[2] })),
     mode: 'E',
-    arrows: true, heat: false, lines: true, charge: false, frame: true, arrowSize: 0.9,
+    arrows: true, heat: false, lines: true, charge: true, frame: true, arrowSize: 0.9,
     emf: 9, rLED: 100, rho: 0, radius: 0.003,
     cam: { az: 38, el: 22, dist: 1.15, fov: 45, target: { x: 0, y: 0, z: 0 } },
     slice: { axis: 'z', off: 0 },
@@ -109,125 +109,6 @@
   };
 
   /* ---------------- field lines in space ---------------- */
-  /*
-   * Seeded from the slice so the controls stay honest -- move the plane and you
-   * reseed -- but integrated in three dimensions, so a line is free to leave the
-   * plane immediately and generally does. B lines close into rings around the
-   * wire; E lines run from positive surface charge to negative.
-   */
-  function trace(sol, mode, p0, sign, step, maxSteps, bound2) {
-    const pts = [[p0.x, p0.y, p0.z, 0]];      // x, y, z, |F| at that point
-    let x = p0.x, y = p0.y, z = p0.z, closed = false, run = 0;
-    let lox = x, loy = y, loz = z, hix = x, hiy = y, hiz = z;
-    const shut = (step * 0.9) * (step * 0.9);
-    for (let i = 0; i < maxSteps; i++) {
-      const f1 = FB.fieldAt(sol, x, y, z);
-      if (f1.d < sol.a * 1.1) break;              // ran into the metal
-      const v1 = FB.modeVec(f1, mode);
-      const m1 = Math.hypot(v1.x, v1.y, v1.z);
-      if (!(m1 > 0)) break;
-      pts[pts.length - 1][3] = m1;             // we are standing on the last point
-      const h = step * sign;
-      const mx = x + v1.x / m1 * h * 0.5, my = y + v1.y / m1 * h * 0.5, mz = z + v1.z / m1 * h * 0.5;
-      const f2 = FB.fieldAt(sol, mx, my, mz);
-      const v2 = FB.modeVec(f2, mode);
-      const m2 = Math.hypot(v2.x, v2.y, v2.z);
-      if (!(m2 > 0)) break;
-      x += v2.x / m2 * h; y += v2.y / m2 * h; z += v2.z / m2 * h;
-      pts.push([x, y, z, m1]);
-      // A ring that comes back to its seed is finished; tracing on would redraw it.
-      if (i > 6) {
-        const dx = x - p0.x, dy = y - p0.y, dz = z - p0.z;
-        if (dx*dx + dy*dy + dz*dz < shut) { closed = true; break; }
-      }
-      // Near a curved wire a B line does not close: it winds helically around the
-      // wire, drifting along it. Left to run it spends every step adding length
-      // inside a small volume and paints a dense scribble. So stop a line once it
-      // has covered more than a few times its own extent -- a full circular ring
-      // scores 2.2 by this measure and is untouched, while the winders reach 5-6.
-      run += step;
-      lox = Math.min(lox, x); hix = Math.max(hix, x);
-      loy = Math.min(loy, y); hiy = Math.max(hiy, y);
-      loz = Math.min(loz, z); hiz = Math.max(hiz, z);
-      if (i > 15) {
-        const ex = hix - lox, ey = hiy - loy, ez = hiz - loz;
-        if (run > 4 * Math.sqrt(ex*ex + ey*ey + ez*ez)) break;
-      }
-      if (x*x + y*y + z*z > bound2) break;
-    }
-    return { pts, closed };
-  }
-
-  /*
-   * Seeds sit on a regular lattice through the VOLUME and are taken in that
-   * order, so the lines fill the space instead of fanning out of one plane.
-   *
-   * Order is what keeps the spacing even. Seeding strongest-field-first is field
-   * order rather than spatial order, and letting every point of a traced line
-   * block further seeds lets one long B ring fence off an awkward region so the
-   * next seed goes wherever the hole happens to be. The hash survives only as a
-   * duplicate guard.
-   */
-  const GRID = 4;              // seed lattice side; GRID^3 candidates
-  function buildStreams(sol, mode) {
-    const R = S.scene;
-    const step = R * 0.022, maxSteps = 120, bound2 = (R * 2.3) * (R * 2.3);
-    // Minimum separation between lines, as a fraction of the scene. Seeds are
-    // rejected where an existing line already passes, so this both removes
-    // duplicates and keeps neighbours apart. It is only ever a thinning rule:
-    // because seeds are taken in lattice order, what survives is a regular
-    // subset of the lattice rather than a greedy fill of whatever space is left.
-    // Measured over the presets, raising it from 0.05 thins the crowded ones and
-    // leaves the sparse ones alone: the 5-turn solenoid goes from 51 lines to 35
-    // and its share of sampled points lying within 0.04R of another line from
-    // 16.6% to 12.3%, the saddle from 60 to 44, while the flat loop stays at 28
-    // because its lines were never close to begin with.
-    //
-    // The solenoid does not reach zero and should not. Field lines crowd where
-    // the flux is concentrated, which inside a coil is the whole point; that
-    // density is the physics, not a placement artefact.
-    const dup = R * 0.12;
-    const occupied = new Set();
-    const key = (x, y, z) => Math.floor(x/dup) + ',' + Math.floor(y/dup) + ',' + Math.floor(z/dup);
-    const near = (x, y, z) => {
-      const i = Math.floor(x/dup), j = Math.floor(y/dup), k = Math.floor(z/dup);
-      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let c = -1; c <= 1; c++)
-        if (occupied.has((i+a) + ',' + (j+b) + ',' + (k+c))) return true;
-      return false;
-    };
-
-    const out = [];
-    const span = R * 1.15;
-    for (let k = 0; k < GRID; k++) {
-      for (let j = 0; j < GRID; j++) {
-        for (let i = 0; i < GRID; i++) {
-          const p = {
-            x: (2 * (i + 0.5) / GRID - 1) * span,
-            y: (2 * (j + 0.5) / GRID - 1) * span,
-            z: (2 * (k + 0.5) / GRID - 1) * span
-          };
-          const f = FB.fieldAt(sol, p.x, p.y, p.z);
-          if (f.d < sol.a * 2.5) continue;                 // seed is in the metal
-          const q = FB.modeVec(f, mode);
-          if (!(Math.hypot(q.x, q.y, q.z) > 0)) continue;  // nothing to follow
-          if (near(p.x, p.y, p.z)) continue;               // already on a line drawn
-          const fwd = trace(sol, mode, p, +1, step, maxSteps, bound2);
-          let line;
-          if (fwd.closed) {
-            line = fwd.pts;          // came back to the seed; tracing the other
-          } else {                   // way would only redraw the same ring
-            const back = trace(sol, mode, p, -1, step, maxSteps, bound2).pts;
-            back.reverse(); back.pop();
-            line = back.concat(fwd.pts);
-          }
-          if (line.length < 8) continue;
-          for (const w of line) occupied.add(key(w[0], w[1], w[2]));
-          out.push(line);
-        }
-      }
-    }
-    return out;
-  }
 
   /* ---------------- drawing ---------------- */
 
@@ -547,7 +428,9 @@
           mode: S.mode
         });
       } else S.sl = null;
-      S.streams = (hi && (S.lines || S.arrows)) ? buildStreams(sol, S.mode) : null;
+      S.streams = (hi && (S.lines || S.arrows))
+        ? FB.buildStreams(sol, { mode: S.mode, scene: S.scene })
+        : null;
       render();
       updateFacts(sol);
     });

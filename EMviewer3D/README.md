@@ -35,6 +35,22 @@ The field is drawn **throughout the volume**, not on a surface. Field lines are 
 a 4×4×4 lattice filling a box around the circuit, so the picture has a front and a back
 rather than being a plane seen at an angle.
 
+That lattice is not enough on its own, and could not be. It fills a **volume**, which it
+has to, since a line can be anywhere; but the region the loop encloses is a **sheet**
+through that volume, with no volume of its own, so the lattice lands in it only by
+accident — and with the side even, as 4 is, there is no layer at z = 0 to land in at all.
+The flat presets drew no line inside the loop, ever. For **E** that is the worst place to
+lose, the lines from the + surface charge across to the − charge being a good part of the
+point.
+
+So the wire is seeded too — a ring of points a few radii off it, and the cone from the
+loop's centroid over it, which is a surface the loop spans whatever it is bent into. No
+notion of "the plane of the loop" appears anywhere, which is as well, since the solenoid
+and saddle presets have not got one. The ring alone does not do it for **E×B**, which
+points *along* the wire where it is close to it — energy running down the line — so a line
+started there follows the wire out and never crosses the middle; that is what the cone is
+for.
+
 **Arrows ride on the field lines.** A field line's tangent is the field direction, so an
 arrow anchored on a line already points the right way, and no extra field evaluation is
 needed to orient it. They are spaced by screen distance, so their density stays put as you
@@ -77,7 +93,8 @@ to be standing.
 
 **Surface charge** spends one mark per equal quantum of charge, so the count of marks
 along a stretch of wire is the charge on it. The loop is held neutral by the solve, so
-there are always as many + as −.
+there are always as many + as −. It is on by default: the charge is what the **E** lines
+begin and end on, and the picture reads as an unexplained tangle without it.
 
 ## How it's computed
 
@@ -166,6 +183,17 @@ The solver is checked against things known independently rather than against its
   dependency; the check skips if it is not there.
 - **Ohm's law at the surface.** Just outside resistive wire the tangential field is ρI to
   0.3%, as it must be, since E_t is continuous across the surface.
+- **Field-line coverage**, which is about the drawing rather than the field. Random points
+  are thrown into the scene and each is asked how far it is to the nearest drawn line of
+  its own field. Points inside the loop are told apart from points outside by the solid
+  angle the loop subtends at them — ±2π on the spanning surface, zero far off — so it needs
+  no plane and works on the presets that have not got one, and both populations are held to
+  the same band of distances from the wire so the comparison is of seeding and not of
+  falloff. Inside must come out covered like outside, no point may be stranded, and where a
+  line does pass close its tangent must agree with the field there to a degree or so — in
+  sign as well as axis, since a whole line runs with +F from end to end. This is the check
+  the missing interior lines would have failed, and no test of the field could: nothing
+  about the field was wrong.
 
 ## Modelling choices worth knowing
 

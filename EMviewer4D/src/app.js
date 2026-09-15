@@ -333,120 +333,6 @@
     const lam = FB.sourceAt(T, m.i, t).lam;
     return { fill: m.ref > 0 ? clamp(Math.abs(lam)/m.ref, 0, 1) : 0, sign: lam >= 0 ? 1 : -1 };
   }
-
-  /*
-   * Field lines at one instant. Tracing is far too slow to redo every frame, so
-   * they are built only while the clock is stopped -- which is also the only
-   * time they mean much, a field line of a field that is still arriving being a
-   * slippery object. Seeds in the dark find no field and produce nothing, so the
-   * family grows outward on its own as the front passes.
-   */
-  function traceLine(T, mode, p0, sign, step, maxSteps, bound2, t, rk2) {
-    const pts = [[p0.x, p0.y, p0.z]];
-    let x = p0.x, y = p0.y, z = p0.z, closed = false, run = 0;
-    let lox=x, loy=y, loz=z, hix=x, hiy=y, hiz=z;
-    const shut = (step*0.9)*(step*0.9);
-    for (let i = 0; i < maxSteps; i++) {
-      const f1 = FB.fieldAt(T, x, y, z, t);
-      if (f1.d < T.a*1.1) break;
-      const v1 = FB.modeVec(f1, mode);
-      const m1 = Math.hypot(v1.x, v1.y, v1.z);
-      if (!(m1 > 0)) break;
-      const h = step*sign;
-      // Midpoint while stopped; a plain Euler step while the picture is moving.
-      // That halves the field evaluations, which are the whole cost of tracing,
-      // and the difference does not survive a frame going past.
-      let ux = v1.x/m1, uy = v1.y/m1, uz = v1.z/m1;
-      if (rk2) {
-        const f2 = FB.fieldAt(T, x+ux*h*0.5, y+uy*h*0.5, z+uz*h*0.5, t);
-        const v2 = FB.modeVec(f2, mode);
-        const m2 = Math.hypot(v2.x, v2.y, v2.z);
-        if (!(m2 > 0)) break;
-        ux = v2.x/m2; uy = v2.y/m2; uz = v2.z/m2;
-      }
-      x += ux*h; y += uy*h; z += uz*h;
-      pts.push([x, y, z]);
-      if (i > 6) {
-        const dx = x-p0.x, dy = y-p0.y, dz = z-p0.z;
-        if (dx*dx + dy*dy + dz*dz < shut) { closed = true; break; }
-      }
-      run += step;
-      lox = Math.min(lox,x); hix = Math.max(hix,x);
-      loy = Math.min(loy,y); hiy = Math.max(hiy,y);
-      loz = Math.min(loz,z); hiz = Math.max(hiz,z);
-      if (i > 15) {
-        const ex = hix-lox, ey = hiy-loy, ez = hiz-loz;
-        if (run > 4*Math.sqrt(ex*ex + ey*ey + ez*ez)) break;
-      }
-      if (x*x + y*y + z*z > bound2) break;
-    }
-    return { pts, closed };
-  }
-
-  // Coarser while the clock is running: fewer seeds and shorter lines, which is
-  // what buys a moving picture rather than a slide show. The lattice is the same
-  // one either way, so lines do not jump about as the quality changes.
-  function buildStreams(T, mode, t, fast, nModes) {
-    const R = S.scene;
-    const d = S.lineDensity;
-    // Spacing is set by the seed lattice, not by the separation rule: once the
-    // rule is loose enough to stop binding, the line count just tracks the
-    // lattice. So density drives GRID, and lines are shorter than they were to
-    // pay for there being many more of them -- a dense field of shorter lines
-    // reads about as well as a sparse field of long ones, and costs the same.
-    // Halving the spacing outright means about seven times the lines, because
-    // they pack in three dimensions -- measured at 556 ms per field for one
-    // paused frame, which freezes the tab with two fields up. So 1x doubles the
-    // line COUNT instead (48 -> 99 paused, 27 -> 62 moving), a spacing of about
-    // 0.79 of what it was, and the slider goes to 5x for anyone willing to pay.
-    const GRID = clamp(Math.round((fast ? 4 : 5) * d), 2, 12);
-    const MAXLINES = fast ? 140 : 240;
-    const step = R*0.022, bound2 = (R*3.2)*(R*3.2);
-    const maxSteps = fast ? (nModes > 1 ? 22 : 34) : 45;
-    const dup = R*0.075/d;
-    const occupied = new Set();
-    const key = (x,y,z) => Math.floor(x/dup)+','+Math.floor(y/dup)+','+Math.floor(z/dup);
-    const near = (x,y,z) => {
-      const i = Math.floor(x/dup), j = Math.floor(y/dup), k = Math.floor(z/dup);
-      for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++) for (let c=-1;c<=1;c++)
-        if (occupied.has((i+a)+','+(j+b)+','+(k+c))) return true;
-      return false;
-    };
-    const out = [], span = R*1.3;
-    // labelled, because a bare break leaves only the innermost of three loops
-    // and the cap would not actually cap anything
-    seed:
-    for (let k = 0; k < GRID; k++) for (let j = 0; j < GRID; j++) for (let i = 0; i < GRID; i++) {
-      const p = {
-        x: (2*(i+0.5)/GRID-1)*span,
-        y: (2*(j+0.5)/GRID-1)*span,
-        z: (2*(k+0.5)/GRID-1)*span
-      };
-      if (out.length >= MAXLINES) break seed;
-      // Separation first: it is a handful of hash lookups, where a field
-      // evaluation is a sweep over every segment. With the lattice this fine,
-      // most candidates are rejected, and rejecting them cheaply is the
-      // difference between usable and not.
-      if (near(p.x, p.y, p.z)) continue;
-      const f = FB.fieldAt(T, p.x, p.y, p.z, t);
-      if (f.d < T.a*2.5) continue;
-      const q = FB.modeVec(f, mode);
-      if (!(Math.hypot(q.x,q.y,q.z) > 0)) continue;    // still dark here
-      const fwd = traceLine(T, mode, p, +1, step, maxSteps, bound2, t, !fast);
-      let line;
-      if (fwd.closed) line = fwd.pts;
-      else {
-        const back = traceLine(T, mode, p, -1, step, maxSteps, bound2, t, !fast).pts;
-        back.reverse(); back.pop();
-        line = back.concat(fwd.pts);
-      }
-      if (line.length < 8) continue;
-      for (const w of line) occupied.add(key(w[0], w[1], w[2]));
-      out.push(line);
-    }
-    return out;
-  }
-
   function drawStreams(streams, mode, wantFar, split) {
     if (!streams) return;
     const tint = LINE_TINT[mode];
@@ -621,7 +507,8 @@
     // fields shown, because each follows its own path. Lines get shorter when
     // more than one is running so a frame stays inside its budget.
     if (S.lines) for (const m of on)
-      S.streams[m] = buildStreams(T, m, S.t, fast, on.length);
+      S.streams[m] = FB.buildStreams(T, { mode: m, t: S.t, fast: fast, nModes: on.length,
+                                          scene: S.scene, density: S.lineDensity });
     render();
   }
 

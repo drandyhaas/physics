@@ -53,7 +53,9 @@ marks per unit length is the density itself. Because the solve constrains the lo
 neutral, the + and − marks always come out equal in number. This is the mechanism behind
 both facts above: the field arrows leave the + beads and arrive at the − beads, and pushing
 wire resistance off zero visibly drags the charge into a gradient along the whole run
-instead of piling it at the terminals.
+instead of piling it at the terminals. It is on by default, here and on both sibling
+benches: the charge is where the **E** lines begin and end, and without it the picture is
+an unexplained tangle.
 
 ## Layout
 

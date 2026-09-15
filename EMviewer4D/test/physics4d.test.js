@@ -268,5 +268,111 @@ else {
         'successive differences shrink ' + (d1/d2).toFixed(1) + 'x (quadratic is 4x)');
 }
 
+/* ------------------------------------------------------------------ */
+section('Field-line coverage: a random point has a line of its own nearby');
+/*
+ * The lines ARE the picture, and their failure mode is not being wrong but
+ * being absent: a region draws nothing and reads as no field rather than as no
+ * line. That is what happened to the inside of the loop. The seeds fill a
+ * volume; the region a loop encloses is a sheet through that volume with no
+ * volume of its own, so the lattice landed in it only by accident, and the E
+ * lines running from the + charge across to the - charge -- which is the thing
+ * the bench is for -- were simply not drawn.
+ *
+ * Nothing about the field was wrong, so no field test could catch it. So audit
+ * the drawing from the other end: throw random points into the scene and ask,
+ * of each, how far it is to the nearest drawn line of that same field. Judge it
+ * against the region OUTSIDE the loop, which was never in doubt, with both
+ * populations held to the same distance from the wire so the comparison is of
+ * seeding and not of falloff.
+ */
+{
+  // A deterministic stream, so a failure is the same failure next run.
+  const rng = seed => { let s = seed >>> 0;
+    return () => { s = (s*1664525 + 1013904223) >>> 0; return s / 4294967296; }; };
+
+  // Van Oosterom-Strackee, over a fan of the wire polygon: the solid angle the
+  // loop subtends at a point. It is +-2pi on the surface the loop spans and
+  // falls to zero far away, so |Omega| > pi says "inside the loop" without any
+  // reference to a plane -- which the tilted and non-planar presets lack.
+  const solidAngle = (T, p) => {
+    const a0 = T.cx[0]-p.x, a1 = T.cy[0]-p.y, a2 = T.cz[0]-p.z;
+    const na = Math.hypot(a0, a1, a2);
+    let om = 0;
+    for (let i = 1; i < T.N-1; i++) {
+      const b0 = T.cx[i]-p.x,   b1 = T.cy[i]-p.y,   b2 = T.cz[i]-p.z;
+      const c0 = T.cx[i+1]-p.x, c1 = T.cy[i+1]-p.y, c2 = T.cz[i+1]-p.z;
+      const nb = Math.hypot(b0,b1,b2), nc = Math.hypot(c0,c1,c2);
+      const det = a0*(b1*c2-b2*c1) - a1*(b0*c2-b2*c0) + a2*(b0*c1-b1*c0);
+      const ab = a0*b0+a1*b1+a2*b2, ac = a0*c0+a1*c1+a2*c2, bc = b0*c0+b1*c1+b2*c2;
+      om += 2*Math.atan2(det, na*nb*nc + ab*nc + ac*nb + bc*na);
+    }
+    return om;
+  };
+  const median = a => { const b = a.slice().sort((x,y) => x-y); return b[b.length >> 1]; };
+
+  const t = 55e-9;                       // settled, so this is about drawing only
+  for (const preset of ['rect', 'circle', 'tilt']) {
+    const T = build({ ctrl: ctrlOf(F.PRESETS[preset]) });
+    let R = 0.05;
+    for (let k = 0; k < 3; k++) R = Math.max(R, Math.abs(T.lo[k]), Math.abs(T.hi[k]));
+
+    // Points in a ball around the loop, held to a band of distances from the
+    // wire: near enough that a line ought to pass, far enough to be out of the
+    // metal. Inside and outside are then being asked the same question.
+    const pts = [];
+    const rnd = rng(20240917);
+    while (pts.length < 1500) {
+      const x = (2*rnd()-1)*1.3*R, y = (2*rnd()-1)*1.3*R, z = (2*rnd()-1)*1.3*R;
+      if (Math.hypot(x, y, z) > 1.3*R) continue;
+      const f = F.fieldAt(T, x, y, z, t);
+      if (!(f.d > 0.08*R && f.d < 0.7*R)) continue;
+      pts.push({ x, y, z, f, inside: Math.abs(solidAngle(T, { x, y, z })) > Math.PI });
+    }
+
+    section('  ' + preset + ', ' + pts.length + ' random points (' +
+            pts.filter(p => p.inside).length + ' of them inside the loop)');
+    for (const mode of ['E', 'B', 'S']) {
+      const streams = F.buildStreams(T, { mode, t, fast: false, nModes: 1, scene: R, density: 1 });
+      const din = [], dout = [], ang = [];
+      for (const p of pts) {
+        const q = F.modeVec(p.f, mode);
+        if (!(Math.hypot(q.x, q.y, q.z) > 0)) continue;
+        let best = Infinity, bl = null, bi = -1;
+        for (const line of streams) for (let i = 0; i < line.length; i++) {
+          const dx = line[i][0]-p.x, dy = line[i][1]-p.y, dz = line[i][2]-p.z;
+          const d2 = dx*dx + dy*dy + dz*dz;
+          if (d2 < best) { best = d2; bl = line; bi = i; }
+        }
+        const d = Math.sqrt(best)/R;
+        (p.inside ? din : dout).push(d);
+        // Where a line does pass close, it had better be going the way the
+        // field goes -- and the same way, not merely along the same axis: the
+        // backward half is reversed before it is joined on, so a whole line
+        // runs with +F from end to end.
+        if (d < 0.06 && bi < bl.length-1) {
+          const ux = bl[bi+1][0]-bl[bi][0], uy = bl[bi+1][1]-bl[bi][1], uz = bl[bi+1][2]-bl[bi][2];
+          const g = F.modeVec(F.fieldAt(T, bl[bi][0], bl[bi][1], bl[bi][2], t), mode);
+          const un = Math.hypot(ux, uy, uz), gn = Math.hypot(g.x, g.y, g.z);
+          if (un > 0 && gn > 0)
+            ang.push(Math.acos(Math.min(1, Math.max(-1, (ux*g.x + uy*g.y + uz*g.z)/(un*gn)))) * 180/Math.PI);
+        }
+      }
+      const mIn = median(din), mOut = median(dout), mAng = median(ang);
+      check(mode + ': the inside of the loop is covered like the outside',
+            mIn < 1.35*mOut,
+            'nearest line: ' + mIn.toFixed(3) + 'R inside vs ' + mOut.toFixed(3) + 'R outside' +
+            ' (ratio ' + (mIn/mOut).toFixed(2) + 'x)');
+      check(mode + ': and no random point is stranded far from every line',
+            din.concat(dout).filter(d => d > 0.45).length === 0,
+            'worst ' + Math.max(...din, ...dout).toFixed(3) + 'R of ' + (din.length+dout.length) + ' points');
+      check(mode + ': a line that passes close is going the way the field goes',
+            mAng < 3 && Math.max(...ang) < 25,
+            'tangent vs field: median ' + mAng.toFixed(1) + ' deg, worst ' +
+            Math.max(...ang).toFixed(1) + ' deg over ' + ang.length + ' points');
+    }
+  }
+}
+
 console.log('\n' + (failures ? failures + ' CHECK(S) FAILED' : 'all checks passed') + '\n');
 process.exit(failures ? 1 : 0);
