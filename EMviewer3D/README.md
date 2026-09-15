@@ -61,12 +61,31 @@ Arrow length is a pixel count converted back to a world length at that point's d
 the projection foreshortens it — an arrow pointing at the camera looks short, which is the
 depth cue.
 
-Seeds are taken in lattice order, and one is rejected where an existing line already
-passes — a minimum separation of 0.12 of the scene radius. Order is what keeps the spacing
-even: seeding strongest-field-first puts the lines at intervals that look arbitrary.
-Because the order is regular, the separation rule only ever thins, leaving a regular subset
-of the lattice. It thins where thinning is needed and nowhere else: the solenoid drops from
-51 lines to 35, the saddle from 60 to 44, the flat loop stays at 28.
+Seeds are taken in order and one is rejected where an existing line already passes. How
+close is "already" is the interesting part, and it is **not** a fixed distance.
+
+A field line is a flux tube. There is no charge off the wire, so there is no divergence off
+the wire either — that is checked in the tests rather than assumed — and if every line
+carries the same flux then the number crossing unit area goes as |**F**| and the spacing
+between them as |**F**|^(−½). That is the one quantitative thing the *pattern* of lines
+says, as against the paths themselves: **where the lines crowd, the field is strong**. It is
+the oldest convention in the subject and it is worth actually having.
+
+A separation rule at a fixed fraction of the scene quietly destroys it, because it thins
+hardest exactly where the crowding is the physics. So the rule scales with the field
+instead. Measured by regressing the distance to the nearest line on |**F**| over random
+points, the fixed rule held **E** to |E|^0.76 on the rectangle where flux says |E|^1; the
+scaled rule gives **0.90 on the rectangle and 1.01 on the circle**, for the same number of
+lines and the same time. **B** goes from 0.49 to 0.75.
+
+The clamp on it is not a fudge. |**F**| runs away at the wire and to nothing far out, and an
+unclamped rule answers that with a hairball against the metal and an empty far field —
+the whole line budget spent where the picture was already legible. A bit over a factor of
+two either side of the median covers about twenty in |**F**|, which is the range actually on
+screen.
+
+The three seed families are taken round-robin in proportion to their lengths rather than one
+after another, so that whatever thins them thins all three alike.
 
 Tracing stops on two conditions besides running out of steps or leaving the box. A line
 that returns to its own seed has **closed**, and is finished — without that test a ring is

@@ -370,5 +370,108 @@ section('Field-line coverage: a random point has a line of its own nearby');
   }
 }
 
+/* ------------------------------------------------------------------ */
+section('Field-line density tracks field strength');
+/*
+ * A field line is a flux tube. Off the wire there is no charge, so E has no
+ * divergence there -- checked below rather than assumed -- and if every line
+ * carries the same flux then the number crossing unit area goes as |F| and the
+ * spacing between them as |F|^(-1/2). That is the one quantitative thing the
+ * PATTERN of lines says, as against the paths themselves: where they crowd, the
+ * field is strong.
+ *
+ * A separation rule at a fixed fraction of the scene destroys it, because it
+ * thins hardest exactly where the crowding is the physics. Measured by
+ * regressing log(distance to the nearest line) on log|F| over random points, a
+ * slope of -1/2 is density proportional to |F| and a slope of 0 is density
+ * independent of it. The fixed rule gave |F|^0.76 for E on the rectangle;
+ * scaling the rule with the field gives |F|^0.96.
+ */
+{
+  const rng = seed => { let s = seed >>> 0;
+    return () => { s = (s*1664525 + 1013904223) >>> 0; return s / 4294967296; }; };
+  const median = a => { const b = a.slice().sort((x,y) => x-y); return b[b.length >> 1]; };
+
+  // The premise: flux out of a small cube against the integral of |E| over its
+  // faces. A finite divergence shows up as a ratio falling like h and levelling
+  // at the divergence itself; this falls to the discretisation floor instead.
+  {
+    const sol = build({});
+    const box = (x, y, z, h, n) => {
+      let flux = 0, mag = 0;
+      for (let a = 0; a < 3; a++) for (const sgn of [1, -1])
+        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+          const c = [x, y, z], b = (a+1)%3, d = (a+2)%3;
+          c[a] += sgn*h; c[b] += (2*(i+0.5)/n - 1)*h; c[d] += (2*(j+0.5)/n - 1)*h;
+          const f = FB.fieldAt(sol, c[0], c[1], c[2]);
+          const E = [f.ex, f.ey, f.ez], dA = (2*h/n)*(2*h/n);
+          flux += sgn*E[a]*dA;
+          mag  += Math.hypot(E[0], E[1], E[2])*dA;
+        }
+      return Math.abs(flux)/mag;
+    };
+    let worst = 0;
+    for (const p of [[0,0,0.05],[0.1,0.05,0.03],[0.2,0,0.08],[0,0.1,0.06]])
+      worst = Math.max(worst, box(p[0], p[1], p[2], 0.01, 8));
+    check('E really is divergence-free off the wire, so flux tubes are exact',
+          worst < 1e-3, 'worst flux leak ' + worst.toExponential(1) + ' of the |E| over the same faces');
+  }
+
+  const exponent = (sol, R, mode) => {
+    const streams = FB.buildStreams(sol, { mode, scene: R });
+    const rnd = rng(31415927), pts = [];
+    while (pts.length < 2000) {
+      const x = (2*rnd()-1)*1.1*R, y = (2*rnd()-1)*1.1*R, z = (2*rnd()-1)*1.1*R;
+      if (Math.hypot(x, y, z) > 1.1*R) continue;
+      const f = FB.fieldAt(sol, x, y, z);
+      if (!(f.d > 0.06*R && f.d < 0.8*R)) continue;
+      const q = FB.modeVec(f, mode);
+      const m = Math.hypot(q.x, q.y, q.z);
+      if (!(m > 0)) continue;
+      let best = Infinity;
+      for (const line of streams) for (let i = 0; i < line.length; i++) {
+        const dx = line[i][0]-x, dy = line[i][1]-y, dz = line[i][2]-z;
+        const d2 = dx*dx + dy*dy + dz*dz;
+        if (d2 < best) best = d2;
+      }
+      pts.push({ m, d: Math.sqrt(best)/R });
+    }
+    pts.sort((a, b) => a.m - b.m);
+    const B = 10, lx = [], ly = [];
+    for (let b = 0; b < B; b++) {
+      const s = pts.slice(Math.floor(b*pts.length/B), Math.floor((b+1)*pts.length/B));
+      lx.push(Math.log(median(s.map(p => p.m))));
+      ly.push(Math.log(median(s.map(p => p.d))));
+    }
+    const mx = lx.reduce((a,b)=>a+b,0)/B, my = ly.reduce((a,b)=>a+b,0)/B;
+    let num = 0, den = 0;
+    for (let i = 0; i < B; i++) { num += (lx[i]-mx)*(ly[i]-my); den += (lx[i]-mx)**2; }
+    return { exp: -2*(num/den), lines: streams.length };
+  };
+
+  for (const preset of ['rect', 'circle']) {
+    const sol = build({ ctrl: ctrlOf(FB.PRESETS[preset]) });
+    let R = 0.05;
+    for (let k = 0; k < 3; k++) R = Math.max(R, Math.abs(sol.lo[k]), Math.abs(sol.hi[k]));
+    const e = exponent(sol, R, 'E');
+    check(preset + ': E line density goes as |E|, near enough',
+          e.exp > 0.7, 'density ~ |E|^' + e.exp.toFixed(2) + ' over ' + e.lines +
+          ' lines (1.00 is proportional, 0 is uniform; a fixed rule gave 0.76)');
+  }
+  // B and E x B are reported rather than pinned: B is a ring field whose lines
+  // thread the loop whatever the rule does, and the flux argument does not hold
+  // for E x B in the first place, since it is not the field of anything.
+  {
+    const sol = build({});
+    let R = 0.05;
+    for (let k = 0; k < 3; k++) R = Math.max(R, Math.abs(sol.lo[k]), Math.abs(sol.hi[k]));
+    for (const mode of ['B', 'S']) {
+      const e = exponent(sol, R, mode);
+      check('rect: ' + mode + ' density at least rises with strength',
+            e.exp > 0.15, 'density ~ |' + mode + '|^' + e.exp.toFixed(2));
+    }
+  }
+}
+
 console.log('\n' + (failures ? failures + ' CHECK(S) FAILED' : 'all checks passed') + '\n');
 process.exit(failures ? 1 : 0);

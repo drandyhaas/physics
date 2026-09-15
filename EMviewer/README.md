@@ -46,6 +46,24 @@ in-plane too and the whole picture is honestly two-dimensional.
 
 Nothing in the rendering is hand-drawn. The field-line shapes are the solution.
 
+**The lines are evenly spaced, and that is deliberate.** The old convention is that line
+density shows field strength, and where the field really is two-dimensional it is a theorem:
+lines are flux tubes, so if each carries equal flux the number crossing unit length goes as
+|**E**|. The bench in space earns it — there is no charge off the wire, so no divergence off
+the wire, and [`../EMviewer3D`](../EMviewer3D/) holds its **E** lines to |E|^0.9 on purpose.
+
+It is not available here, and not for want of trying. The kernel is the three-dimensional
+1/r summed over a loop that happens to lie flat, so what is on screen is a *plane through* a
+three-dimensional field. The in-plane divergence is −∂E_z/∂z, which does not vanish: flux
+leaves the plane. Measured, 6.4% of the |**E**| around a 2 cm square, falling like the square
+does — a finite divergence, not a rounding error, and it is checked in the tests. In-plane
+lines are therefore not flux tubes: they converge and diverge for reasons that have nothing
+to do with |**E**|.
+
+So the spacing here is even and strength is carried by colour instead — on the arrows, and
+on the background map. Forcing the spacing to track |**E**| would look like the theorem while
+meaning nothing, which is worse than leaving it alone.
+
 **Surface charge** turns λ — the thing actually solved for above — into the picture it
 deserves. Rather than scale a glyph by λ, the overlay spends one mark per equal quantum of
 charge, so the count of marks along any stretch of wire *is* the charge on that stretch and

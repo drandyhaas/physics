@@ -176,5 +176,63 @@ for (const q of [{ N: 140, per: 34, cell: 10, label: 'drag ' }, { N: 260, per: 6
   console.log(`  ${q.label}  solve ${tSolve.toFixed(0)}ms   grid(E) ${tE}ms   grid(E+B) ${tEB}ms`);
 }
 
+/* ------------------------------------------------------------------ */
+section('The in-plane field is a slice, not a two-dimensional field');
+/*
+ * Worth pinning down, because it decides how the field lines may be drawn.
+ *
+ * The textbook convention is that line density shows field strength, and in a
+ * genuinely two-dimensional field it is a theorem: lines are flux tubes, so if
+ * each carries equal flux the number crossing unit length goes as |E|. The
+ * bench in space earns that -- there is no charge off the wire, so no
+ * divergence off the wire either, and EMviewer3D holds its E lines to |E|^0.9
+ * deliberately.
+ *
+ * Here it is not available, and not for want of trying. The kernel is the
+ * three-dimensional 1/r summed over a loop that happens to lie flat, so what is
+ * on screen is a PLANE THROUGH a three-dimensional field. The in-plane
+ * divergence is then -dEz/dz, which does not vanish: flux leaves the plane.
+ * In-plane lines are not flux tubes, the flux between neighbours is not
+ * conserved along them, and they converge and diverge for reasons that have
+ * nothing to do with |E|.
+ *
+ * So this bench spaces its lines evenly instead, and carries strength by colour
+ * -- on the arrows, and on the background map. Forcing the spacing to track |E|
+ * would look like the theorem while meaning nothing, which is worse than
+ * leaving it alone.
+ *
+ * The test: flux of the in-plane E out of a small square, against the integral
+ * of |E| round it. A real divergence makes that ratio fall off like h; a
+ * divergence-free field would sit at the discretisation floor instead, which is
+ * where the same measurement puts the field in space (1e-4 and falling).
+ */
+{
+  const sol = build({ N: 400, per: 60 });
+  const square = (x, y, h, n) => {
+    let flux = 0, mag = 0;
+    for (let a = 0; a < 2; a++) for (const sgn of [1, -1])
+      for (let i = 0; i < n; i++) {
+        const c = [x, y];
+        c[a] += sgn*h;
+        c[(a+1)%2] += (2*(i+0.5)/n - 1)*h;
+        const f = FB.fieldAt(sol, c[0], c[1]);
+        const dl = 2*h/n;
+        flux += sgn*(a ? f.ey : f.ex)*dl;
+        mag  += Math.hypot(f.ex, f.ey)*dl;
+      }
+    return Math.abs(flux)/mag;
+  };
+  const r1 = square(0.2, 0, 0.02, 24);
+  const r2 = square(0.2, 0, 0.01, 24);
+  const r3 = square(0.2, 0, 0.005, 24);
+  check('flux leaks out of the plane, so in-plane lines are not flux tubes',
+        r2 > 0.02,
+        'leak is ' + (100*r2).toFixed(1) + '% of the |E| round a 2 cm square, not a rounding error');
+  check('and it is a real divergence, not a discretisation artefact',
+        Math.abs(r1/r2 - 2) < 0.35 && Math.abs(r2/r3 - 2) < 0.35,
+        'halving the square halves the leak (' + r1.toFixed(3) + ' -> ' + r2.toFixed(3) +
+        ' -> ' + r3.toFixed(3) + '), which is a finite div E and not noise');
+}
+
 console.log('\n' + (failures ? failures + ' FAILURE(S)' : 'all checks passed'));
 process.exit(failures ? 1 : 0);

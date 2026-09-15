@@ -516,7 +516,7 @@
    * costs under a tenth more lines, so it runs for all of them.
    */
   function seedPoints(sol, GRID, span) {
-    const out = [];
+    const ring = [], cone = [], lattice = [];
     const off = sol.a * 5, stride = Math.max(1, Math.round(sol.N / 16));
     for (let i = 0; i < sol.N; i += stride) {
       const tx = sol.tx[i], ty = sol.ty[i], tz = sol.tz[i];
@@ -528,9 +528,9 @@
       const vx = ty*uz - tz*uy, vy = tz*ux - tx*uz, vz = tx*uy - ty*ux;
       for (let k = 0; k < 4; k++) {
         const c = Math.cos(k * Math.PI / 2), w = Math.sin(k * Math.PI / 2);
-        out.push({ x: sol.cx[i] + off*(ux*c + vx*w),
-                   y: sol.cy[i] + off*(uy*c + vy*w),
-                   z: sol.cz[i] + off*(uz*c + vz*w) });
+        ring.push({ x: sol.cx[i] + off*(ux*c + vx*w),
+                    y: sol.cy[i] + off*(uy*c + vy*w),
+                    z: sol.cz[i] + off*(uz*c + vz*w) });
       }
     }
     // and on the sheet itself: the cone over the wire from the loop's own
@@ -543,14 +543,35 @@
     gx /= sol.N; gy /= sol.N; gz /= sol.N;
     for (let i = 0; i < sol.N; i += stride) for (let k = 1; k <= 3; k++) {
       const f = k / 4;
-      out.push({ x: sol.cx[i] + (gx - sol.cx[i])*f,
-                 y: sol.cy[i] + (gy - sol.cy[i])*f,
-                 z: sol.cz[i] + (gz - sol.cz[i])*f });
+      cone.push({ x: sol.cx[i] + (gx - sol.cx[i])*f,
+                  y: sol.cy[i] + (gy - sol.cy[i])*f,
+                  z: sol.cz[i] + (gz - sol.cz[i])*f });
     }
     for (let k = 0; k < GRID; k++) for (let j = 0; j < GRID; j++) for (let i = 0; i < GRID; i++)
-      out.push({ x: (2 * (i + 0.5) / GRID - 1) * span,
-                 y: (2 * (j + 0.5) / GRID - 1) * span,
-                 z: (2 * (k + 0.5) / GRID - 1) * span });
+      lattice.push({ x: (2 * (i + 0.5) / GRID - 1) * span,
+                     y: (2 * (j + 0.5) / GRID - 1) * span,
+                     z: (2 * (k + 0.5) / GRID - 1) * span });
+    return [ring, cone, lattice];
+  }
+
+  // Take the families round-robin, each in proportion to its own length, so
+  // that whatever thins them thins all three alike rather than eating the first
+  // one whole. Nothing caps the count on this bench, but the separation rule is
+  // order-dependent -- first come, first served -- so the order still decides
+  // which lines survive it.
+  function roundRobin(fams) {
+    const out = [], at = fams.map(() => 0);
+    let total = 0;
+    for (const f of fams) total += f.length;
+    for (let n = 0; n < total; n++) {
+      let pick = -1, behind = Infinity;
+      for (let i = 0; i < fams.length; i++) {
+        if (at[i] >= fams[i].length) continue;
+        const frac = at[i] / fams[i].length;
+        if (frac < behind) { behind = frac; pick = i; }
+      }
+      out.push(fams[pick][at[pick]++]);
+    }
     return out;
   }
 
@@ -558,37 +579,87 @@
     const mode = opts.mode, R = opts.scene;
     const GRID = 4;            // seed lattice side; GRID^3 candidates
     const step = R * 0.022, maxSteps = 120, bound2 = (R * 2.3) * (R * 2.3);
-    // Minimum separation between lines, as a fraction of the scene. Seeds are
-    // rejected where an existing line already passes, so this both removes
-    // duplicates and keeps neighbours apart. It is only ever a thinning rule:
-    // because seeds are taken in lattice order, what survives is a regular
-    // subset of the lattice rather than a greedy fill of whatever space is left.
-    // Measured over the presets, raising it from 0.05 thins the crowded ones and
-    // leaves the sparse ones alone: the 5-turn solenoid goes from 51 lines to 35
-    // and its share of sampled points lying within 0.04R of another line from
-    // 16.6% to 12.3%, the saddle from 60 to 44, while the flat loop stays at 28
-    // because its lines were never close to begin with.
-    //
-    // The solenoid does not reach zero and should not. Field lines crowd where
-    // the flux is concentrated, which inside a coil is the whole point; that
-    // density is the physics, not a placement artefact.
-    const dup = R * 0.12;
-    const occupied = new Set();
-    const key = (x, y, z) => Math.floor(x/dup) + ',' + Math.floor(y/dup) + ',' + Math.floor(z/dup);
-    const near = (x, y, z) => {
-      const i = Math.floor(x/dup), j = Math.floor(y/dup), k = Math.floor(z/dup);
-      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let c = -1; c <= 1; c++)
-        if (occupied.has((i+a) + ',' + (j+b) + ',' + (k+c))) return true;
+    /* --- how close two lines may come ------------------------------------
+       A field line is a flux tube. E has no divergence anywhere off the wire --
+       all the charge is ON the wire -- which is checked in the tests, so if
+       every line carries the same flux then the number crossing unit area goes
+       as |F| and the spacing between them as |F|^(-1/2). That IS the statement
+       "where the lines crowd, the field is strong", and it is the one piece of
+       quantitative information the line PATTERN carries, as against the paths
+       themselves.
+
+       A separation rule at a fixed fraction of the scene destroys it, because
+       it thins hardest exactly where the crowding is the physics. Measured on
+       the settled rectangle, the fixed rule held the line density to |F|^0.76
+       for E, |F|^0.49 for B and |F|^0.37 for E x B, where flux says |F|^1.
+
+       The clamp is not a fudge. |F| runs away at the wire and to nothing far
+       out, and an unclamped rule answers that with a hairball against the metal
+       and an empty far field -- the whole line budget spent where the picture
+       was already legible. A bit over a factor of two either side of the median
+       covers about twenty in |F|, which is the range actually on screen. */
+    const dup = R * 0.155;     // the scaled rule packs tighter than a fixed one
+                               // at the same nominal spacing, so the base opens
+                               // out to hold the line count
+    const RMIN = 0.45, RMAX = 2.2;
+
+    /* Candidates and the field at each, gathered first. That costs a field
+       sweep per candidate -- well under a millisecond against the tens that
+       tracing costs -- and buys the typical |F| over the scene, which is what
+       the rule has to be measured against. */
+    const cand = [];
+    let ref = 0;
+    {
+      const mags = [];
+      for (const fam of seedPoints(sol, GRID, R * 1.15)) {
+        const keep = [];
+        for (const p of fam) {
+          const f = fieldAt(sol, p.x, p.y, p.z);
+          if (f.d < sol.a * 2.5) continue;               // seed is in the metal
+          const q = modeVec(f, mode);
+          const m = Math.hypot(q.x, q.y, q.z);
+          if (!(m > 0)) continue;                        // nothing to follow
+          keep.push({ x: p.x, y: p.y, z: p.z, m });
+          mags.push(m);
+        }
+        cand.push(keep);
+      }
+      if (!mags.length) return [];
+      mags.sort((x, y) => x - y);
+      ref = mags[mags.length >> 1];       // median: |F| spans decades at the wire
+    }
+    const sep = m => dup * clamp(Math.sqrt(ref/m), RMIN, RMAX);
+
+    /* The radius varies from point to point now, so a set of occupied cell keys
+       will not do it: the test has to be a real distance. Cells are the LARGEST
+       radius the rule can ask for, which makes the 27 neighbours enough to cover
+       any of them, and each cell keeps the line points that fell in it. */
+    const cell = dup * RMAX;
+    const grid = new Map();
+    const ckey = (x, y, z) => Math.floor(x/cell) + ',' + Math.floor(y/cell) + ',' + Math.floor(z/cell);
+    const drop = (x, y, z) => {
+      const k = ckey(x, y, z);
+      let arr = grid.get(k);
+      if (!arr) grid.set(k, arr = []);
+      arr.push(x, y, z);
+    };
+    const crowded = (x, y, z, r) => {
+      const r2 = r*r;
+      const i = Math.floor(x/cell), j = Math.floor(y/cell), k = Math.floor(z/cell);
+      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let c = -1; c <= 1; c++) {
+        const arr = grid.get((i+a) + ',' + (j+b) + ',' + (k+c));
+        if (!arr) continue;
+        for (let n = 0; n < arr.length; n += 3) {
+          const dx = arr[n]-x, dy = arr[n+1]-y, dz = arr[n+2]-z;
+          if (dx*dx + dy*dy + dz*dz < r2) return true;
+        }
+      }
       return false;
     };
 
     const out = [];
-    for (const p of seedPoints(sol, GRID, R * 1.15)) {
-      const f = fieldAt(sol, p.x, p.y, p.z);
-      if (f.d < sol.a * 2.5) continue;                 // seed is in the metal
-      const q = modeVec(f, mode);
-      if (!(Math.hypot(q.x, q.y, q.z) > 0)) continue;  // nothing to follow
-      if (near(p.x, p.y, p.z)) continue;               // already on a line drawn
+    for (const p of roundRobin(cand)) {
+      if (crowded(p.x, p.y, p.z, sep(p.m))) continue;   // already on a line drawn
       const fwd = trace(sol, mode, p, +1, step, maxSteps, bound2);
       let line;
       if (fwd.closed) {
@@ -599,7 +670,7 @@
         line = back.concat(fwd.pts);
       }
       if (line.length < 8) continue;
-      for (const w of line) occupied.add(key(w[0], w[1], w[2]));
+      for (const w of line) drop(w[0], w[1], w[2]);
       out.push(line);
     }
     return out;

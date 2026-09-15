@@ -205,6 +205,22 @@ This costs what it draws and no more: about a fifth more time for a stopped fram
 buys about an eighth more lines, and about two fifths more on the dragging path, which had
 no interior lines at all before. The per-line cost is unchanged.
 
+The families are taken round-robin in proportion to their lengths rather than one after
+another. The cap on lines cuts whatever is still in the list, so end-to-end let the first
+family eat the whole budget: at 5× the wire ring took all 240 lines and the volume got
+nothing at all, and the density slider had stopped adding coverage and was just packing
+lines round the wire.
+
+**How close two lines may come scales with the field.** A field line is a flux tube, and
+there is no charge off the wire, so equal flux per line means the number crossing unit area
+goes as |**F**| and the spacing as |**F**|^(−½) — which is the old convention that where the
+lines crowd, the field is strong. A rule at a fixed fraction of the scene destroys it,
+thinning hardest exactly where the crowding is the physics. Scaling the rule moves **E**
+from |E|^0.37 to |E|^0.54 here, **B** from 0.33 to 0.48 and **E×B** from 0.02 to 0.43, for
+the same line count and the same time. The sibling bench in
+[`../EMviewer3D`](../EMviewer3D/) reaches 0.90 to 1.01 on the same measure; this one is
+denser and its clamp binds harder, so it gets less of the way there.
+
 **Wire the news has not reached is drawn dark.** That is the honest way to show where ct
 has got to *along the wire*: it is continuous and exact, where the charge marks are
 quantised and cannot be.

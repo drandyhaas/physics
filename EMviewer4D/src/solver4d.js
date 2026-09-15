@@ -749,7 +749,7 @@
    * measured identical.
    */
   function seedPoints(T, GRID, span, d) {
-    const out = [];
+    const ring = [], cone = [], lattice = [];
     const off = T.a*5, stride = Math.max(1, Math.round(T.N/(16*d)));
     for (let i = 0; i < T.N; i += stride) {
       const tx = T.tx[i], ty = T.ty[i], tz = T.tz[i];
@@ -761,9 +761,9 @@
       const vx = ty*uz-tz*uy, vy = tz*ux-tx*uz, vz = tx*uy-ty*ux;
       for (let k = 0; k < 4; k++) {
         const c = Math.cos(k*Math.PI/2), w = Math.sin(k*Math.PI/2);
-        out.push({ x: T.cx[i]+off*(ux*c+vx*w),
-                   y: T.cy[i]+off*(uy*c+vy*w),
-                   z: T.cz[i]+off*(uz*c+vz*w) });
+        ring.push({ x: T.cx[i]+off*(ux*c+vx*w),
+                    y: T.cy[i]+off*(uy*c+vy*w),
+                    z: T.cz[i]+off*(uz*c+vz*w) });
       }
     }
     // and on the sheet itself: the cone over the wire from the loop's own
@@ -776,14 +776,42 @@
     gx /= T.N; gy /= T.N; gz /= T.N;
     for (let i = 0; i < T.N; i += stride) for (let k = 1; k <= 3; k++) {
       const f = k/4;
-      out.push({ x: T.cx[i] + (gx-T.cx[i])*f,
-                 y: T.cy[i] + (gy-T.cy[i])*f,
-                 z: T.cz[i] + (gz-T.cz[i])*f });
+      cone.push({ x: T.cx[i] + (gx-T.cx[i])*f,
+                  y: T.cy[i] + (gy-T.cy[i])*f,
+                  z: T.cz[i] + (gz-T.cz[i])*f });
     }
     for (let k = 0; k < GRID; k++) for (let j = 0; j < GRID; j++) for (let i = 0; i < GRID; i++)
-      out.push({ x: (2*(i+0.5)/GRID-1)*span,
-                 y: (2*(j+0.5)/GRID-1)*span,
-                 z: (2*(k+0.5)/GRID-1)*span });
+      lattice.push({ x: (2*(i+0.5)/GRID-1)*span,
+                     y: (2*(j+0.5)/GRID-1)*span,
+                     z: (2*(k+0.5)/GRID-1)*span });
+    return [ring, cone, lattice];
+  }
+
+  /*
+   * Take the families round-robin, each in proportion to its own length,
+   * rather than one after another.
+   *
+   * The cap on lines cuts whatever is still in the list, so running them end to
+   * end lets the first family eat the whole budget. Measured on E: at 3x the
+   * ring had taken 172 of the 240 lines and the lattice was down to 60, and at
+   * 5x the ring took all 240 and the volume got nothing whatever -- the density
+   * slider had stopped adding coverage and was just packing lines round the
+   * wire. Proportional round-robin spends a tight budget on all three in the
+   * ratio they are offered in.
+   */
+  function roundRobin(fams) {
+    const out = [], at = fams.map(() => 0);
+    let total = 0;
+    for (const f of fams) total += f.length;
+    for (let n = 0; n < total; n++) {
+      let pick = -1, behind = Infinity;
+      for (let i = 0; i < fams.length; i++) {
+        if (at[i] >= fams[i].length) continue;
+        const frac = at[i] / fams[i].length;
+        if (frac < behind) { behind = frac; pick = i; }
+      }
+      out.push(fams[pick][at[pick]++]);
+    }
     return out;
   }
 
@@ -805,27 +833,91 @@
     const MAXLINES = fast ? 140 : 240;
     const step = R*0.022, bound2 = (R*3.2)*(R*3.2);
     const maxSteps = fast ? (nModes > 1 ? 22 : 34) : 45;
-    const dup = R*0.075/d;
-    const occupied = new Set();
-    const key = (x,y,z) => Math.floor(x/dup)+','+Math.floor(y/dup)+','+Math.floor(z/dup);
-    const near = (x,y,z) => {
-      const i = Math.floor(x/dup), j = Math.floor(y/dup), k = Math.floor(z/dup);
-      for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++) for (let c=-1;c<=1;c++)
-        if (occupied.has((i+a)+','+(j+b)+','+(k+c))) return true;
+    const dup = R*0.075/d*1.8;   // the field-scaled rule below packs tighter than a
+                                 // fixed one at the same nominal spacing, so the
+                                 // base is opened out to hold the line count
+
+    /* --- candidates, and the field at each -------------------------------
+       Every candidate is evaluated up front now. That costs one field sweep
+       per candidate -- a few ms against the hundred-odd that tracing costs --
+       and buys two things the old lazy order could not: the typical |F| over
+       the scene, which is what the separation rule has to be measured against,
+       and the chance to cut the three families proportionally instead of in
+       the order they happen to be listed. */
+    const cand = [];
+    let ref = 0;
+    {
+      const mags = [];
+      for (const fam of seedPoints(T, GRID, R*1.3, d)) {
+        const keep = [];
+        for (const p of fam) {
+          const f = fieldAt(T, p.x, p.y, p.z, t);
+          if (f.d < T.a*2.5) continue;
+          const q = modeVec(f, mode);
+          const m = Math.hypot(q.x, q.y, q.z);
+          if (!(m > 0)) continue;                      // still dark here
+          keep.push({ x: p.x, y: p.y, z: p.z, m });
+          mags.push(m);
+        }
+        cand.push(keep);
+      }
+      if (!mags.length) return [];
+      mags.sort((a, b) => a - b);
+      ref = mags[mags.length >> 1];                    // median, not mean: |F|
+    }                                                  // spans decades near the wire
+
+    /* --- how close two lines may come ------------------------------------
+       A field line is a flux tube, so if every line carries the same flux then
+       the number crossing unit area goes as |F| and the spacing between them
+       as |F|^(-1/2). That IS the statement "where the lines crowd, the field
+       is strong", and a separation rule at a fixed fraction of the scene
+       destroys it: it thins hardest exactly where the crowding is the physics.
+       Measured on the settled rectangle, the fixed rule held the line density
+       to about |F|^0.37 where it should have been |F|^1.
+
+       The clamp is not a fudge. |F| runs away at the wire and to nothing far
+       out, and an unclamped rule answers that with a hairball against the metal
+       and an empty far field -- spending the whole line budget where the
+       picture is already legible and nothing where it is not. Two and a bit
+       either side of the median covers about a factor of twenty in |F|, which
+       is the range that is actually on screen. */
+    const RMIN = 0.45, RMAX = 2.2;
+    const sep = m => dup * clamp(Math.sqrt(ref/m), RMIN, RMAX);
+
+    /* --- the separation test ---------------------------------------------
+       The radius now varies from point to point, so a hash of fixed cells and
+       a set of occupied keys will not do it: the test has to be a real
+       distance. Cells are the LARGEST radius the rule can ask for, which makes
+       the 27 neighbours enough to cover any of them, and each cell keeps the
+       line points that fell in it. The lines are thin and the cells are not, so
+       a cell holds a point or two and the test stays a handful of subtractions. */
+    const cell = dup*RMAX;
+    const grid = new Map();
+    const ckey = (x,y,z) => Math.floor(x/cell)+','+Math.floor(y/cell)+','+Math.floor(z/cell);
+    const drop = (x,y,z) => {
+      const k = ckey(x,y,z);
+      let a = grid.get(k);
+      if (!a) grid.set(k, a = []);
+      a.push(x,y,z);
+    };
+    const crowded = (x,y,z,r) => {
+      const r2 = r*r;
+      const i = Math.floor(x/cell), j = Math.floor(y/cell), k = Math.floor(z/cell);
+      for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++) for (let c=-1;c<=1;c++) {
+        const arr = grid.get((i+a)+','+(j+b)+','+(k+c));
+        if (!arr) continue;
+        for (let n=0;n<arr.length;n+=3) {
+          const dx=arr[n]-x, dy=arr[n+1]-y, dz=arr[n+2]-z;
+          if (dx*dx + dy*dy + dz*dz < r2) return true;
+        }
+      }
       return false;
     };
+
     const out = [];
-    for (const p of seedPoints(T, GRID, R*1.3, d)) {
+    for (const p of roundRobin(cand)) {
       if (out.length >= MAXLINES) break;
-      // Separation first: it is a handful of hash lookups, where a field
-      // evaluation is a sweep over every segment. With the lattice this fine,
-      // most candidates are rejected, and rejecting them cheaply is the
-      // difference between usable and not.
-      if (near(p.x, p.y, p.z)) continue;
-      const f = fieldAt(T, p.x, p.y, p.z, t);
-      if (f.d < T.a*2.5) continue;
-      const q = modeVec(f, mode);
-      if (!(Math.hypot(q.x,q.y,q.z) > 0)) continue;    // still dark here
+      if (crowded(p.x, p.y, p.z, sep(p.m))) continue;
       const fwd = traceLine(T, mode, p, +1, step, maxSteps, bound2, t, !fast);
       let line;
       if (fwd.closed) line = fwd.pts;
@@ -835,7 +927,7 @@
         line = back.concat(fwd.pts);
       }
       if (line.length < 8) continue;
-      for (const w of line) occupied.add(key(w[0], w[1], w[2]));
+      for (const w of line) drop(w[0], w[1], w[2]);
       out.push(line);
     }
     return out;
