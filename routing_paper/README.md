@@ -68,10 +68,10 @@ constraints returned to the solve as cuts.
 | `refs.bib` | the bibliography |
 | `main.pdf` | the built paper |
 | `figs/lp_cartoon.tex` | Fig. 3, a toy of the geometry LP solved, with its real offsets and dual forces; generated |
-| `figs/k51_own_ends.png` | Fig. 5, the 51-net H3 rung beside the human's board |
+| `figs/k51_pair.png` | Fig. 5, the 51-net H3 rung beside the human's board; generated |
 | `gen/lp_cartoon.py` | solves the toy LP and writes `figs/lp_cartoon.tex` |
-| `gen/fig_board_pair.py` | draws two boards' bus copper side by side, identically (Fig. 5) |
-| `figs/k51_whole_route.png`, `figs/zynq_k44_whole.png`, `figs/k51_forces.png` | dark-theme renders of the H3 rung on the human's ends, the Zynq rung, and the LP's binding rules; not currently used in the paper |
+| `gen/fig_board_pair.py` | draws two boards' bus copper side by side, identically, and writes Fig. 5 |
+| `figs/k51_own_ends.png`, `figs/k51_whole_route.png`, `figs/zynq_k44_whole.png`, `figs/k51_forces.png` | dark-theme renders of the H3 rung on our ends (the earlier Fig. 5) and on the human's ends, of the Zynq rung, and of the LP's binding rules; not currently used in the paper |
 
 ## Building
 
