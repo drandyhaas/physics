@@ -5,7 +5,7 @@ Circuits and Systems*, on routing the bus between a processor and its DRAM
 fully automatically — the densest wiring on most processor boards, and still
 largely routed by hand.
 
-📄 **[main.pdf](main.pdf)** (draft: open items are shown in red in the text)
+📄 **[main.pdf](main.pdf)** (a draft)
 
 The router plans every lane of a two-layer BGA-to-BGA bus completely before
 any copper is laid, and carries the plan to finished, design-rule-clean copper.
@@ -28,14 +28,16 @@ a via placed to serve one crossing serves or spoils the next, so the router
 decides all of them at once:
 
 1. **An exact constraint-programming model** (CP-SAT) chooses every crossing
-   position, the crossing order and every layer change jointly, and proves the
-   fewest vias within the model. Its consistency rule over triples of lanes
+   position, the crossing order and every layer change jointly, and, for the ends
+   it is given, proves the fewest layer changes within the model. Its consistency
+   rule over triples of lanes
    admits exactly the orders a wiring diagram of the permutation can realize.
-2. **A linear program** places the lanes in millimetres. The constraints it
+2. **A linear program** places the lanes in millimeters. The constraints it
    has to break go back to the model as cuts, and an audit's findings go back as
    negotiated congestion prices, until the plan passes every rule of the
    production router.
-3. **The escapes at both arrays** are chosen by the same objective. A
+3. **The escapes at both arrays** are chosen by an estimate of the same
+   objective, so the ends themselves are not proved best. A
    differential pair is planned as one lane with a polarity at each end, and
    gets an automatic via crossover where the two ends disagree.
 
@@ -52,13 +54,14 @@ The models read naturally as physics, and the readings were of practical use:
 | crossing lanes must be on different layers | an antiferromagnetic bond |
 | a via | a domain wall along the worldline |
 | why vias are forced at all | frustration |
-| the geometry LP | statics: strings at unit tension, struts between neighbours, walls at pads |
+| the geometry LP | statics: strings at unit tension, struts between neighbors, walls at pads |
 | its dual variables | contact forces, with complementary slackness as the contact law |
 | an elastic constraint | a rigid-plastic strut that yields |
 
-The forces are also useful in practice: of the 150 960 constraints on the
-51-net rung only 376 carry a force, and the struts that yield are exactly the
-constraints returned to the solve as cuts.
+The forces are also useful for reading a plan: in the first pass on the 51-net
+rung only 376 of the hard constraints carry a force, and they name the rules
+that hold each lane where it is. A constraint the program could not keep is a
+strut that yields, and those are what go back to the solve as cuts.
 
 ## Files
 
@@ -71,14 +74,20 @@ constraints returned to the solve as cuts.
 | `figs/k51_pair.png` | Fig. 5, the 51-net H3 rung beside the human's board; generated |
 | `gen/lp_cartoon.py` | solves the toy LP and writes `figs/lp_cartoon.tex` |
 | `gen/fig_board_pair.py` | draws two boards' bus copper side by side, identically, and writes Fig. 5 |
+| `gen/make_arxiv.py` | builds the arXiv upload, `arxiv/` and `arxiv_submission.tar.gz` (neither committed) |
 | `figs/k51_own_ends.png`, `figs/k51_whole_route.png`, `figs/zynq_k44_whole.png`, `figs/k51_forces.png` | dark-theme renders of the H3 rung on our ends (the earlier Fig. 5) and on the human's ends, of the Zynq rung, and of the LP's binding rules; not currently used in the paper |
 
 ## Building
 
 ```bash
-tectonic -X compile main.tex     # or pdflatex, bibtex, then pdflatex twice
-python3 gen/lp_cartoon.py        # regenerates Fig. 3 (numpy, scipy)
+tectonic -X compile --keep-intermediates main.tex   # or pdflatex, bibtex, then pdflatex twice
+python3 gen/lp_cartoon.py                           # regenerates Fig. 3 (numpy, scipy)
+python3 gen/make_arxiv.py                           # the arXiv upload; needs the main.bbl the build kept
 ```
+
+arXiv compiles with pdfLaTeX and does not run BibTeX, so the upload carries
+`main.bbl`. It publishes the source, so the script strips the comment block of
+build notes and open items from the top of `main.tex`.
 
 `gen/fig_board_pair.py` needs the router's `py_router` package, found through
 the `KRT` environment variable, and takes the two `.kicad_pcb` boards and a
@@ -99,12 +108,5 @@ Fig. 3 is computed here.
 
 ## Status
 
-A draft. The open items are listed at the top of `main.tex`, and where they
-touch the text they are marked `\TODO{}`:
-
-- re-run the Zynq ladder on the current bench build;
-- a per-rung table of crossings, triples and solve time;
-- a measured benchmark of the dual LP against the primal (the 6× is one measurement);
-- an external baseline, re-implemented on these benches and routed through the same router;
-- the synthetic buses against their known optima, for the whole route;
-- check every `refs.bib` entry marked `VERIFY` (six of them).
+A draft. The author's open items are listed in a comment at the top of
+`main.tex`.
