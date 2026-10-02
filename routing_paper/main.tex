@@ -2,18 +2,17 @@
 % Design of Integrated Circuits and Systems (IEEEtran journal).
 % Build: tectonic -X compile --keep-intermediates main.tex   (or pdflatex, bibtex, pdflatex, pdflatex).
 % Generated figures: figs/lp_cartoon.tex by python3 gen/lp_cartoon.py (a toy of the geometry LP, solved, drawn with
-% its real offsets and dual values); figs/k51_pair.png by gen/fig_board_pair.py (both K51 boards drawn alike).
+% its real offsets and dual values); figs/k51_four.png and figs/zynq_k44_four.png by KiCadRoutingTools'
+% awx/baseline_bench.py render OUTROOT DIR --tags h3_k51 zynq_k44 --no-others (the four boards drawn alike), and
+% Table I's rows from its result.json files (baseline_bench.py table OUTROOT), as of bus622-take5 352da768.
 % arXiv upload: python3 gen/make_arxiv.py after a build that kept main.bbl; it strips this comment block.
 %
 % Open items:
-%  - an external baseline: a heuristic escape and layer-assignment planner of the Ozdal-Wong / Wu et al. kind,
-%    re-implemented on these benches and routed through the same router;
 %  - commit the original Zynq bench file (awx/tmp/zynq/zynqF.kicad_pcb, the first build) so the footnote's claim
 %    that the benches reproduce every number holds;
 %  - referee items not yet addressed: the history term's total can exceed one via; "passes every rule of the
 %    production router" (on the rebuilt Zynq bench, K47's plan passed the gate and the router failed); Fig. 4 has no
-%    geometry->solve arrow; Table I bolds the tie at K41 and gives the H3 numbers of one machine; notation (v, v_v,
-%    h, D).
+%    geometry->solve arrow; notation (v, v_v, h, D).
 \documentclass[journal]{IEEEtran}
 \usepackage[cmex10]{amsmath}
 \usepackage{amssymb}
@@ -29,6 +28,10 @@
 \newtheorem{proposition}{Proposition}
 \definecolor{Fcu}{RGB}{200,60,60}
 \definecolor{Bcu}{RGB}{50,100,200}
+% two full-width floats may share a page's top (Fig. 5 above Table I)
+\setcounter{dbltopnumber}{2}
+\renewcommand{\dbltopfraction}{0.95}
+\renewcommand{\dblfloatpagefraction}{0.8}
 
 \begin{document}
 
@@ -44,7 +47,7 @@
 \maketitle
 
 \begin{abstract}
-Routing the bus between a processor and its DRAM remains largely manual in printed circuit board (PCB) design, and published algorithms optimize proxies such as crossing or layer counts at the planning stage. We present a router that plans every lane of a two-layer BGA-to-BGA bus completely before any copper is laid, and carries the plan to finished, design-rule-clean copper. Its core is an exact constraint-programming model that chooses, for all lanes at once, where each necessary crossing occurs, the order of the crossings (consistent with a wiring diagram of the lanes' permutation by a rule over every triple of lanes), and where each lane changes layer, with via room and spacing; for the ends it is given, it proves the fewest layer changes within the model. The model reads surprisingly naturally as a problem in physics---worldlines, frustrated Ising spins and contact forces---and the connections proved of practical use. A linear program then places the lanes in millimeters; the constraints it must violate return to the model as cuts, and audit findings as negotiated congestion prices, until the plan passes every rule of the production router. The escapes at both arrays are chosen by an estimate of the same objective, and differential pairs are planned with their polarity at each end, with an automatic via crossover where the ends disagree. On two public boards, an Allwinner H3 and a Zynq-7020 each to a DDR3 device, the router completes every rung of a ladder of up to 51 nets connected and DRC-clean, never with more vias than the human designer (80 against 88 on the H3, 58 against 103 on the Zynq) and always with less copper.
+Routing the bus between a processor and its DRAM remains largely manual in printed circuit board (PCB) design, and published algorithms optimize proxies such as crossing or layer counts at the planning stage. We present a router that plans every lane of a two-layer BGA-to-BGA bus completely before any copper is laid, and carries the plan to finished, design-rule-clean copper. Its core is an exact constraint-programming model that chooses, for all lanes at once, where each necessary crossing occurs, the order of the crossings (consistent with a wiring diagram of the lanes' permutation by a rule over every triple of lanes), and where each lane changes layer, with via room and spacing; for the ends it is given, it proves the fewest layer changes within the model. The model reads surprisingly naturally as a problem in physics---worldlines, frustrated Ising spins and contact forces---and the connections proved of practical use. A linear program then places the lanes in millimeters; the constraints it must violate return to the model as cuts, and audit findings as negotiated congestion prices, until the plan passes every rule of the production router. The escapes at both arrays are chosen by an estimate of the same objective, and differential pairs are planned with their polarity at each end, with an automatic via crossover where the ends disagree. On two public boards, an Allwinner H3 and a Zynq-7020 each to a DDR3 device, the router completes every rung of a ladder of up to 51 nets connected and DRC-clean, never with more vias than the human designer (80 against 88 on the H3, 58 against 103 on the Zynq) and always with less copper. Run on the same benches, the toolkit's production router leaves nets open on seven of the eleven rungs, with up to three times the vias, and Freerouting completes none.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -52,27 +55,27 @@ Printed circuit board, bus routing, escape routing, topological via minimization
 \end{IEEEkeywords}
 
 \section{Introduction}
-\IEEEPARstart{A}{} memory bus is the densest wiring on most processor boards: tens of nets leave a ball grid array (BGA) in a fixed order, arrive at another in a different order, and must cross one another on the way. On a two-layer region every crossing forces one of the two nets onto the other layer there, and every layer change is a via---a drill, an annular ring that blocks both layers, and a discontinuity in the signal path. Commercial tools approach it interactively: the designer sketches the flow, and the tool fills it in.
+\IEEEPARstart{A}{} memory bus is the densest wiring on most processor boards: tens of nets leave a ball grid array (BGA) in a fixed order, arrive at another in a different order, and must cross one another on the way. On a two-layer region every crossing forces one of the two nets onto the other layer there, and every layer change is a via---a drill, an annular ring that blocks both layers, and a discontinuity in the signal path. Commercial tools approach it interactively. In Cadence's Allegro, with its auto-interactive breakout, and in the sketch router of Mentor's (now Siemens') Xpedition, the designer sequences the bus as a bundle and plans its breakouts at both arrays together, resolving crossings by changing that sequence, a breakout's exit side or the pin assignment, and the tool fills in the route~\cite{cadence2015,pfeil2014}.
 
 The literature treats the problem in stages---escape routing, simultaneous escape routing, bus planning and layer assignment (Section~\ref{sec:related})---each optimizing a proxy such as crossings, layers or a planned via count, evaluated against other planners on industrial cases that cannot be reproduced. Whether a plan can be laid in copper at the board's clearance, and how its via count compares with a designer's, are left open.
 
-This paper starts from one observation: \emph{the ends decide the braid}. Once each net's escape at the source and destination is fixed, the orders of those escapes around the two arrays fix which pairs of nets must cross. What remains free is where each crossing happens, in what order the crossings occur, and where each lane changes layer. These choices interact---a via placed to serve one crossing serves or spoils the next, and two vias need room from each other and from every lane passing by---so we decide all of them at once, for every lane, before anything is routed. The contributions are:
+This paper starts from an observation that designers, commercial tools and simultaneous escape routing share~\cite{cadence2015,ozdal2006ser}: \emph{the ends decide the braid}. Once each net's escape at the source and destination is fixed, the orders of those escapes around the two arrays fix which pairs of nets must cross. What remains free is where each crossing happens, in what order the crossings occur, and where each lane changes layer. These choices interact---a via placed to serve one crossing serves or spoils the next, and two vias need room from each other and from every lane passing by---so we decide all of them at once, for every lane, before anything is routed. The contributions are:
 \begin{enumerate}
 \item An exact constraint-programming (CP) model of the whole route (Section~\ref{sec:solve}) that chooses crossing positions, their order, and every lane's layer changes jointly. Its consistency rule over triples of lanes admits exactly the orders that a wiring diagram of the lanes' permutation can realize. For the ends it is given, the model proves the fewest layer changes within its scope.
 \item A realization of the plan in board geometry (Section~\ref{sec:copper}): an elastic linear program whose violated constraints return to the CP model as cuts, a snap onto the production router's grid, and an audit against the router's own rules, closed in a negotiation loop that also feeds findings at the ends back to the choice of escapes (Section~\ref{sec:ends}).
 \item Differential pairs planned as single lanes with a polarity (handedness) at each end, and an automatic via crossover that swaps P and N where the two ends disagree.
-\item An evaluation on two public boards against the human layouts, graded on finished copper by independent design-rule and connectivity checks (Section~\ref{sec:results}).
+\item An evaluation on two public boards against the human layouts, the toolkit's production router and Freerouting, every board graded on finished copper by the same independent design-rule and connectivity checks (Section~\ref{sec:results}).
 \end{enumerate}
 
 The models have a surprisingly natural reading in physics. Read along the route, each lane is the worldline of a particle in one space and one time dimension, and each crossing a scattering event; the triple rule that keeps the crossings consistent is the Yang--Baxter relation of three strands. Each worldline carries an Ising spin, its layer, which must disagree with its partner's at every crossing: a via is a domain wall, and frustration is what forces vias. Once the discrete choices are made, placing the lanes is a problem in statics---strings under tension, held apart by struts and walls---whose contact forces are the linear program's dual variables.
 
 \section{Related Work}
 \label{sec:related}
-\emph{Topological via minimization.} Given the nets' topology, choosing layers to minimize vias is classical. Hsu~\cite{hsu1983} decoupled topology from geometry to minimize vias; Marek-Sadowska~\cite{marek1984} showed the unconstrained problem NP-complete, and Sarrafzadeh and Lee~\cite{sarrafzadeh1989} gave a polynomial algorithm for nets between two shores, where the problem reduces to covering a permutation graph. Constrained via minimization assigns layers to an already routed layout~\cite{pinter1984}: it is NP-complete in general~\cite{naclerio1989}, and where the layout's junctions have degree at most three it is a maximum cut on a planar graph, solvable in polynomial time~\cite{hadlock1975,pinter1984}, which Barahona \emph{et al.}\ solved with the same code as Ising spin-glass ground states~\cite{barahona1988}. Neither form chooses where the crossings occur, or gives vias their room, jointly with the layers.
+\emph{Topological via minimization.} Given the nets' topology, choosing layers to minimize vias is classical. Hsu~\cite{hsu1983} decoupled topology from geometry to minimize vias; Marek-Sadowska~\cite{marek1984} showed the unconstrained problem NP-complete, and Sarrafzadeh and Lee~\cite{sarrafzadeh1989} gave a polynomial algorithm for nets between two shores, where the problem reduces to covering a permutation graph. Constrained via minimization assigns layers to an already routed layout~\cite{pinter1984}: it is NP-complete in general~\cite{naclerio1989}, and where the layout's junctions have degree at most three it is a maximum cut on a planar graph, solvable in polynomial time~\cite{hadlock1975,pinter1984}, which Barahona \emph{et al.}\ solved with the same code as Ising spin-glass ground states~\cite{barahona1988}. Exact algorithms followed for $k$ layers in channels without local nets~\cite{rim1989} and, through maximum $k$-cofamilies of a partial order, in crossing channels~\cite{cong1991}; in the redistribution layers of a package, routed without vias, Lin, Chi and Chang choose each connection's layer from the increasing subsequences of the routing order, minimizing the number of layers~\cite{lin2017}. None of these places the crossings, orders them, or gives vias their room, jointly with the layers.
 
-\emph{PCB escape and bus routing.} Ozdal and Wong chose escape patterns at both ends of a channel jointly, with a longest-path search for each layer's planar subset and negotiation for the rest~\cite{ozdal2006ser}, and Ozdal, Wong and Honsinger minimized the vias the choice causes directly~\cite{ozdal2008via}. Bus planning and layer assignment for dense boards followed~\cite{kong2009,yan2019}, as did exact satisfiability models for escape routing at one array~\cite{luo2008,bayless2016} and escape of differential pairs~\cite{yan2010diff}. Most recently, Wu \emph{et al.}~\cite{wu2026} unified the escape and area regions in one circle model, searched escape orders by simulated annealing, and split unassigned nets with vias, reporting 40.9\% fewer planned vias than a two-phase baseline. Apart from the escape routers, which lay detailed escapes at one array~\cite{luo2008,bayless2016}, this work stops at a plan and is evaluated against other planners on private cases.
+\emph{PCB escape and bus routing.} Ozdal and Wong chose escape patterns at both ends of a channel jointly, with a longest-path search for each layer's planar subset and negotiation for the rest~\cite{ozdal2006ser}, and Ozdal, Wong and Honsinger minimized the vias the choice causes directly~\cite{ozdal2008via}. Bus planning and layer assignment for dense boards followed~\cite{kong2009,yan2019}; where a bus's pin orders at its two ends disagree, Yan and Wong untangle the twisted nets with single detours near the ends, on one layer and with no vias~\cite{yan2007untangle,yan2009untangle}. Exact satisfiability models route the escapes at one array~\cite{luo2008,bayless2016}, a mixed-integer program routes two-layer BGA packages to their design rules over a restricted route structure~\cite{tomioka2009}, and differential pairs have escape routers of their own~\cite{yan2010diff}. Most recently, Wu \emph{et al.}~\cite{wu2026} unified the escape and area regions in one circle model, searched escape orders by simulated annealing, and split unassigned nets with vias, reporting 40.9\% fewer planned vias than a two-phase baseline. Lin \emph{et al.}\ carried simultaneous escape routing through gridless area routing to finish commercial boards that a commercial router could not~\cite{lin2021}. Apart from that flow and the escape routers, this work stops at a plan, and all of it is evaluated on private cases.
 
-\emph{Topology, then geometry.} Rubber-band routers~\cite{dai1991} and the theory of homotopic routing~\cite{leiserson1985} separate a topological route from its embedding. Negotiated congestion~\cite{mcmurchie1995} prices places that were overused before. Our loop resembles logic-based and combinatorial Benders decomposition~\cite{hooker2003,codato2006}, but its cuts are heuristic generalizations of a geometric failure, not proofs (Section~\ref{sec:loop}).
+\emph{Topology, then geometry.} Rubber-band routers~\cite{dai1991} and the theory of homotopic routing~\cite{leiserson1985} separate a topological route from its embedding. In the redistribution layers of a package, Wen \emph{et al.}\ assign layers by a weighted maximum planar subset of chords, route the remaining nets through vias, and finish with a layout optimization by linear programming~\cite{wen2022}. Negotiated congestion~\cite{mcmurchie1995} prices places that were overused before. Our loop resembles logic-based and combinatorial Benders decomposition~\cite{hooker2003,codato2006}, but its cuts are heuristic generalizations of a geometric failure, not proofs (Section~\ref{sec:loop}).
 
 \emph{Wiring diagrams.} The orders in which the crossings of a permutation's reduced words can occur are the convex orders of its inversion set~\cite{papi1994}; for the longest permutation their commutation classes form the higher Bruhat order $B(n,2)$~\cite{manin1989}. We are not aware of a model that uses this structure to minimize vias jointly with crossing positions and via room.
 
@@ -288,9 +291,45 @@ Every stage is fed a measurement of the one before (Fig.~\ref{fig:loop}). The au
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/k51_pair.png}
-\caption{The 51-net H3 rung, only the run's nets drawn. Left: our ends and the whole route, 80 vias and 1220\,mm. Right: the human's board on the same nets, 88 vias and 1337\,mm. F is red, B blue, the three differential pairs orange; every via is drawn as the same marker on both boards. The source BGA is at left, the DDR3 at right.}
+\includegraphics[width=\textwidth]{figs/k51_four.png}
+\caption{The 51-net H3 rung by the whole route on its own ends, the toolkit's production router without the bus step, Freerouting, and the human, only the run's nets drawn; each panel is labeled with its vias, copper, open nets and DRC violations. F is red, B blue, the three differential pairs orange; every via is drawn as the same marker. The source BGA is at left, the DDR3 at right.}
 \label{fig:k51}
+\end{figure*}
+
+\begin{table*}[t]
+\centering
+\caption{Vias, copper (mm), open nets and DRC violations of the run's nets on the finished board: the whole route, the toolkit's production router without the bus step (KRT chain), Freerouting 2.4.1, and the human's board, every board graded the same way. The H3 K41 board is the same code's run on a four-core Linux container.}
+\label{tab:results}
+\setlength{\tabcolsep}{3.6pt}
+\begin{tabular}{l rrrr @{\hspace{10pt}} rrrr @{\hspace{10pt}} rrrr @{\hspace{10pt}} rrrr}
+\toprule
+& \multicolumn{4}{c}{whole route} & \multicolumn{4}{c}{KRT chain} & \multicolumn{4}{c}{Freerouting} & \multicolumn{4}{c}{human} \\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}\cmidrule(lr){10-13}\cmidrule(lr){14-17}
+rung & vias & mm & open & DRC & vias & mm & open & DRC & vias & mm & open & DRC & vias & mm & open & DRC \\
+\midrule
+\multicolumn{17}{l}{\emph{Allwinner H3 to DDR3}} \\
+K15 & 10 & 199 & 0 & 0 & 30 & 234 & 1 & 0 & 16 & 153 & 1 & 0 & 22 & 232 & 0 & 0 \\
+K28 & 30 & 589 & 0 & 0 & 56 & 639 & 1 & 0 & 29 & 416 & 5 & 0 & 48 & 678 & 0 & 1 \\
+K35 & 58 & 779 & 0 & 0 & 102 & 1002 & 0 & 0 & 41 & 631 & 3 & 0 & 60 & 889 & 0 & 1 \\
+K41 & 70 & 981 & 0 & 0 & 126 & 1128 & 2 & 0 & 44 & 752 & 4 & 0 & 70 & 1081 & 0 & 1 \\
+K51 & 80 & 1220 & 0 & 0 & 244 & 1773 & 1 & 0 & 82 & 1051 & 2 & 0 & 88 & 1337 & 0 & 1 \\
+\midrule
+\multicolumn{17}{l}{\emph{Zynq-7020 to DDR3}} \\
+K18 & 12 & 466 & 0 & 0 & 34 & 516 & 0 & 0 & 16 & 348 & 5 & 0 & 45 & 662 & 0 & 0 \\
+K26 & 30 & 732 & 0 & 0 & 58 & 751 & 0 & 0 & 18 & 422 & 10 & 0 & 57 & 923 & 0 & 0 \\
+K32 & 46 & 940 & 0 & 0 & 74 & 1012 & 0 & 0 & 18 & 417 & 18 & 2 & 74 & 1166 & 0 & 0 \\
+K38 & 54 & 1121 & 0 & 0 & 100 & 1211 & 1 & 0 & 48 & 917 & 4 & 1 & 86 & 1373 & 0 & 0 \\
+K42 & 62 & 1263 & 0 & 0 & 114 & 1342 & 1 & 0 & 52 & 990 & 6 & 1 & 97 & 1534 & 0 & 0 \\
+K44 & 58 & 1347 & 0 & 0 & 128 & 1424 & 1 & 0 & 58 & 1118 & 4 & 5 & 103 & 1617 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figs/zynq_k44_four.png}
+\caption{The 44-net Zynq rung, drawn as Fig.~\ref{fig:k51}, in the bench's frame (the human's board turned with it). Much of the human's copper is length-matching meanders.}
+\label{fig:zynq44}
 \end{figure*}
 
 \section{Results}
@@ -299,49 +338,27 @@ Every stage is fed a measurement of the one before (Fig.~\ref{fig:loop}). The au
 \emph{H3.} An Allwinner H3 (0.65\,mm ball pitch) to a DDR3 device on a public reference design~\cite{h3board}, whose designer routed the bus on its two layers. Its bench carries 51 bus nets, among them three differential pairs (two data strobes and the clock); the ladder's rungs K15--K51 add whole groups of nets, tightest first.
 \emph{Zynq.} The Zynq-7020 (CLG400) and its DDR3 on a public design~\cite{zynqboard}, whose designer routed the bus on the outer layers only (the inner layers are planes), 103 vias, every one F to B. We strip its routing, fan out the processor, and keep the two outer layers; the ladder runs to 44 nets with both strobe pairs. The numbers are for the bench as first built; the bench builder's net selection has since changed, so it is the bench file, not the build recipe, that reproduces them.
 
-Each result is written as a board and graded independently: connectivity of every bus net, DRC at the routed clearance of 0.1\,mm, and a census of every via and millimeter of the run's nets, stubs included. The human's copper on the same nets is counted the same way; it includes length-matching meanders, which add copper but no vias. Runs used CP-SAT from OR-Tools 9.15 and HiGHS through SciPy 1.16 on an Apple M3 laptop (8 cores, 8\,GB).
-
-\begin{table}[t]
-\centering
-\caption{Vias / copper (mm) of the run's nets on the finished board, and the whole route's wall time and peak memory on an 8-core laptop running four rungs side by side (so wall time includes waiting). Crossings are those of the solve that was routed. Every entry of the whole route is connected and DRC-clean at 0.1\,mm.}
-\label{tab:results}
-\setlength{\tabcolsep}{3.4pt}
-\begin{tabular}{lccccc}
-\toprule
-rung & whole route & human & crossings & wall (s) & MB \\
-\midrule
-\multicolumn{6}{l}{\emph{Allwinner H3 to DDR3}} \\
-K15 & \textbf{10} / 199 & 22 / 232 & 6 & 39 & 241 \\
-K28 & \textbf{30} / 589 & 48 / 678 & 57 & 169 & 436 \\
-K35 & \textbf{58} / 779 & 60 / 889 & 141 & 341 & 434 \\
-K41 & \textbf{70} / 1040 & 70 / 1081 & 207 & 595 & 593 \\
-K51 & \textbf{80} / 1220 & 88 / 1337 & 281 & 1295 & 720 \\
-\midrule
-\multicolumn{6}{l}{\emph{Zynq-7020 to DDR3}} \\
-K18 & \textbf{12} / 466 & 45 / 662 & 14 & 139 & 404 \\
-K26 & \textbf{30} / 732 & 57 / 923 & 67 & 412 & 464 \\
-K32 & \textbf{46} / 940 & 74 / 1166 & 87 & 475 & 693 \\
-K38 & \textbf{54} / 1121 & 86 / 1373 & 118 & 428 & 671 \\
-K42 & \textbf{62} / 1263 & 97 / 1534 & 167 & 1892 & 842 \\
-K44 & \textbf{58} / 1347 & 103 / 1617 & 193 & 767 & 769 \\
-\bottomrule
-\end{tabular}
-\end{table}
+Each result is written as a board and graded independently: connectivity of every bus net, DRC at the routed clearance of 0.1\,mm, and a census of every via and millimeter of the run's nets, stubs included. The other routers' boards and the human's are graded the same way; the human's copper includes length-matching meanders, which add copper but no vias. Runs used CP-SAT from OR-Tools 9.15 and HiGHS through SciPy 1.16 on an Apple M3 laptop (8 cores, 8\,GB).
 
 \subsection{Against the human}
-Table~\ref{tab:results} gives every rung of both ladders on our own ends. Every rung routes every lane in its band at once, every net connected, DRC-clean, never with more vias than the human and always with less copper. At the top of the H3 ladder the route uses 80 vias to the human's 88 (Fig.~\ref{fig:k51}); on the Zynq, 58 to 103. Part of the copper difference is the human's length matching.
+Table~\ref{tab:results} gives every rung of both ladders on our own ends. Every rung routes every lane in its band at once, every net connected, DRC-clean, never with more vias than the human and always with less copper. At the top of the H3 ladder the route uses 80 vias to the human's 88 (Fig.~\ref{fig:k51}); on the Zynq, 58 to 103 (Fig.~\ref{fig:zynq44}). Part of the copper difference is the human's length matching.
 
 On the human's own ends at K51---its teeth and berths clipped from its board---the whole route uses 88 vias to the human's 88, in 1263\,mm of copper to 1337. Our earlier approach, which routes corridors of lanes stage by stage from a CP-SAT plan of the ends and repairs refusals by rip-up, needed 101 vias on those ends, and on our own ends left five nets open at 144 vias.
+
+\subsection{Against other routers}
+Two other routers ran on the same benches, nets and design rules, and their boards were graded the same way (Table~\ref{tab:results}): the production chain of the toolkit the whole route belongs to~\cite{krt}, without the bus step---its BGA fanout at the destination, its differential-pair router and its negotiated A* router---and Freerouting 2.4.1~\cite{freerouting}, an open-source autorouter, with its default settings (its own BGA fanout and optimizer included), through KiCad's Specctra export. Freerouting routes each leg of a differential pair as an independent net.
+
+The production chain completes four of the eleven rungs and leaves one or two nets open on the others, with 1.6 to 3 times the whole route's vias (244 against 80 at H3 K51) and more copper. Freerouting completes none: it leaves 1 to 18 nets open, and from Zynq K32 its boards also break the board's design rules (vias closer than its hole-to-hole minimum, tracks necked below its minimum width). On the nets it does connect it can use fewer vias than the whole route---44 against 70 at H3 K41, with four nets open---because its lanes enter the destination's ball field from the near face, where our ends escape every ball to the array's edge (Section~\ref{sec:limits}). Of the 62 nets it leaves open over the two ladders, 47 are address, command and strobe nets, and all are nets it could not place round its own finished copper: completing them on its board means crossing the copper already laid. On the boards that do complete them they carry 1.2 vias each on average on ours and 2.1 on the human's, 77 and 133 vias in all. The production chain takes 4 to 36\,s a rung, and Freerouting one to four minutes.
 
 \subsection{Synthetic buses}
 The repository's generator plants a crossing pattern between two arrays and computes a reference optimum for the planted ends~\cite{krt}. Over fifteen such buses---8, 15 and 28 lanes, in sorted, blocked, interleaved, riffled and reversed patterns---the whole route routes fourteen connected and DRC-clean, never above the reference and below it on ten. It gets below because it chooses its own ends, which the reference holds fixed: on the reversed 15-lane bus it uses 24 vias, fewer even than the floor of Lemma~\ref{lem:floor} for the planted permutation (28). These cases therefore measure what choosing the ends is worth, not the optimality of the solve. On the fully reversed 28-lane bus, whose 282 crossings all fall on the trunk, the solve found no plan within its work budget.
 
 \subsection{Cost}
-Most of the time is spent choosing the ends: of K51's 1295\,s, the fanout with its exact re-ranking takes 829\,s, the solve 22\,s, and one loop round under three minutes, half of it the geometry LP. The solve grows with its crossings (Table~\ref{tab:results}) and their triples: at the top of the H3 ladder, 281 crossings and 2\,324 triples are proved optimal in 22\,s on the laptop and 81\,s on a four-core Linux container, and no Zynq solve takes longer than 15\,s there.
+Most of the time is spent choosing the ends: of K51's 1295\,s, the fanout with its exact re-ranking takes 829\,s, the solve 22\,s, and one loop round under three minutes, half of it the geometry LP. The cost grows with the rung: the 15-net H3 rung has 6 crossings and takes 39\,s and 241\,MB, the 51-net rung 281 crossings, 1295\,s and 720\,MB, and the 44-net Zynq rung 193 crossings, 767\,s and 769\,MB, on the laptop running four rungs side by side, so that wall time includes waiting. The solve grows with the crossings and their triples: at the top of the H3 ladder, 281 crossings and 2\,324 triples are proved optimal in 22\,s on the laptop and 81\,s on a four-core Linux container, and no Zynq solve takes longer than 15\,s there.
 
 \section{Limitations and Future Work}
 \label{sec:limits}
-The route does not match lengths; a DDR interface requires length (or delay) matching within byte lanes and of the address group to the clock~\cite{ozdal2006length}, and the human's copper includes that work. Matching lengths on the planned lanes, where the comfortable pitch leaves room for meanders, is our next step. The model is for two signal layers; boards with more layers route the bus on more, and the model's spins become multi-valued. Optimality is relative to the model (fixed ends, reduced braids, at most three changes per lane, heuristic cuts), and the ends are chosen by a local search whose estimate is exact only in its parts; a single CP model over the ends could prove them. With the crossing order fixed and via room set aside, the layer assignment is a planar Ising ground state, a minimum T-join on the planar dual of the wiring diagram, and so solvable in polynomial time~\cite{hadlock1975,barahona1982}; it could give the ends search a fast exact evaluator and a lower bound. The solve counts a pair's dive once, where the board counts two barrels, so its equal optima can differ on the board by two vias. Intra-pair skew is not yet planned. Finally, two boards are few, and the design constants were developed on them; we are extending the evaluation to more boards and to synthetic buses with their ends held fixed, where the reference optimum applies.
+The route does not match lengths; a DDR interface requires length (or delay) matching within byte lanes and of the address group to the clock~\cite{ozdal2006length}, and the human's copper includes that work. Matching lengths on the planned lanes, where the comfortable pitch leaves room for meanders, is our next step. Recent any-direction length matching assigns each trace a region of its own by linear programming and then meanders it within that region~\cite{lin2026,fang2024}; we plan to make each lane's meander area a variable of the geometry LP, with the groups' length targets among its constraints, so that a target it cannot meet returns to the model as a cut. The model is for two signal layers; boards with more layers route the bus on more, and the model's spins become multi-valued. Optimality is relative to the model (fixed ends, reduced braids, at most three changes per lane, heuristic cuts), and the ends are chosen by a local search whose estimate is exact only in its parts; a single CP model over the ends could prove them. Our ends escape every ball to the array's edge; Freerouting's lanes enter the destination's ball field from the near face, which on the nets it completes costs fewer vias, so ends inside the ball field are a natural extension of the ends model. A DDR controller usually lets the data bits within a byte lane, and often whole byte lanes, be swapped; since the crossings come from the ends' permutation, letting the ends search choose that assignment---as pin assignment has been chosen jointly with escape routing~\cite{leimak2013}---could remove most of the crossings within a byte lane, and their vias. With the crossing order fixed and via room set aside, the layer assignment is a planar Ising ground state, a minimum T-join on the planar dual of the wiring diagram, and so solvable in polynomial time~\cite{hadlock1975,barahona1982,glass2026}; it could give the ends search a fast exact evaluator and a lower bound. The solve counts a pair's dive once, where the board counts two barrels, so its equal optima can differ on the board by two vias. Intra-pair skew is not yet planned. Finally, two boards are few, and the design constants were developed on them; we are extending the evaluation to more boards and to synthetic buses with their ends held fixed, where the reference optimum applies.
 
 \section{Conclusion}
 Planning a bus whole---ends, crossings, their order and every layer change, decided at once, with the fewest layer changes proved for the chosen ends, and negotiated with the geometry until the production router can lay it---routes two real DDR3 buses fully automatically, with fewer vias than their designers. The central model is small and exact because the problem's combinatorics are those of a wiring diagram, whose consistency is a rule over triples. Throughout this work the synergies between routing and physics proved abundant, interesting and of practical use: the worldline picture gives the triple rule its meaning, the spin picture traces every via to frustration, and the forces of the linear program's dual name the rules that hold each lane and the ones that must yield. We expect the same pairing---an exact choice of topological sector, relaxed in a convex statics problem whose forces steer the next choice---to carry over to length matching, to boards with more layers and to the other dense interconnects of modern hardware, and the dialogue between routing and physics to keep paying in both directions.

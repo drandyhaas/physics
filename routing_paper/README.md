@@ -18,6 +18,11 @@ the human and always with less copper:
 | Allwinner H3 → DDR3 | 51 | **80** / 88 | **1220** / 1337 |
 | Zynq-7020 → DDR3 | 44 | **58** / 103 | **1347** / 1617 |
 
+Run on the same benches, nets and design rules and graded the same way, the
+toolkit's own production router (without the bus step) leaves nets open on
+seven of the eleven rungs, with up to three times the vias, and Freerouting
+completes none (Table I, Figs. 5 and 6).
+
 ## The idea
 
 **The ends decide the braid.** Once each net's escape from both arrays is
@@ -71,11 +76,11 @@ strut that yields, and those are what go back to the solve as cuts.
 | `refs.bib` | the bibliography |
 | `main.pdf` | the built paper |
 | `figs/lp_cartoon.tex` | Fig. 3, a toy of the geometry LP solved, with its real offsets and dual forces; generated |
-| `figs/k51_pair.png` | Fig. 5, the 51-net H3 rung beside the human's board; generated |
+| `figs/k51_four.png`, `figs/zynq_k44_four.png` | Figs. 5 and 6, the 51-net H3 rung and the 44-net Zynq rung by the whole route, the toolkit's production router, Freerouting and the human, drawn alike; generated |
 | `gen/lp_cartoon.py` | solves the toy LP and writes `figs/lp_cartoon.tex` |
-| `gen/fig_board_pair.py` | draws two boards' bus copper side by side, identically, and writes Fig. 5 |
 | `gen/make_arxiv.py` | builds the arXiv upload, `arxiv/` and `arxiv_submission.tar.gz` (neither committed) |
-| `figs/k51_own_ends.png`, `figs/k51_whole_route.png`, `figs/zynq_k44_whole.png`, `figs/k51_forces.png` | dark-theme renders of the H3 rung on our ends (the earlier Fig. 5) and on the human's ends, of the Zynq rung, and of the LP's binding rules; not currently used in the paper |
+| `figs/k51_pair.png`, `gen/fig_board_pair.py` | the earlier Fig. 5, our K51 board beside the human's, and the script that drew it; not currently used in the paper |
+| `figs/k51_own_ends.png`, `figs/k51_whole_route.png`, `figs/zynq_k44_whole.png`, `figs/k51_forces.png` | dark-theme renders of the H3 rung on our ends and on the human's ends, of the Zynq rung, and of the LP's binding rules; not currently used in the paper |
 
 ## Building
 
@@ -89,13 +94,19 @@ arXiv compiles with pdfLaTeX and does not run BibTeX, so the upload carries
 `main.bbl`. It publishes the source, so the script strips the comment block of
 build notes and open items from the top of `main.tex`.
 
-`gen/fig_board_pair.py` needs the router's `py_router` package, found through
-the `KRT` environment variable, and takes the two `.kicad_pcb` boards and a
-list of the run's nets:
+Table I and Figs. 5 and 6 come from the router's repository: its
+`awx/baseline_bench.py` runs a rung by the toolkit's production router and by
+Freerouting on the same bench, grades those boards, ours and the human's the
+same way, and writes the table and the drawings:
 
 ```bash
-KRT=/path/to/KiCadRoutingTools python3 gen/fig_board_pair.py \
-    OURS.kicad_pcb HUMAN.kicad_pcb NETS.lines OUT.png "left label" "right label"
+cd /path/to/KiCadRoutingTools/awx
+python3 baseline_bench.py ladder krt OUT                 # the production router, every rung
+python3 baseline_bench.py ladder fr OUT --jobs 2         # Freerouting (FREEROUTING_JAR, FREEROUTING_JAVA)
+python3 baseline_bench.py ladder human OUT               # the designers' boards
+python3 baseline_bench.py run ours BENCH DEST K OUT/ours_TAG --board SEQ.kicad_pcb   # each of ours
+python3 baseline_bench.py table OUT                      # Table I's cells
+python3 baseline_bench.py render OUT figs --tags h3_k51 zynq_k44 --no-others   # Figs. 5 and 6
 ```
 
 ## Where the numbers come from
