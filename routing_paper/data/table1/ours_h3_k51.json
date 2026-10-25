@@ -1,0 +1,21 @@
+{
+ "mode": "ours",
+ "bench": "fb_t2q_pairs.kicad_pcb",
+ "K": 51,
+ "nets": 51,
+ "pairs": 3,
+ "secs": 0,
+ "timing": {},
+ "open": 0,
+ "open_nets": [],
+ "connected": 1,
+ "drc": 0,
+ "drc_kinds": {},
+ "thin_legal": 0,
+ "vias_in_pads": 22,
+ "vias": 80,
+ "mm": 1262,
+ "arcs": 0,
+ "others_unchanged": true,
+ "others_changed": []
+}

@@ -1,0 +1,25 @@
+{
+ "mode": "krt",
+ "bench": "zynqF.kicad_pcb",
+ "K": 18,
+ "nets": 18,
+ "pairs": 1,
+ "secs": 11,
+ "timing": {
+  "fanout": 1.2,
+  "route_diff": 3.6,
+  "route": 5.8
+ },
+ "open": 0,
+ "open_nets": [],
+ "connected": 1,
+ "drc": 0,
+ "drc_kinds": {},
+ "thin_legal": 0,
+ "vias_in_pads": 9,
+ "vias": 36,
+ "mm": 562,
+ "arcs": 0,
+ "others_unchanged": true,
+ "others_changed": []
+}

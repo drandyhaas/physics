@@ -1,0 +1,30 @@
+{
+ "mode": "krt",
+ "bench": "zynqF.kicad_pcb",
+ "K": 43,
+ "nets": 43,
+ "pairs": 2,
+ "secs": 72,
+ "timing": {
+  "fanout": 2.3,
+  "route_diff": 7.4,
+  "route": 61.8
+ },
+ "open": 1,
+ "open_nets": [
+  "DDR3_DQS1_P"
+ ],
+ "connected": 0,
+ "drc": 7,
+ "drc_kinds": {
+  "SEGMENT-SEGMENT": 6,
+  "PAD-SEGMENT": 1
+ },
+ "thin_legal": 0,
+ "vias_in_pads": 13,
+ "vias": 151,
+ "mm": 1601,
+ "arcs": 0,
+ "others_unchanged": true,
+ "others_changed": []
+}

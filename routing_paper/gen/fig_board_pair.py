@@ -12,7 +12,7 @@ import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
-KRT = os.environ.get("KRT", "/Users/andy/Documents/KiCadRoutingTools/.claude/worktrees/bus622-take5")
+KRT = os.environ.get("KRT") or sys.exit("fig_board_pair: set KRT to a KiCadRoutingTools checkout")
 sys.path.insert(0, os.path.join(KRT, "py_router"))
 import render_theme                      # noqa: E402
 from kicad_parser import parse_kicad_pcb  # noqa: E402

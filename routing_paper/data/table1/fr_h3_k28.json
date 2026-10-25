@@ -1,0 +1,31 @@
+{
+ "mode": "fr",
+ "bench": "fb_t2q_pairs.kicad_pcb",
+ "K": 28,
+ "nets": 28,
+ "pairs": 3,
+ "secs": 202,
+ "timing": {
+  "export": 0.3,
+  "freerouting": 200.7,
+  "import": 0.6
+ },
+ "open": 5,
+ "open_nets": [
+  "SCKP",
+  "SDQS1P",
+  "SODT0",
+  "SRAS",
+  "SWE"
+ ],
+ "connected": 0,
+ "drc": 0,
+ "drc_kinds": {},
+ "thin_legal": 1,
+ "vias_in_pads": 1,
+ "vias": 29,
+ "mm": 416,
+ "arcs": 0,
+ "others_unchanged": true,
+ "others_changed": []
+}

@@ -1,0 +1,21 @@
+{
+ "mode": "ours",
+ "bench": "zynqF.kicad_pcb",
+ "K": 18,
+ "nets": 18,
+ "pairs": 1,
+ "secs": 0,
+ "timing": {},
+ "open": 0,
+ "open_nets": [],
+ "connected": 1,
+ "drc": 0,
+ "drc_kinds": {},
+ "thin_legal": 0,
+ "vias_in_pads": 5,
+ "vias": 18,
+ "mm": 480,
+ "arcs": 0,
+ "others_unchanged": true,
+ "others_changed": []
+}

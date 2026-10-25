@@ -1,0 +1,30 @@
+{
+ "mode": "fr",
+ "bench": "zynqF.kicad_pcb",
+ "K": 43,
+ "nets": 43,
+ "pairs": 2,
+ "secs": 185,
+ "timing": {
+  "export": 0.9,
+  "freerouting": 183.1,
+  "import": 0.6
+ },
+ "open": 4,
+ "open_nets": [
+  "DDR3_A6",
+  "DDR3_CAS",
+  "DDR3_DQ9",
+  "DDR3_ODT"
+ ],
+ "connected": 0,
+ "drc": 0,
+ "drc_kinds": {},
+ "thin_legal": 0,
+ "vias_in_pads": 6,
+ "vias": 64,
+ "mm": 1087,
+ "arcs": 0,
+ "others_unchanged": true,
+ "others_changed": []
+}

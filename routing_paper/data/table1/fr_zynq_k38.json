@@ -1,0 +1,28 @@
+{
+ "mode": "fr",
+ "bench": "zynqF.kicad_pcb",
+ "K": 38,
+ "nets": 38,
+ "pairs": 2,
+ "secs": 141,
+ "timing": {
+  "export": 1.0,
+  "freerouting": 139.1,
+  "import": 0.7
+ },
+ "open": 2,
+ "open_nets": [
+  "DDR3_A11",
+  "DDR3_DQ9"
+ ],
+ "connected": 0,
+ "drc": 0,
+ "drc_kinds": {},
+ "thin_legal": 0,
+ "vias_in_pads": 6,
+ "vias": 58,
+ "mm": 1007,
+ "arcs": 0,
+ "others_unchanged": true,
+ "others_changed": []
+}

@@ -1,0 +1,25 @@
+{
+ "mode": "krt",
+ "bench": "fb_t2q_pairs.kicad_pcb",
+ "K": 35,
+ "nets": 35,
+ "pairs": 3,
+ "secs": 31,
+ "timing": {
+  "fanout": 0.9,
+  "route_diff": 2.9,
+  "route": 27.1
+ },
+ "open": 0,
+ "open_nets": [],
+ "connected": 1,
+ "drc": 0,
+ "drc_kinds": {},
+ "thin_legal": 0,
+ "vias_in_pads": 15,
+ "vias": 138,
+ "mm": 1340,
+ "arcs": 0,
+ "others_unchanged": true,
+ "others_changed": []
+}

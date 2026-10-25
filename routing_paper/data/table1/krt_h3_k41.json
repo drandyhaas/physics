@@ -1,0 +1,28 @@
+{
+ "mode": "krt",
+ "bench": "fb_t2q_pairs.kicad_pcb",
+ "K": 41,
+ "nets": 41,
+ "pairs": 3,
+ "secs": 41,
+ "timing": {
+  "fanout": 0.9,
+  "route_diff": 3.1,
+  "route": 37.4
+ },
+ "open": 2,
+ "open_nets": [
+  "SDQ12",
+  "SDQ15"
+ ],
+ "connected": 0,
+ "drc": 0,
+ "drc_kinds": {},
+ "thin_legal": 0,
+ "vias_in_pads": 16,
+ "vias": 254,
+ "mm": 1749,
+ "arcs": 0,
+ "others_unchanged": true,
+ "others_changed": []
+}
