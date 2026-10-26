@@ -369,10 +369,13 @@ Every stage is fed a measurement of the one before (Fig.~\ref{fig:loop}); a roun
 \caption{Vias, copper (mm), open nets and DRC violations of the run's nets on the finished board: the whole route, the toolkit's production router without the bus step (KRT chain), Freerouting 2.4.1, and the human's board, every board graded the same way.}
 \label{tab:results}
 \setlength{\tabcolsep}{3.6pt}
-\begin{tabular}{l rrrr @{\hspace{10pt}} rrrr @{\hspace{10pt}} rrrr @{\hspace{10pt}} rrrr}
+% (a rule and space between the routers, unbroken: no padding at the horizontal rules, the rows opened up instead)
+\newcommand{\rsep}{\hspace{9pt}\vrule\hspace{9pt}}
+\setlength{\aboverulesep}{0pt}\setlength{\belowrulesep}{0pt}\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{l rrrr @{\rsep} rrrr @{\rsep} rrrr @{\rsep} rrrr}
 \toprule
-& \multicolumn{4}{c}{whole route} & \multicolumn{4}{c}{KRT chain} & \multicolumn{4}{c}{Freerouting} & \multicolumn{4}{c}{human} \\
-\cmidrule(lr){2-5}\cmidrule(lr){6-9}\cmidrule(lr){10-13}\cmidrule(lr){14-17}
+& \multicolumn{4}{c@{\rsep}}{whole route} & \multicolumn{4}{c@{\rsep}}{KRT chain} & \multicolumn{4}{c@{\rsep}}{Freerouting} & \multicolumn{4}{c}{human} \\
+\cmidrule(l{4pt}r{20pt}){2-5}\cmidrule(l{4pt}r{20pt}){6-9}\cmidrule(l{4pt}r{20pt}){10-13}\cmidrule(l{4pt}r{2pt}){14-17}
 rung & vias & mm & open & DRC & vias & mm & open & DRC & vias & mm & open & DRC & vias & mm & open & DRC \\
 \midrule
 \csname @@input\endcsname figs/table1.tex % (the primitive: \input is not expandable, and a row starts \multicolumn)
@@ -398,26 +401,12 @@ The production chain completes six of the ten rungs and leaves one to four nets 
 
 \subsection{On the board itself}
 \label{sec:board}
-The Zynq bench cuts the bus out of its board at the paper's uniform sizes. The toolkit's \emph{bus step} instead routes it on the board itself, as the production chain hands the board on: planes poured on the inner layers, the board's own sizes (0.09\,mm clearance, 0.15\,mm lanes, 0.12\,mm fanout stubs, 0.45\,mm vias of 0.3\,mm drill, narrowed where a via does not fit), both arrays fanned out by the step, and the lanes on F and B, where the designer routed them. Of the 48 nets between the arrays the step takes 46 and the DDR reset, whose lane it lays between the arrays and whose pull-down's stub it leaves to the rest of the chain; it refuses the clock pair, which passes through a series termination between the arrays, and the column-address strobe, for which its fanout found no escape. The production chain and Freerouting ran on the same board, nets, layers and sizes, and every board, the human's included, was graded on the 45 nets other than the reset at 0.09\,mm (Table~\ref{tab:board}, Fig.~\ref{fig:board}). The whole route completes them in its first round, with 70 vias to the human's 105 and less copper; the production chain leaves one net open with 162 vias, and Freerouting two with 72. The smallest track and via are reported apart from DRC: to fit the arrays the production chain narrows tracks to 0.089\,mm and vias to 0.25\,mm, and the whole route some vias to 0.35\,mm.
-
-\begin{table}[t]
-\centering
-\caption{The Zynq DDR3 bus on the board itself: the 45 nets of the bus step's run other than the reset, on F and B, every board graded alike at 0.09\,mm clearance; the smallest track and via (mm) of the run's nets.}
-\label{tab:board}
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{l rrrr rr}
-\toprule
-& open & DRC & vias & mm & track & via \\
-\midrule
-\csname @@input\endcsname figs/table2.tex % (the primitive, as Table I's)
-\bottomrule
-\end{tabular}
-\end{table}
+The Zynq bench cuts the bus out of its board at the paper's uniform sizes. The toolkit's \emph{bus step} instead routes it on the board itself, as the production chain hands the board on: planes poured on the inner layers, the board's own design rules, both arrays fanned out by the step, and the lanes on F and B, where the designer routed them. Of the 48 nets between the arrays the step takes 46 and the DDR reset, whose lane it lays between the arrays and whose pull-down's stub it leaves to the rest of the chain; it refuses the clock pair, which passes through a series termination between the arrays, and the column-address strobe, for which its fanout found no escape. The production chain and Freerouting ran on the same board, nets, layers and rules, and every board, the human's included, was graded on the 45 nets other than the reset at the board's clearance (Fig.~\ref{fig:board}). The whole route completes them in its first round, with 70 vias to the human's 105 and less copper; the production chain leaves one net open and two clearance violations, with 162 vias, and Freerouting two nets open with 72.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figs/zynq_board_four.png}
-\caption{The Zynq DDR3 bus on the board itself, drawn as Fig.~\ref{fig:k51}: the whole route's bus step, the toolkit's production router, Freerouting and the human, the 45 nets graded on each, its vias and copper in its label and its open nets and DRC in Table~\ref{tab:board}. The processor is at the bottom, the DDR3 at the top.}
+\caption{The Zynq DDR3 bus on the board itself, drawn as Fig.~\ref{fig:k51}: the whole route's bus step, the toolkit's production router, Freerouting and the human, the 45 nets graded on each, its vias and copper in its label. The whole route and the human leave no net open and no DRC violation; the production chain leaves one net open and two clearance violations, Freerouting two nets open. The processor is at the bottom, the DDR3 at the top.}
 \label{fig:board}
 \end{figure*}
 

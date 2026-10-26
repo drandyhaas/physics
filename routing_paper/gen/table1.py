@@ -34,7 +34,8 @@ def main():
     for i, (lad, title, ks) in enumerate(LADDERS):
         if i:
             lines.append('\\midrule')
-        lines.append(f'\\multicolumn{{17}}{{l}}{{\\emph{{{title}}}}} \\\\')
+        # (over the rung and the first router's columns, so that the rules between the routers run unbroken)
+        lines.append(f'\\multicolumn{{5}}{{l@{{\\rsep}}}}{{\\emph{{{title}}}}}' + ' &' * 12 + ' \\\\')
         for k in ks:
             cells = [f'K{k}']
             for m in MODES:

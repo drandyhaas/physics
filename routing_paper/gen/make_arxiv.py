@@ -12,7 +12,7 @@ import tarfile
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(HERE, "arxiv")
 FILES = ["main.bbl", "figs/k51_four.png", "figs/zynq_board_four.png", "figs/lp_cartoon.tex",
-         "figs/table1.tex", "figs/table2.tex"]
+         "figs/table1.tex"]
 
 shutil.rmtree(OUT, ignore_errors=True)
 os.makedirs(os.path.join(OUT, "figs"))
