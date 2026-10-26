@@ -10,8 +10,9 @@ largely routed by hand.
 The router plans every lane of a two-layer BGA-to-BGA bus completely before
 any copper is laid, and carries the plan to finished, design-rule-clean copper.
 On two public boards, each routed by its designer, it completes every rung of
-a ladder of up to 51 nets connected and DRC-clean (every rung's first solve proved optimal), never with more vias than
-the human and always with less copper:
+a ladder of up to 51 nets -- the H3's whole bus, and 43 of the Zynq's 48 --
+connected and DRC-clean, every rung's first solve proved optimal, never with
+more vias than the human and always with less copper:
 
 | board | nets | vias: router / human | copper (mm): router / human |
 | --- | --- | --- | --- |
@@ -27,7 +28,9 @@ the human's 105, **1457** mm to 1658; the production router leaves one open with
 Run on the same benches, nets and design rules and graded the same way, the
 toolkit's own production router (without the bus step) leaves nets open on
 four of the ten rungs, with up to 4.7 times the vias, and Freerouting
-completes none (Table I, Fig. 5).
+completes none (Table I, Fig. 5). On generated buses of three, four and six
+routing layers every run completes, and every one with a known optimum attains
+it; on two layers the short channels leave nets open.
 
 ## The idea
 
@@ -45,8 +48,8 @@ decides all of them at once:
    admits exactly the orders a wiring diagram of the permutation can realize.
 2. **A linear program** places the lanes in millimeters. The constraints it
    has to break go back to the model as cuts, and an audit's findings go back as
-   negotiated congestion prices, until the plan passes every rule of the
-   production router.
+   negotiated congestion prices, until the plan passes an audit against the
+   production router's rules, or lays connected and DRC-clean.
 3. **The escapes at both arrays** are chosen by an estimate of the same
    objective, so the ends themselves are not proved best. A
    differential pair is planned as one lane with a polarity at each end, and
@@ -89,7 +92,7 @@ and those are what go back to the solve as cuts.
 | `data/board/*.json` | the four boards' grades behind Table II |
 | `gen/board_bus.py` | the Zynq bus on the board itself: the toolkit's production chain and Freerouting on the bus step's board, nets, layers and sizes, every board graded alike, Table II and Fig. 6 |
 | `data/table1/*.json` | every board's grade behind Table I (`MODE_LADDER_kK.json`; MODE `ours`, `krt`, `fr`, `human`) |
-| `data/synth_layers.tsv` | the generated buses of Sections VII-D and VII-E, one row per case and layer count |
+| `data/synth_layers.tsv` | the generated buses of Sections VII-E and VII-F, one row per case and layer count |
 | `gen/baseline_ladders.py` | runs the router repository's `awx/baseline_bench.py` on the paper's two ladders |
 | `gen/table1.py` | copies the grades into `data/table1` and writes `figs/table1.tex`; refuses a missing cell |
 | `gen/modal_synth_layers.py` | runs the router repository's `awx/synth_layers.py` on Modal, one container a case and layer count |
@@ -117,7 +120,9 @@ Every result is of the router repository,
 [KiCadRoutingTools](https://github.com/drandyhaas/KiCadRoutingTools), at
 commit **`2e319092`** (`\krtcommit` in `main.tex`). Check it out, build its
 router (`python3 build_router.py`) and build the Zynq bench by its awx
-README's "Building the zynq article" (from the board file in its `awx/boards/`).
+README's "Building the zynq article" (from the board file in its `awx/boards/`;
+the build's ladder has checkpoints 10 18 26 33 38 43 48 today, where that
+section still names an older build's 47-net ladder, and the paper takes 18 to 43).
 Then, with `KRT` that checkout:
 
 ```bash
@@ -141,8 +146,8 @@ python3 gen/board_bus.py table OUT                          # data/board and fig
 python3 gen/board_bus.py render OUT figs/zynq_board_four.png
 ```
 
-The paper's runs used an Apple M3 laptop (8 cores, 8 GB) with three rungs side
-by side, Python 3.14, OR-Tools 9.15 and SciPy 1.16; the generated buses ran on
+The paper's runs used an Apple M3 laptop (8 cores, 8 GB) with three rungs and
+the board's bus step side by side, Python 3.14, OR-Tools 9.15 and SciPy 1.16; the generated buses ran on
 Modal in KRT's own Linux image. Fig. 3 is computed here.
 
 ## Status
