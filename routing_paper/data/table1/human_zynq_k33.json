@@ -4,9 +4,9 @@
  "K": 33,
  "nets": 33,
  "pairs": 2,
- "secs": 1,
+ "secs": 2,
  "timing": {
-  "turn": 1.2
+  "turn": 1.5
  },
  "open": 0,
  "open_nets": [],

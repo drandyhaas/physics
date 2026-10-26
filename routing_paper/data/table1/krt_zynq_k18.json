@@ -4,11 +4,11 @@
  "K": 18,
  "nets": 18,
  "pairs": 1,
- "secs": 11,
+ "secs": 10,
  "timing": {
-  "fanout": 1.2,
-  "route_diff": 3.6,
-  "route": 5.8
+  "fanout": 1.1,
+  "route_diff": 3.3,
+  "route": 5.0
  },
  "open": 0,
  "open_nets": [],

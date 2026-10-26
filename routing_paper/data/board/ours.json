@@ -1,0 +1,24 @@
+{
+ "mode": "ours",
+ "nets": 45,
+ "pairs": 2,
+ "excluded": [
+  "DDR3_RESET"
+ ],
+ "open": 0,
+ "open_nets": [],
+ "connected": 1,
+ "drc": 0,
+ "drc_kinds": {},
+ "thin_legal": 0,
+ "vias_in_pads": 12,
+ "vias": 70,
+ "mm": 1457,
+ "arcs": 0,
+ "others_unchanged": null,
+ "others_changed": [],
+ "drc_size": {},
+ "min_track": 0.12,
+ "min_via": 0.35,
+ "min_drill": 0.2
+}

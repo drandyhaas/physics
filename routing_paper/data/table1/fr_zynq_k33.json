@@ -4,11 +4,11 @@
  "K": 33,
  "nets": 33,
  "pairs": 2,
- "secs": 128,
+ "secs": 87,
  "timing": {
-  "export": 1.1,
-  "freerouting": 125.8,
-  "import": 0.8
+  "export": 0.7,
+  "freerouting": 85.1,
+  "import": 0.6
  },
  "open": 13,
  "open_nets": [

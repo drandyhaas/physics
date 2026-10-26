@@ -18,7 +18,7 @@ import os
 import subprocess
 import sys
 
-COMMIT = '09a3bf3b'                    # main.tex's \krtcommit
+COMMIT = '2e319092'                    # main.tex's \krtcommit
 
 KRT = os.environ.get('KRT')
 if not KRT or not os.path.isfile(os.path.join(KRT, 'awx', 'baseline_bench.py')):

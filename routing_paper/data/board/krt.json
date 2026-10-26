@@ -1,0 +1,42 @@
+{
+ "mode": "krt",
+ "nets": 45,
+ "pairs": 2,
+ "excluded": [
+  "DDR3_RESET"
+ ],
+ "open": 1,
+ "open_nets": [
+  "DDR3_DQ9"
+ ],
+ "connected": 0,
+ "drc": 2,
+ "drc_kinds": {
+  "PAD-SEGMENT": 1,
+  "PAD-VIA": 1,
+  "TRACK-WIDTH": 129,
+  "VIA-SIZE": 32,
+  "VIA-DRILL-SIZE": 32
+ },
+ "thin_legal": 0,
+ "vias_in_pads": 19,
+ "vias": 162,
+ "mm": 1622,
+ "arcs": 0,
+ "others_unchanged": null,
+ "others_changed": [],
+ "drc_size": {
+  "TRACK-WIDTH": 129,
+  "VIA-SIZE": 32,
+  "VIA-DRILL-SIZE": 32
+ },
+ "min_track": 0.0889,
+ "min_via": 0.25,
+ "min_drill": 0.15,
+ "timing": {
+  "fanout_U1": 2.3,
+  "fanout_U2": 1.7,
+  "route_diff": 5.8,
+  "route": 68.1
+ }
+}

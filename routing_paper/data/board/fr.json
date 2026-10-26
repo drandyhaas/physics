@@ -1,0 +1,32 @@
+{
+ "mode": "fr",
+ "nets": 45,
+ "pairs": 2,
+ "excluded": [
+  "DDR3_RESET"
+ ],
+ "open": 2,
+ "open_nets": [
+  "DDR3_A7",
+  "DDR3_DQ9"
+ ],
+ "connected": 0,
+ "drc": 0,
+ "drc_kinds": {},
+ "thin_legal": 0,
+ "vias_in_pads": 0,
+ "vias": 72,
+ "mm": 1255,
+ "arcs": 0,
+ "others_unchanged": null,
+ "others_changed": [],
+ "drc_size": {},
+ "min_track": 0.15,
+ "min_via": 0.45,
+ "min_drill": 0.3,
+ "timing": {
+  "export": 0.3,
+  "freerouting": 81.6,
+  "import": 0.6
+ }
+}
