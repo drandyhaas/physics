@@ -110,8 +110,10 @@ python3 gen/table1.py                               # Table I's rows from data/t
 python3 gen/make_arxiv.py                           # the arXiv upload; needs the main.bbl the build kept
 ```
 
-arXiv compiles with pdfLaTeX and does not run BibTeX, so the upload carries
-`main.bbl`. It publishes the source, so the script strips the comment block of
+Under tectonic (XeTeX) `main.tex` switches to the OT1 font encoding, so the
+local build sets its text in the same Type 1 Times as pdfLaTeX and arXiv, and
+breaks it the same way. arXiv compiles with pdfLaTeX and does not run BibTeX, so
+the upload carries `main.bbl`, without that switch. It publishes the source, so the script strips the comment block of
 build notes and open items from the top of `main.tex`.
 
 ## Where the numbers come from

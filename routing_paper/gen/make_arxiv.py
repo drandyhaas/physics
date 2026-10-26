@@ -15,6 +15,8 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(HERE, "arxiv")
 FILES = ["main.bbl", "figs/k51_four.png", "figs/zynq_board_four.png", "figs/lp_cartoon.tex"]
 TABLE = "\\csname @@input\\endcsname figs/table1.tex"
+# the local build's font switch (XeTeX only; arXiv compiles with pdfLaTeX, which never takes it) is left out
+XETEX = ["% (a XeTeX build -- tectonic -- sets its text", "\\usepackage{iftex}", "\\ifXeTeX\\usepackage[OT1]{fontenc}\\fi"]
 
 shutil.rmtree(OUT, ignore_errors=True)
 os.makedirs(os.path.join(OUT, "figs"))
@@ -26,8 +28,10 @@ while i < len(lines) and lines[i].startswith("%"):
 rows = [ln for ln in open(os.path.join(HERE, "figs", "table1.tex")).read().split("\n") if ln and not ln.startswith("%")]
 body = []
 for ln in lines[i:]:
+    if any(ln.startswith(x) for x in XETEX):
+        continue
     body += rows if ln.startswith(TABLE) else [ln]
-assert len(body) == len(lines) - i - 1 + len(rows), "make_arxiv: Table I's input line not found exactly once"
+assert len(body) == len(lines) - i - 1 + len(rows) - len(XETEX), "make_arxiv: an expected line is not there exactly once"
 open(os.path.join(OUT, "main.tex"), "w").write("\n".join(body))
 for f in FILES:
     shutil.copy(os.path.join(HERE, f), os.path.join(OUT, f))

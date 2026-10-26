@@ -17,6 +17,9 @@
 %  - the whole route on the human's own ends (H3 K51) crashes at this commit in whole_geo (KeyError on the SCK pair),
 %    so the paper no longer reports it.
 \documentclass[journal]{IEEEtran}
+% (a XeTeX build -- tectonic -- sets its text in the Type 1 Times that pdfLaTeX and arXiv use, as they break it)
+\usepackage{iftex}
+\ifXeTeX\usepackage[OT1]{fontenc}\fi
 \usepackage[cmex10]{amsmath}
 \usepackage{amssymb}
 \usepackage{graphicx}
