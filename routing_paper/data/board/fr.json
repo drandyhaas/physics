@@ -7,16 +7,16 @@
  ],
  "open": 2,
  "open_nets": [
-  "DDR3_A7",
-  "DDR3_DQ9"
+  "DDR3_A12",
+  "DDR3_A9"
  ],
  "connected": 0,
  "drc": 0,
  "drc_kinds": {},
  "thin_legal": 0,
  "vias_in_pads": 0,
- "vias": 72,
- "mm": 1255,
+ "vias": 70,
+ "mm": 1247,
  "arcs": 0,
  "others_unchanged": null,
  "others_changed": [],
@@ -26,7 +26,7 @@
  "min_drill": 0.3,
  "timing": {
   "export": 0.3,
-  "freerouting": 81.6,
-  "import": 0.6
+  "freerouting": 162.8,
+  "import": 0.7
  }
 }

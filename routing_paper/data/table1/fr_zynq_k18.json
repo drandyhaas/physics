@@ -4,20 +4,16 @@
  "K": 18,
  "nets": 18,
  "pairs": 1,
- "secs": 84,
+ "secs": 180,
  "timing": {
   "export": 0.7,
-  "freerouting": 82.2,
-  "import": 0.6
+  "freerouting": 178.2,
+  "import": 0.3
  },
- "open": 6,
+ "open": 2,
  "open_nets": [
-  "DDR3_A0",
-  "DDR3_A1",
-  "DDR3_A3",
   "DDR3_DQ2",
-  "DDR3_DQ9",
-  "DDR3_DQS0_P"
+  "DDR3_DQ9"
  ],
  "connected": 0,
  "drc": 0,
@@ -25,7 +21,7 @@
  "thin_legal": 0,
  "vias_in_pads": 2,
  "vias": 20,
- "mm": 307,
+ "mm": 395,
  "arcs": 0,
  "others_unchanged": true,
  "others_changed": []

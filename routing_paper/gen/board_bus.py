@@ -11,7 +11,7 @@ MODE:
   krt    the production chain on PLANES (KRT/awx/tmp/zynq/planes.kicad_pcb, the awx README's recipe): bga_fanout at
          U1 and at U2 for the run's nets (no plane drops, as the bus step lays none), route_diff on its pairs, route.py
          on its singles -- every step on F.Cu and B.Cu, at the bus step's sizes, every net class set to them
-  fr     Freerouting 2.4.1 with its defaults on PLANES, the run's nets only (KRT/awx/baseline_freerouting.py), its
+  fr     Freerouting 2.4.1 with its defaults but its clearance-violation charge (below) on PLANES, the run's nets only (KRT/awx/baseline_freerouting.py), its
          inner layers marked as power planes in its own copy so that it routes on F.Cu and B.Cu as the others do
   grade  every board -- OUTROOT/ours/bus.kicad_pcb (--bus), krt/route.kicad_pcb, fr/out.kicad_pcb and the designer's
          board -- graded on the run's nets under ONE project, PLANES's with every net class at the bus step's sizes:
@@ -32,6 +32,11 @@ KRT = os.environ.get('KRT')
 if not KRT or not os.path.isfile(os.path.join(KRT, 'awx', 'baseline_bench.py')):
     sys.exit('board_bus: set KRT to a KiCadRoutingTools checkout')
 AWX = os.path.join(os.path.abspath(KRT), 'awx')
+# Freerouting's score charges a clearance violation 1e6 against 5e6 an unrouted connection and stops its autorouter
+# after ten passes without a gain. Under its octagonal shapes the bench's FIXED copper, legal at the board's
+# clearance, reads as about a hundred violations it can never remove, which pin a small run's score at zero, so it
+# stopped early (gen/baseline_ladders.py); the paper runs it with that charge at 1e3
+os.environ.setdefault('FREEROUTING__ROUTER__SCORING__CLEARANCE_VIOLATION_PENALTY', '1000')
 PYR = os.path.join(os.path.abspath(KRT), 'py_router')
 sys.path.insert(0, AWX)
 sys.path.insert(0, PYR)
@@ -68,6 +73,34 @@ def run(log, argv):
         rc = subprocess.run(argv, cwd=AWX, stdout=f, stderr=subprocess.STDOUT).returncode
     return rc, round(time.time() - t, 1)
 
+
+
+def relabel(png, labs):
+    """baseline_render's one row of panels (its --cols, unlabelled) given a taller band above it and a label of two
+    lines over each panel. Its layout, read back from the image: each panel w x h under a band of int(0.08 h), the
+    panels int(0.03 w) apart, its font int(0.05 h) high"""
+    from PIL import Image, ImageDraw, ImageFont
+    import baseline_render as br
+    img = Image.open(png)
+    W, H = img.size
+    k = len(labs)
+    w = next(w for w in range(W // k, 0, -1) if k * w + (k - 1) * int(w * 0.03) <= W)
+    h = next(h for h in range(H, 0, -1) if h + int(h * 0.08) <= H)
+    top, gap = H - h, int(w * 0.03)
+    font = next((ImageFont.truetype(f, int(h * 0.05)) for f in br.FONTS if br._has_font(ImageFont, f)),
+                ImageFont.load_default())
+    line = int(h * 0.06)
+    band = int(top * 0.15) + 2 * line + int(top * 0.15)
+    out = Image.new('RGB', (W, h + band), (255, 255, 255))
+    out.paste(img.crop((0, top, W, H)), (0, band))
+    d = ImageDraw.Draw(out)
+    for i, (a, b) in enumerate(labs):
+        x = i * (w + gap) + int(w * 0.01)
+        d.text((x, int(top * 0.15)), a, fill=(0, 0, 0), font=font)
+        if b:
+            d.text((x, int(top * 0.15) + line), b, fill=(0, 0, 0), font=font)
+    out.save(png)
+    print('relabelled', png, out.size)
 
 def main():
     mode, root = sys.argv[1], os.path.abspath(sys.argv[2])
@@ -173,18 +206,22 @@ def main():
         print(f'wrote {data}')
         return
     elif mode == 'render':
-        # the four boards drawn alike (KRT's awx/baseline_render.py, as Fig. 5), labelled from their grades
+        # the four boards drawn alike (KRT's awx/baseline_render.py, as Fig. 6), labelled from their grades: its vias
+        # and copper, and below them its open nets and DRC where any. Portrait panels in one row leave room for one
+        # line of the renderer's own label, so it draws none and the labels are drawn here, in a taller band
         png = os.path.abspath(sys.argv[3])
         names = (('ours', 'whole route'), ('krt', 'KRT chain'), ('fr', 'Freerouting'), ('human', 'human'))
-        items = []
+        items, labs = [], []
         for m, name in names:
             r = json.load(open(os.path.join(root, m, 'result.json')))
-            # (portrait panels in one row: the label its vias and copper, its open nets and DRC in the caption)
-            lab = f"{name}: {r['vias']} vias, {r['mm']} mm"
-            items.append(f"{lab}={os.path.join(root, m, 'graded.kicad_pcb')}")
+            labs.append((f"{name}: {r['vias']} vias, {r['mm']} mm",
+                         ', '.join(x for x in (f"{r['open']} open" if r['open'] else '',
+                                               f"{r['drc']} DRC" if r['drc'] else '') if x)))
+            items.append(f"={os.path.join(root, m, 'graded.kicad_pcb')}")
         graded = [n for n in nets if n not in EXCLUDE]
         subprocess.run([sys.executable, os.path.join(AWX, 'baseline_render.py'), png, ','.join(graded)] + items +
                        ['--no-others', '--cols', '4'], cwd=AWX, check=True)
+        relabel(png, labs)
         return
     else:
         sys.exit(f'board_bus: unknown mode {mode}')

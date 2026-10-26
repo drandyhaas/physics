@@ -6,7 +6,7 @@
 With OUTROOT (baseline_ladders.py's, each rung's grade in OUTROOT/MODE_TAG/result.json), the grades are copied into
 data/table1/MODE_TAG.json first; without it, the table is written from data/table1 alone. Writes figs/table1.tex (the
 tabular's body, \\input by main.tex) and refuses a rung any of the four routers has no grade for, so the paper cannot
-quote a cell no run produced.
+quote a cell no run produced. The Zynq's last row, 'Full', is its bus on its own board, from data/board (gen/board_bus.py).
 """
 import json
 import os
@@ -47,6 +47,17 @@ def main():
                 r = json.load(open(p))
                 cells += [str(r['vias']), str(r['mm']), str(r['open']), str(r['drc'])]
             lines.append(' & '.join(cells) + ' \\\\')
+    # ...and, last in the Zynq's rows, its bus on its own board ('Full')
+    cells = []
+    for m in MODES:
+        p = os.path.join(ROOT, 'data', 'board', f'{m}.json')
+        if not os.path.isfile(p):
+            missing.append(f'board {m}')
+            cells += ['?'] * 4
+            continue
+        r = json.load(open(p))
+        cells += [str(r['vias']), str(r['mm']), str(r['open']), str(r['drc'])]
+    lines.append(' & '.join(['Full'] + cells) + ' \\\\')
     if missing:
         sys.exit('table1: no grade for ' + ', '.join(missing))
     out = os.path.join(ROOT, 'figs', 'table1.tex')
