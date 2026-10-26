@@ -10,7 +10,7 @@ largely routed by hand.
 The router plans every lane of a two-layer BGA-to-BGA bus completely before
 any copper is laid, and carries the plan to finished, design-rule-clean copper.
 On two public boards, each routed by its designer, it completes every rung of
-a ladder of up to 51 nets -- the H3's whole bus, and 43 of the Zynq's 48 --
+two ladders, of up to 51 nets on the H3 (its whole bus) and 43 on the Zynq,
 connected and DRC-clean, every rung's first solve proved optimal, never with
 more vias than the human and always with less copper:
 
