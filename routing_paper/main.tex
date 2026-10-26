@@ -2,8 +2,9 @@
 % Design of Integrated Circuits and Systems (IEEEtran journal).
 % Build: tectonic -X compile --keep-intermediates main.tex   (or pdflatex, bibtex, pdflatex, pdflatex).
 % Generated figures: figs/lp_cartoon.tex by python3 gen/lp_cartoon.py (a toy of the geometry LP, solved, drawn with
-% its real offsets and dual values); figs/k51_four.png and figs/zynq_k43_four.png by gen/baseline_ladders.py
-% (KiCadRoutingTools' awx/baseline_bench.py) render OUTROOT DIR --tags h3_k51 zynq_k43 --no-others (the four boards drawn alike), and
+% its real offsets and dual values); figs/k51_four.png by gen/baseline_ladders.py (KiCadRoutingTools'
+% awx/baseline_bench.py) render OUTROOT DIR --tags h3_k51 --no-others (the four boards drawn alike);
+% figs/zynq_board_four.png by gen/board_bus.py render; and
 % Table I's rows (figs/table1.tex) by gen/table1.py from the grades in data/table1, which gen/baseline_ladders.py wrote;
 % gen/modal_synth_layers.py the generated buses of Sections VII-D and VII-E. Every result is of KiCadRoutingTools
 % commit \krtcommit (below).
@@ -318,13 +319,6 @@ rung & vias & mm & open & DRC & vias & mm & open & DRC & vias & mm & open & DRC 
 \end{tabular}
 \end{table*}
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figs/zynq_k43_four.png}
-\caption{The 43-net Zynq rung, drawn as Fig.~\ref{fig:k51} (its two strobe pairs orange), in the bench's frame (the human's board turned with it). Much of the human's copper is length-matching meanders.}
-\label{fig:zynq43}
-\end{figure*}
-
 \section{Results}
 \label{sec:results}
 \subsection{Benches and grading}
@@ -334,7 +328,7 @@ rung & vias & mm & open & DRC & vias & mm & open & DRC & vias & mm & open & DRC 
 Each result is written as a board and graded independently: connectivity of every bus net, DRC at the board's clearance of 0.1\,mm, and a census of every via and millimeter of the run's nets, stubs included. The other routers' boards and the human's are graded the same way; the human's copper includes length-matching meanders, which add copper but no vias. Runs used CP-SAT from OR-Tools 9.15 and HiGHS through SciPy 1.16, on Python 3.14, on an Apple M3 laptop (8 cores, 8\,GB), at the toolkit's commit \texttt{\krtcommit}.
 
 \subsection{Against the human}
-Table~\ref{tab:results} gives every rung of both ladders on our own ends. Every rung routes every lane in its band at once, every net connected, DRC-clean, never with more vias than the human and always with less copper; every rung but H3 K28 and K35, whose first fanout the fanout's own audit refused, does so in its first fanout round. At the top of the H3 ladder the route uses 80 vias to the human's 88 (Fig.~\ref{fig:k51}); on the Zynq, 62 to 100 (Fig.~\ref{fig:zynq43}). Part of the copper difference is the human's length matching.
+Table~\ref{tab:results} gives every rung of both ladders on our own ends. Every rung routes every lane in its band at once, every net connected, DRC-clean, never with more vias than the human and always with less copper; every rung but H3 K28 and K35, whose first fanout the fanout's own audit refused, does so in its first fanout round. At the top of the H3 ladder the route uses 80 vias to the human's 88 (Fig.~\ref{fig:k51}); on the Zynq, 62 to 100. Part of the copper difference is the human's length matching.
 
 \subsection{Against other routers}
 Two other routers ran on the same benches, nets and design rules, and their boards were graded the same way (Table~\ref{tab:results}): the production chain of the toolkit the whole route belongs to~\cite{krt}, without the bus step---its BGA fanout at the destination, its differential-pair router and its negotiated A* router---and Freerouting 2.4.1~\cite{freerouting}, an open-source autorouter, with its default settings (its own BGA fanout and optimizer included), through KiCad's Specctra export. Freerouting routes each leg of a differential pair as an independent net.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""baseline_ladders.py -- Table I and Figs. 5-6: KiCadRoutingTools' awx/baseline_bench.py on the paper's two ladders.
+"""baseline_ladders.py -- Table I and Fig. 5: KiCadRoutingTools' awx/baseline_bench.py on the paper's two ladders.
 
   KRT=/path/to/KiCadRoutingTools python3 gen/baseline_ladders.py ARGS...   (ARGS as baseline_bench.py takes them)
 

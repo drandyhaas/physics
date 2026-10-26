@@ -178,7 +178,7 @@ def main():
         print(f'wrote {out_}')
         return
     elif mode == 'render':
-        # the four boards drawn alike (KRT's awx/baseline_render.py, as Figs. 5 and 6), labelled from their grades
+        # the four boards drawn alike (KRT's awx/baseline_render.py, as Fig. 5), labelled from their grades
         png = os.path.abspath(sys.argv[3])
         names = (('ours', 'whole route'), ('krt', 'KRT chain'), ('fr', 'Freerouting'), ('human', 'human'))
         items = []
